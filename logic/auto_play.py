@@ -28,8 +28,6 @@ class AutoPlay:
     async def loop(self):
         logger.info("Vòng lặp Tự động chơi đang chạy...")
 
-        await Service.gI().request_change_zone(1, -1)
-
         while self.interval:
             try:
                 await self.tansat()
