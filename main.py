@@ -1,22 +1,22 @@
 import asyncio
-import logging
 from network.session import Session
 from network.message import Message
 from network.service import Service
 from config import Config
 from controller import Controller
 from cmd import Cmd
+from logs.logger_config import logger 
 
 # --- Cấu hình Logging ---
 # Đặt True để xem log chi tiết (DEBUG), đặt False để xem log quan trọng (INFO)
-VERBOSE_LOGGING = False 
+VERBOSE_LOGGING = True 
 
-if VERBOSE_LOGGING:
-    logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s] %(message)s')
-else:
-    logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
+# if VERBOSE_LOGGING:
+#     logger.basicConfig(level=logger.DEBUG, format='[%(levelname)s] %(message)s')
+# else:
+#     logger.basicConfig(level=logger.INFO, format='[%(levelname)s] %(message)s')
 
-logger = logging.getLogger(__name__)
+# logger = logger.getLogger(__name__)
 
 async def main():
     controller = Controller()
@@ -29,7 +29,7 @@ async def main():
     await asyncio.sleep(1)
 
     if session.connected:
-        logger.info("Sending Client Info (setClientType)...")
+        logger.info("Gửi Thông tin đăng nhập tới server")
         
         # 1. Send setClientType (Cmd -29, SubCmd 2)
         # Service.cs: setClientType()
@@ -49,21 +49,21 @@ async def main():
         
         await asyncio.sleep(0.5)
 
-        logger.info("Sending Android Pack (Cmd 126)...")
+        logger.info("Gửi gói tin androi (Cmd 126)...")
         msg_pack = Message(126) # Cmd.ANDROID_PACK
         msg_pack.writer().write_utf("") # Empty pack name
         await session.send_message(msg_pack)
 
         await asyncio.sleep(0.5) # Short delay
 
-        logger.info("Sending Login Packet...")
+        logger.info("Gửi gói tin đăng nhập")
         
         # 2. Send Login (Cmd -29, SubCmd 0)
         msg_login = Message(Cmd.NOT_LOGIN)
         writer = msg_login.writer()
         writer.write_byte(0)              # sub-command LOGIN
-        writer.write_utf("poopooi01")     # Username
-        writer.write_utf("02082003")      # Password
+        writer.write_utf(Config.UerName)     # Username
+        writer.write_utf(Config.PassWord)      # Password
         writer.write_utf(Config.VERSION)  # Version
         writer.write_byte(1)              # Type (1 for isLogin2/Standard)
         

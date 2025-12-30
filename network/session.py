@@ -21,27 +21,27 @@ class Session:
 
     async def connect(self, host: str, port: int):
         try:
-            logger.info(f"Connecting to {host}:{port}...")
+            logger.info(f"Đang kết nối tới {host}:{port}...")
             self.reader, self.writer = await asyncio.open_connection(host, port)
             self.connected = True
-            logger.info("Connected!")
+            logger.info("Đã kết nối!")
             
-            # Start listening loop
+            # Bắt đầu vòng lặp lắng nghe
             asyncio.create_task(self.listen())
             
-            # In C#, it sends a Message(-27) immediately after connect?
+            # Trong C#, nó gửi một Message(-27) ngay sau khi kết nối?
             # Session_ME.cs: doSendMessage(new Message(-27));
-            # Note: This message likely triggers the key exchange from the server?
-            # Or the server sends the key first?
-            # Looking at Session_ME.cs: 
+            # Lưu ý: Tin nhắn này có khả năng kích hoạt việc trao đổi khóa từ máy chủ?
+            # Hoặc máy chủ gửi khóa trước?
+            # Xem Session_ME.cs: 
             # "doConnect... connecting = false; doSendMessage(new Message(-27));"
-            # It seems the client initiates the handshake packet.
+            # Có vẻ như client là phía khởi tạo gói tin bắt tay (handshake).
             
             msg = Message(-27)
             await self.send_message(msg)
 
         except Exception as e:
-            logger.error(f"Connection failed: {e}")
+            logger.error(f"Kết nối thất bại: {e}")
             self.connected = False
 
     async def send_message(self, msg: Message):
@@ -51,7 +51,7 @@ class Session:
         command = msg.command
         payload = msg.get_data()
         
-        logger.debug(f"Preparing MSG: {command}, Payload Len: {len(payload)}")
+        logger.debug(f"Đang chuẩn bị MSG: {command}, Độ dài Payload: {len(payload)}")
         
         buffer = bytearray()
 
@@ -71,54 +71,54 @@ class Session:
             buffer.extend(struct.pack('>H', length))
             buffer.extend(payload)
 
-        # HEX LOGGING
-        logger.debug(f"SEND [Encrypted={self.get_key_complete}][W_Index={self.cur_w}]: {buffer.hex()}")
+        # GHI NHẬT KÝ HEX
+        logger.debug(f"GỬI [Mã hóa={self.get_key_complete}][Chỉ mục_W={self.cur_w}]: {buffer.hex()}")
 
         self.writer.write(buffer)
         await self.writer.drain()
-        logger.info(f"Sent Message: {command}, Length: {length} bytes")
+        logger.info(f"Đã gửi tin nhắn: {command}, Độ dài: {length} bytes")
 
     async def listen(self):
-        logger.info("Listening for messages...")
+        logger.info("Đang lắng nghe tin nhắn...")
         while self.connected:
             try:
-                # Read Command
+                # Đọc lệnh (Command)
                 cmd_raw = await self.reader.readexactly(1)
                 cmd = struct.unpack('>b', cmd_raw)[0]
                 
-                # Debug RAW
-                logger.debug(f"RECV BYTE (CMD): {cmd_raw.hex()}")
+                # Gỡ lỗi dữ liệu thô (RAW)
+                logger.debug(f"NHẬN BYTE (CMD): {cmd_raw.hex()}")
 
                 if self.get_key_complete:
                     cmd = self.read_key(cmd)
                     if cmd > 127: cmd -= 256
                 
-                logger.debug(f"Decrypted CMD: {cmd}")
+                logger.debug(f"Lệnh sau khi giải mã (Decrypted CMD): {cmd}")
 
-                # Read Length
+                # Đọc độ dài (Length)
                 length = 0
                 if cmd in [-32, -66, 11, -67, -74, -87, 66]:
-                    logger.debug("Reading Big Packet Length...")
+                    logger.debug("Đang đọc độ dài gói tin lớn (Big Packet)...")
                     if self.get_key_complete:
                         b1_raw = await self.reader.readexactly(1)
                         b1_u = self.read_key(struct.unpack('B', b1_raw)[0])
                         b1 = (b1_u - 256 if b1_u > 127 else b1_u) + 128
-                        logger.debug(f"Len Byte 1: {b1_u} -> {b1}")
+                        logger.debug(f"Độ dài Byte 1: {b1_u} -> {b1}")
                         
                         b2_raw = await self.reader.readexactly(1)
                         b2_u = self.read_key(struct.unpack('B', b2_raw)[0])
                         b2 = (b2_u - 256 if b2_u > 127 else b2_u) + 128
-                        logger.debug(f"Len Byte 2: {b2_u} -> {b2}")
+                        logger.debug(f"Độ dài Byte 2: {b2_u} -> {b2}")
                         
                         b3_raw = await self.reader.readexactly(1)
                         b3_u = self.read_key(struct.unpack('B', b3_raw)[0])
                         b3 = (b3_u - 256 if b3_u > 127 else b3_u) + 128
-                        logger.debug(f"Len Byte 3: {b3_u} -> {b3}")
+                        logger.debug(f"Độ dài Byte 3: {b3_u} -> {b3}")
                         
                         length = (b3 * 65536) + (b2 * 256) + b1
                     else:
                         pass 
-                    logger.debug(f"Big Packet Length: {length}")
+                    logger.debug(f"Độ dài gói tin lớn: {length}")
                 elif self.get_key_complete:
                     b1_raw = await self.reader.readexactly(1)
                     b2_raw = await self.reader.readexactly(1)
@@ -129,11 +129,11 @@ class Session:
                     len_raw = await self.reader.readexactly(2)
                     length = struct.unpack('>H', len_raw)[0]
 
-                # Read Payload
+                # Đọc dữ liệu tải (Payload)
                 if length > 0:
-                    logger.debug(f"Reading Payload of size {length}...")
+                    logger.debug(f"Đang đọc Payload kích thước {length}...")
                     payload_raw = await self.reader.readexactly(length)
-                    logger.debug("Payload read complete.")
+                    logger.debug("Đã đọc xong Payload.")
                     if self.get_key_complete:
                         decrypted = bytearray()
                         for b in payload_raw:
@@ -144,36 +144,36 @@ class Session:
                 else:
                     payload = b""
 
-                logger.debug(f"RECV MSG (Raw): {cmd}, Len: {length}, Payload: {payload_raw.hex()}")
+                logger.debug(f"NHẬN MSG (Thô): {cmd}, Dài: {length}, Payload: {payload_raw.hex()}")
                 
                 msg = Message(cmd, payload)
                 await self.on_message(msg)
 
             except asyncio.IncompleteReadError:
-                logger.error("Connection closed by server (IncompleteReadError).")
+                logger.error("Kết nối đã bị đóng bởi máy chủ (IncompleteReadError).")
                 self.connected = False
                 break
             except Exception as e:
-                logger.error(f"Error in listen loop: {e}")
+                logger.error(f"Lỗi trong vòng lặp lắng nghe: {e}")
                 import traceback
                 traceback.print_exc()
                 self.connected = False
                 break
 
     async def on_message(self, msg: Message):
-        # Filter noise/resource commands
+        # Lọc các lệnh tài nguyên/nhiễu
         if msg.command in [Cmd.GET_IMG_BY_NAME, Cmd.GET_IMAGE_SOURCE]:
-            logger.debug(f"Ignored Resource Message: {msg.command}, Length: {len(msg.get_data())}")
+            logger.debug(f"Đã bỏ qua tin nhắn tài nguyên: {msg.command}, Độ dài: {len(msg.get_data())}")
             return
 
-        logger.info(f"Received Message: {msg.command}")
+        logger.info(f"Đã nhận tin nhắn: {msg.command}")
         
         if msg.command == Cmd.GET_SESSION_ID: # -27
             self.process_key_message(msg)
         elif self.controller:
             self.controller.on_message(msg)
         else:
-            # Handle other messages
+            # Xử lý các tin nhắn khác
             pass
 
     def process_key_message(self, msg: Message):
@@ -182,34 +182,34 @@ class Session:
             key_len = reader.read_byte() 
             self.key = bytearray(reader.read_bytes(key_len))
             
-            # Key Derivation: key[i+1] ^= key[i]
+            # Tính toán Khóa (Key Derivation): key[i+1] ^= key[i]
             for i in range(len(self.key) - 1):
                 self.key[i + 1] ^= self.key[i]
             
             self.get_key_complete = True
-            logger.info("Key exchange complete. Encryption enabled.")
+            logger.info("Hoàn tất trao đổi khóa. Đã kích hoạt mã hóa.")
 
-            # Read remaining handshake data (Session_ME.cs getKey)
+            # Đọc dữ liệu bắt tay còn lại (Session_ME.cs getKey)
             if reader.available() > 0:
                 try:
                     ip2 = reader.read_utf()
                     port2 = reader.read_int()
                     is_connect2 = reader.read_bool()
-                    logger.info(f"Handshake Extra Info - IP2: {ip2}, Port2: {port2}, Connect2: {is_connect2}")
+                    logger.info(f"Thông tin bổ sung bắt tay - IP2: {ip2}, Cổng2: {port2}, Kết nối2: {is_connect2}")
                 except Exception as e:
-                    logger.warning(f"Could not read extra handshake info: {e}")
+                    logger.warning(f"Không thể đọc thông tin bổ sung bắt tay: {e}")
             else:
-                logger.debug("No extra handshake info available.")
+                logger.debug("Không có thông tin bổ sung bắt tay.")
 
         except Exception as e:
-            logger.error(f"Failed to process key: {e}")
+            logger.error(f"Xử lý khóa thất bại: {e}")
 
     def read_key(self, b: int) -> int:
-        # b is expected to be 0-255 (unsigned byte from wire)
-        # key bytes are signed sbyte in C#, but here we treat as 0-255
+        # b được mong đợi là từ 0-255 (unsigned byte nhận từ mạng)
+        # các byte khóa là signed sbyte trong C#, nhưng ở đây chúng ta xử lý như 0-255
         
         # C#: (sbyte)((array[num] & 0xFF) ^ (b & 0xFF))
-        # Logic: XOR the byte with current key byte
+        # Logic: XOR byte hiện tại với byte khóa hiện tại
         
         k = self.key[self.cur_r]
         result = (k & 0xFF) ^ (b & 0xFF)
@@ -221,7 +221,7 @@ class Session:
         return result
 
     def write_key(self, b: int) -> int:
-        # b can be signed or unsigned, we only care about bits
+        # b có thể là có dấu hoặc không dấu, chúng ta chỉ quan tâm đến các bit
         k = self.key[self.cur_w]
         result = (k & 0xFF) ^ (b & 0xFF)
         

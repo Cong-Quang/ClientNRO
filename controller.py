@@ -1,4 +1,4 @@
-import logging
+from logs.logger_config import logger 
 import asyncio
 from network.message import Message
 from cmd import Cmd
@@ -7,13 +7,13 @@ from model.map_objects import TileMap, Waypoint
 from services.movement import MovementService
 from logic.auto_play import AutoPlay
 
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
 class Controller:
     def __init__(self):
-        self.char_info = {} # Placeholder for character data
-        self.map_info = {} # Placeholder for map data
-        self.mobs = {} # Stores mob information
+        self.char_info = {} # Nơi lưu trữ dữ liệu nhân vật
+        self.map_info = {} # Nơi lưu trữ dữ liệu bản đồ
+        self.mobs = {} # Lưu trữ thông tin quái vật
         self.tile_map = TileMap()
         self.movement = MovementService(self)
         self.auto_play = AutoPlay(self)
@@ -26,12 +26,12 @@ class Controller:
                 self.message_not_login(msg)
             elif cmd == Cmd.NOT_MAP: # -28
                 self.message_not_map(msg)
-            elif cmd == Cmd.GET_SESSION_ID: # -27 (Handshake - already processed in Session)
+            elif cmd == Cmd.GET_SESSION_ID: # -27 (Bắt tay - đã được xử lý trong Session)
                 pass
-            elif cmd == Cmd.ANDROID_PACK: # 126 (Sent by client, server response often minimal)
-                logger.info(f"Received ANDROID_PACK response (Cmd {cmd}).")
+            elif cmd == Cmd.ANDROID_PACK: # 126 (Gửi bởi client, phản hồi của server thường rất ít)
+                logger.info(f"Đã nhận được phản hồi ANDROID_PACK (Cmd {cmd}).")
             elif cmd == Cmd.SPEACIAL_SKILL: # 112
-                # Example: Reads information about character's special skills
+                # Ví dụ: Đọc thông tin về các kỹ năng đặc biệt của nhân vật
                 self.process_special_skill(msg)
             elif cmd == Cmd.ME_LOAD_POINT: # -42
                 self.process_me_load_point(msg)
@@ -44,18 +44,18 @@ class Controller:
             elif cmd == Cmd.BAG: # -36
                 self.process_bag_info(msg)
             elif cmd == Cmd.ITEM_BACKGROUND: # -31
-                # Resource. Not parsing in detail yet.
-                logger.info(f"Received ITEM_BACKGROUND (Cmd {cmd}), Length: {len(msg.get_data())}")
+                # Tài nguyên. Hiện chưa phân tích chi tiết.
+                logger.info(f"Đã nhận ITEM_BACKGROUND (Cmd {cmd}), Độ dài: {len(msg.get_data())}")
             elif cmd == Cmd.BGITEM_VERSION: # -93
-                # Resource. Not parsing in detail yet.
-                logger.info(f"Received BGITEM_VERSION (Cmd {cmd}), Length: {len(msg.get_data())}")
+                # Tài nguyên. Hiện chưa phân tích chi tiết.
+                logger.info(f"Đã nhận BGITEM_VERSION (Cmd {cmd}), Độ dài: {len(msg.get_data())}")
             elif cmd == Cmd.TILE_SET: # -82
-                # Resource. Not parsing in detail yet.
-                logger.info(f"Received TILE_SET (Cmd {cmd}), Length: {len(msg.get_data())}")
+                # Tài nguyên. Hiện chưa phân tích chi tiết.
+                logger.info(f"Đã nhận TILE_SET (Cmd {cmd}), Độ dài: {len(msg.get_data())}")
             elif cmd == Cmd.MOB_ME_UPDATE: # -95
-                 logger.info(f"Received MOB_ME_UPDATE (Cmd {cmd}).")
+                 logger.info(f"Đã nhận MOB_ME_UPDATE (Cmd {cmd}).")
             elif cmd == Cmd.UPDATE_COOLDOWN: # -94
-                 logger.info(f"Received UPDATE_COOLDOWN (Cmd {cmd}).")
+                 logger.info(f"Đã nhận UPDATE_COOLDOWN (Cmd {cmd}).")
             elif cmd == Cmd.PLAYER_ADD: # -5
                 self.process_player_add(msg)
             elif cmd == Cmd.PLAYER_MOVE: # -7
@@ -68,12 +68,12 @@ class Controller:
                 self.process_message_time(msg)
             elif cmd == Cmd.NPC_CHAT: # 124
                 self.process_npc_chat(msg)
-            elif cmd == Cmd.SUB_COMMAND: # -30 (often subcommands inside)
+            elif cmd == Cmd.SUB_COMMAND: # -30 (thường chứa các lệnh phụ bên trong)
                 self.process_sub_command(msg)
             elif cmd == Cmd.CHANGE_FLAG: # -103
                 self.process_change_flag(msg)
             elif cmd == Cmd.ME_BACK: # -15
-                logger.info(f"Received ME_BACK (Cmd {cmd}).")
+                logger.info(f"Đã nhận ME_BACK (Cmd {cmd}).")
             elif cmd == Cmd.PLAYER_ATTACK_NPC: # 54
                 self.process_player_attack_npc(msg)
             elif cmd == Cmd.PLAYER_DIE: # -8
@@ -101,11 +101,11 @@ class Controller:
             elif cmd == Cmd.THELUC: # -119
                 self.process_the_luc(msg)
             elif cmd == Cmd.MAP_CLEAR: # -22
-                logger.info(f"Received MAP_CLEAR (Cmd {cmd}).")
+                logger.info(f"Đã nhận MAP_CLEAR (Cmd {cmd}).")
             else:
-                logger.info(f"Received Unhandled Command: {cmd}, Payload Len: {len(msg.get_data())}, Hex: {msg.get_data().hex()}")
+                logger.info(f"Đã nhận lệnh chưa được xử lý: {cmd}, Payload Len: {len(msg.get_data())}, Hex: {msg.get_data().hex()}")
         except Exception as e:
-            logger.error(f"Error handling message {msg.command}: {e}")
+            logger.error(f"Lỗi xử lý tin nhắn {msg.command}: {e}")
             import traceback
             traceback.print_exc()
 
@@ -113,11 +113,11 @@ class Controller:
         try:
             reader = msg.reader()
             sub_cmd = reader.read_byte()
-            logger.info(f"NOT_LOGIN sub-command: {sub_cmd}")
+            logger.info(f"Lệnh phụ NOT_LOGIN: {sub_cmd}")
             
-            if sub_cmd == 2: # CLIENT_INFO / Server List Response
+            if sub_cmd == 2: # CLIENT_INFO / Phản hồi danh sách máy chủ
                 server_list_str = reader.read_utf()
-                logger.info(f"Received Server List/Link Info: {server_list_str}")
+                logger.info(f"Đã nhận được danh sách máy chủ/thông tin liên kết: {server_list_str}")
                 
                 try:
                     servers = server_list_str.split(',')
@@ -130,41 +130,41 @@ class Controller:
                             server_port = int(parts[2])
                             parsed_servers.append({'name': server_name, 'ip': server_ip, 'port': server_port})
                     if parsed_servers:
-                        logger.info(f"Parsed Server List: {parsed_servers}")
+                        logger.info(f"Danh sách máy chủ đã phân tích: {parsed_servers}")
                     else:
-                        logger.warning(f"Failed to parse server list: {server_list_str}")
+                        logger.warning(f"Không thể phân tích danh sách máy chủ: {server_list_str}")
 
-                    # Check for CanNapTien and AdminLink (as per C#)
+                    # Kiểm tra CanNapTien và AdminLink (theo C#)
                     if reader.available() > 0:
                         can_nap_tien_byte = reader.read_byte()
                         can_nap_tien = (can_nap_tien_byte == 1)
-                        logger.info(f"Can Nap Tien: {can_nap_tien}")
+                        logger.info(f"Admin: {can_nap_tien}")
                         
                         if reader.available() > 0:
                             admin_link_byte = reader.read_byte()
-                            admin_link = admin_link_byte # C# used sbyte for this
+                            admin_link = admin_link_byte # C# dùng sbyte cho trường này
                             logger.info(f"Admin Link: {admin_link}")
 
                 except Exception as parse_e:
-                    logger.warning(f"Error parsing full server list message: {parse_e}")
+                    logger.warning(f"Lỗi khi phân tích thông báo danh sách máy chủ đầy đủ: {parse_e}")
 
 
             elif sub_cmd == Cmd.LOGINFAIL: # -102
                 reason = reader.read_utf()
-                logger.error(f"Login Failed: {reason}")
+                logger.error(f"Đăng nhập thất bại: {reason}")
                 
             elif sub_cmd == Cmd.LOGIN_DE: # 122
-                logger.info("Login DE received (Session/User info might be here).")
+                logger.info("Đăng nhập DE đã được xác nhận (Thông tin phiên/người dùng có thể nằm ở đây).")
             
-            elif sub_cmd == Cmd.LOGIN: # 0 (Usually implies success if receiving data?)
-                logger.info("NOT_LOGIN sub-command 0 received. (Login/Character data expected).")
-                # Need further analysis of C# Controller.messageNotLogin for sub 0
+            elif sub_cmd == Cmd.LOGIN: # 0 (Thường ám chỉ thành công nếu nhận được dữ liệu?)
+                logger.info("Đã nhận lệnh phụ NOT_LOGIN 0. (Dữ liệu đăng nhập/nhân vật đang chờ xử lý).")
+                # Cần phân tích thêm C# Controller.messageNotLogin cho sub 0
                 
             else:
-                logger.info(f"Received unhandled NOT_LOGIN sub-command: {sub_cmd}, Payload Hex: {msg.get_data().hex()}")
+                logger.info(f"Đã nhận được lệnh phụ NOT_LOGIN chưa được xử lý: {sub_cmd}, Payload Hex: {msg.get_data().hex()}")
                 
         except Exception as e:
-            logger.error(f"Error parsing NOT_LOGIN: {e}")
+            logger.error(f"Lỗi khi phân tích cú pháp NOT_LOGIN: {e}")
             import traceback
             traceback.print_exc()
 
@@ -172,22 +172,22 @@ class Controller:
         try:
             reader = msg.reader()
             sub_cmd = reader.read_byte()
-            logger.info(f"NOT_MAP sub-command: {sub_cmd}")
+            logger.info(f"Lệnh phụ NOT_MAP: {sub_cmd}")
 
-            if sub_cmd == 4: # UPDATE_VERSION / Login Success trigger?
-                logger.info("Login Success! Server requesting version check.")
+            if sub_cmd == 4: # UPDATE_VERSION / Kích hoạt đăng nhập thành công?
+                logger.info("Đăng nhập thành công! Máy chủ đang yêu cầu kiểm tra phiên bản.")
                 
                 vsData = reader.read_byte()
                 vsMap = reader.read_byte()
                 vsSkill = reader.read_byte()
                 vsItem = reader.read_byte()
-                logger.info(f"Server Versions - Data: {vsData}, Map: {vsMap}, Skill: {vsSkill}, Item: {vsItem}")
+                logger.info(f"Phiên bản máy chủ - Dữ liệu: {vsData}, Bản đồ: {vsMap}, Kỹ năng: {vsSkill}, Vật phẩm: {vsItem}")
                 
             else:
-                logger.info(f"Received unhandled NOT_MAP sub-command: {sub_cmd}, Payload Hex: {msg.get_data().hex()}")
+                logger.info(f"Đã nhận được lệnh phụ NOT_MAP chưa được xử lý: {sub_cmd}, Payload Hex: {msg.get_data().hex()}")
 
         except Exception as e:
-            logger.error(f"Error parsing NOT_MAP: {e}")
+            logger.error(f"Lỗi khi phân tích cú pháp NOT_MAP: {e}")
             import traceback
             traceback.print_exc()
 
@@ -197,23 +197,23 @@ class Controller:
             task_id = reader.read_short()
             task_name = reader.read_utf()
             task_details = reader.read_utf()
-            logger.info(f"Task Received (Cmd {msg.command}): ID={task_id}, Name='{task_name}', Details='{task_details}'")
+            logger.info(f"Nhiệm vụ đã nhận (Lệnh {msg.command}): ID={task_id}, Tên='{task_name}', Chi tiết='{task_details}'")
         except Exception as e:
-            logger.error(f"Error parsing TASK_GET: {e}")
+            logger.error(f"Lỗi khi phân tích cú pháp TASK_GET: {e}")
 
     def process_game_info(self, msg: Message):
         try:
             reader = msg.reader()
             info_text = reader.read_utf()
-            logger.info(f"Game Info (Cmd {msg.command}): '{info_text}'")
+            logger.info(f"Thông tin trò chơi (Lệnh {msg.command}): '{info_text}'")
         except Exception as e:
-            logger.error(f"Error parsing GAME_INFO: {e}")
+            logger.error(f"Lỗi khi phân tích cú pháp GAME_INFO: {e}")
 
     def process_map_info(self, msg: Message):
         try:
             reader = msg.reader()
             
-            # Map Header (Matches Controller.cs case -24)
+            # Map Header (Khớp với Controller.cs case -24)
             map_id = reader.read_ubyte()
             planet_id = reader.read_byte()
             tile_id = reader.read_byte()
@@ -222,24 +222,24 @@ class Controller:
             map_name = reader.read_utf()
             zone_id = reader.read_byte()
             
-            logger.info(f"Map Info (Cmd {msg.command}): ID={map_id}, Name='{map_name}', Planet={planet_id}, Zone={zone_id}")
+            logger.info(f"Thông tin bản đồ (Lệnh {msg.command}): ID={map_id}, Tên='{map_name}', Hành tinh={planet_id}, Khu vực={zone_id}")
             self.map_info = {'id': map_id, 'name': map_name, 'planet': planet_id, 'zone': zone_id}
             
-            # Update TileMap
-            self.tile_map = TileMap() # Reset
+            # Cập nhật TileMap
+            self.tile_map = TileMap() # Đặt lại
             self.tile_map.set_map_info(map_id, planet_id, tile_id, bg_id, type_map, map_name, zone_id)
 
-            # loadInfoMap (Matches Controller.cs loadInfoMap)
+            # loadInfoMap (Khớp với loadInfoMap trong Controller.cs)
             cx = reader.read_short()
             cy = reader.read_short()
             
-            # Update char pos
+            # Cập nhật vị trí nhân vật
             from model.game_objects import Char, Mob
             Char.my_charz().cx = cx
             Char.my_charz().cy = cy
             Char.my_charz().map_id = map_id
             
-            # Waypoints
+            # Waypoints (Điểm chuyển bản đồ)
             num_waypoints = reader.read_byte()
             logger.debug(f"Waypoints: {num_waypoints}")
             for _ in range(num_waypoints):
@@ -253,15 +253,15 @@ class Controller:
                 
                 wp = Waypoint(min_x, min_y, max_x, max_y, is_enter, is_offline, name)
                 self.tile_map.add_waypoint(wp)
-                logger.debug(f"Parsed Waypoint: {name} (Ent:{is_enter}, Off:{is_offline})")
+                logger.debug(f"Đã phân tích Waypoint: {name} (Vào:{is_enter}, Off:{is_offline})")
             
-            # Mobs
+            # Quái vật (Mobs)
             self.mobs = {} 
             num_mobs = reader.read_ubyte()
-            logger.info(f"Mobs on map: {num_mobs}")
+            logger.info(f"Quái vật trên bản đồ: {num_mobs}")
             
             for i in range(num_mobs):
-                # Matches Mob constructor in Controller.cs
+                # Khớp với Mob constructor trong Controller.cs
                 is_disable = reader.read_bool()
                 is_dont_move = reader.read_bool()
                 is_fire = reader.read_bool()
@@ -270,9 +270,9 @@ class Controller:
                 
                 template_id = reader.read_ubyte()
                 sys = reader.read_byte()
-                hp = reader.read_int() # C# uses readInt() (4 bytes) here
+                hp = reader.read_int() # C# dùng readInt() (4 bytes) ở đây
                 level = reader.read_byte()
-                max_hp = reader.read_int() # C# uses readInt() (4 bytes) here
+                max_hp = reader.read_int() # C# dùng readInt() (4 bytes) ở đây
                 x = reader.read_short()
                 y = reader.read_short()
                 status = reader.read_byte()
@@ -293,14 +293,14 @@ class Controller:
                 
                 self.mobs[i] = mob
             
-            logger.info(f"Parsed {len(self.mobs)} mobs.")
+            logger.info(f"Đã phân tích {len(self.mobs)} quái vật.")
             
-            # Start Auto Play (Attack)
-            logger.info("MAP_INFO received. Starting AutoPlay...")
+            # Bắt đầu Tự động chơi (Tấn công)
+            logger.info("Đã nhận MAP_INFO. Bắt đầu AutoPlay...")
             self.auto_play.start()
 
         except Exception as e:
-            logger.error(f"Error parsing MAP_INFO: {e}")
+            logger.error(f"Lỗi khi phân tích MAP_INFO: {e}")
             import traceback
             traceback.print_exc()
 
@@ -309,14 +309,14 @@ class Controller:
             reader = msg.reader()
             mob_id = reader.read_ubyte()
             
-            # Validation
+            # Kiểm tra tính hợp lệ
             if mob_id not in self.mobs:
-                logger.warning(f"NPC_LIVE: Unknown Mob ID {mob_id}")
+                logger.warning(f"NPC_LIVE: ID Quái vật không xác định {mob_id}")
                 return
 
             mob = self.mobs[mob_id]
             
-            # C# Logic:
+            # Logic C#:
             # mob.sys = msg.reader().readByte();
             # mob.levelBoss = msg.reader().readByte();
             # mob.hp = msg.reader().readInt();
@@ -325,16 +325,16 @@ class Controller:
             mob.level_boss = reader.read_byte()
             mob.hp = reader.read_int()
             
-            # Reset
-            mob.status = 5 # Alive
-            mob.max_hp = mob.hp # Usually reset to max on respawn
+            # Đặt lại trạng thái
+            mob.status = 5 # Còn sống
+            mob.max_hp = mob.hp # Thường đặt lại mức tối đa khi hồi sinh
             mob.x = mob.x_first
             mob.y = mob.y_first
             
-            logger.info(f"Mob RESPAWN: ID={mob_id} | HP={mob.hp} | Pos=({mob.x},{mob.y})")
+            logger.info(f"Quái vật HỒI SINH: ID={mob_id} | HP={mob.hp} | Vị trí=({mob.x},{mob.y})")
             
         except Exception as e:
-            logger.error(f"Error parsing NPC_LIVE: {e}")
+            logger.error(f"Lỗi khi phân tích NPC_LIVE: {e}")
             import traceback
             traceback.print_exc()
 
@@ -359,23 +359,23 @@ class Controller:
             crit_full = reader.read_byte()
             potential = reader.read_long()
             
-            logger.info(f"Character Stats (Cmd {msg.command}): HP={hp}/{hp_full}, MP={mp}/{mp_full}, Potential={potential}, Dam={dam_full}")
+            logger.info(f"Chỉ số nhân vật (Cmd {msg.command}): HP={hp}/{hp_full}, MP={mp}/{mp_full}, Tiềm năng={potential}, Sát thương={dam_full}")
             self.char_info.update({
                 'hp': hp, 'max_hp': hp_full, 
                 'mp': mp, 'max_mp': mp_full, 
                 'potential': potential, 'damage': dam_full
             })
         except Exception as e:
-            logger.error(f"Error parsing ME_LOAD_POINT: {e}")
+            logger.error(f"Lỗi khi phân tích ME_LOAD_POINT: {e}")
 
     def process_bag_info(self, msg: Message):
         try:
             reader = msg.reader()
             action = reader.read_byte()
-            logger.info(f"Bag Info (Cmd {msg.command}): Action={action}, Payload Hex: {msg.get_data().hex()}")
-            # This is complex, usually list of items etc.
+            logger.info(f"Thông tin túi đồ (Cmd {msg.command}): Hành động={action}, Payload Hex: {msg.get_data().hex()}")
+            # Phần này phức tạp, thường là danh sách vật phẩm v.v.
         except Exception as e:
-            logger.error(f"Error parsing BAG_INFO: {e}")
+            logger.error(f"Lỗi khi phân tích BAG_INFO: {e}")
             
     def process_special_skill(self, msg: Message):
         try:
@@ -384,14 +384,14 @@ class Controller:
             if special_type == 0:
                 img_id = reader.read_short()
                 info = reader.read_utf()
-                logger.info(f"Special Skill (Cmd {msg.command}): Type={special_type}, ImgID={img_id}, Info='{info}'")
+                logger.info(f"Kỹ năng đặc biệt (Cmd {msg.command}): Loại={special_type}, ImgID={img_id}, Thông tin='{info}'")
             elif special_type == 1:
-                # More complex parsing for skill lists
-                logger.info(f"Special Skill (Cmd {msg.command}): Type={special_type} (list), Payload Hex: {msg.get_data().hex()}")
+                # Phân tích phức tạp hơn cho danh sách kỹ năng
+                logger.info(f"Kỹ năng đặc biệt (Cmd {msg.command}): Loại={special_type} (danh sách), Payload Hex: {msg.get_data().hex()}")
             else:
-                logger.info(f"Special Skill (Cmd {msg.command}): Unknown Type={special_type}, Payload Hex: {msg.get_data().hex()}")
+                logger.info(f"Kỹ năng đặc biệt (Cmd {msg.command}): Loại không xác định={special_type}, Payload Hex: {msg.get_data().hex()}")
         except Exception as e:
-            logger.error(f"Error parsing SPEACIAL_SKILL: {e}")
+            logger.error(f"Lỗi khi phân tích SPEACIAL_SKILL: {e}")
 
     def process_player_add(self, msg: Message):
         try:
@@ -399,14 +399,14 @@ class Controller:
             player_id = reader.read_int()
             clan_id = reader.read_int()
             
-            # Use helper to read char info
+            # Sử dụng hàm hỗ trợ để đọc thông tin nhân vật
             char_data = self.read_char_info(reader)
             char_data['id'] = player_id
             char_data['clan_id'] = clan_id
             
-            logger.info(f"Player Added (Cmd {msg.command}): ID={player_id}, Name='{char_data.get('name')}', Pos=({char_data.get('x')},{char_data.get('y')})")
+            logger.info(f"Đã thêm người chơi (Cmd {msg.command}): ID={player_id}, Tên='{char_data.get('name')}', Vị trí=({char_data.get('x')},{char_data.get('y')})")
         except Exception as e:
-            logger.error(f"Error parsing PLAYER_ADD: {e}")
+            logger.error(f"Lỗi khi phân tích PLAYER_ADD: {e}")
 
     def read_char_info(self, reader: Reader) -> dict:
         c = {}
@@ -422,7 +422,7 @@ class Controller:
         c['body'] = reader.read_short()
         c['leg'] = reader.read_short()
         c['bag'] = reader.read_ubyte()
-        reader.read_byte() # unused/reserved
+        reader.read_byte() # không sử dụng/dự phòng
         c['x'] = reader.read_short()
         c['y'] = reader.read_short()
         c['eff_buff_hp'] = reader.read_short()
@@ -446,9 +446,9 @@ class Controller:
             player_id = reader.read_int()
             x = reader.read_short()
             y = reader.read_short()
-            logger.info(f"Player Move (Cmd {msg.command}): ID={player_id}, X={x}, Y={y}")
+            logger.info(f"Người chơi di chuyển (Cmd {msg.command}): ID={player_id}, X={x}, Y={y}")
         except Exception as e:
-            logger.error(f"Error parsing PLAYER_MOVE: {e}")
+            logger.error(f"Lỗi khi phân tích PLAYER_MOVE: {e}")
 
     def process_mob_hp(self, msg: Message):
         try:
@@ -457,7 +457,7 @@ class Controller:
             current_hp = reader.read_int3() 
             damage = reader.read_int3() 
             
-            # Optional extra data (crit, effect) - consuming to be safe
+            # Dữ liệu bổ sung tùy chọn (chí mạng, hiệu ứng) - đọc để đảm bảo an toàn
             if reader.available() > 0:
                 try:
                     reader.read_bool() # isCrit
@@ -469,36 +469,36 @@ class Controller:
                 old_hp = mob.hp
                 mob.hp = current_hp
                 if mob.hp <= 0:
-                     mob.status = 0 # Mark as dead if HP 0, though NPC_DIE usually confirms it
+                     mob.status = 0 # Đánh dấu là đã chết nếu HP bằng 0, mặc dù NPC_DIE thường sẽ xác nhận điều này
                 
-                logger.info(f"Mob Update: ID={mob_id} | HP: {old_hp} -> {current_hp}/{mob.max_hp} (Dmg: {damage})")
+                logger.info(f"Cập nhật quái vật: ID={mob_id} | HP: {old_hp} -> {current_hp}/{mob.max_hp} (ST: {damage})")
             else:
-                logger.warning(f"Received MOB_HP for unknown MobID={mob_id}. HP={current_hp}")
+                logger.warning(f"Đã nhận MOB_HP cho MobID không xác định={mob_id}. HP={current_hp}")
                 
         except Exception as e:
-            logger.error(f"Error parsing MOB_HP: {e}")
+            logger.error(f"Lỗi khi phân tích MOB_HP: {e}")
 
     def process_npc_die(self, msg: Message):
         try:
             reader = msg.reader()
             mob_id = reader.read_ubyte()
             damage = reader.read_int3()
-            # isCrit = reader.read_bool() # unused
+            # isCrit = reader.read_bool() # không sử dụng
             
             mob = self.mobs.get(mob_id)
             if mob:
                 mob.hp = 0
-                mob.status = 0 # Dead
-                logger.info(f"Mob DIED: ID={mob_id} (Dmg: {damage})")
+                mob.status = 0 # Đã chết
+                logger.info(f"Quái vật đã CHẾT: ID={mob_id} (ST: {damage})")
                 
-                # Clear focus if it was this mob
+                # Xóa tiêu điểm nếu đó là quái vật này
                 from model.game_objects import Char
                 if Char.my_charz().mob_focus == mob:
                     Char.my_charz().mob_focus = None
             else:
-                logger.warning(f"Received NPC_DIE for unknown MobID={mob_id}")
+                logger.warning(f"Đã nhận NPC_DIE cho MobID không xác định={mob_id}")
         except Exception as e:
-            logger.error(f"Error parsing NPC_DIE: {e}")
+            logger.error(f"Lỗi khi phân tích NPC_DIE: {e}")
 
     def process_player_up_exp(self, msg: Message):
         try:
@@ -507,9 +507,9 @@ class Controller:
             # C#: int num181 = msg.reader().readInt();
             exp_type = reader.read_byte()
             amount = reader.read_int()
-            logger.info(f"Player EXP Up (Cmd {msg.command}): Type={exp_type}, Amount={amount}")
+            logger.info(f"Người chơi tăng EXP (Cmd {msg.command}): Loại={exp_type}, Số lượng={amount}")
         except Exception as e:
-            logger.error(f"Error parsing PLAYER_UP_EXP: {e}")
+            logger.error(f"Lỗi khi phân tích PLAYER_UP_EXP: {e}")
 
     def process_message_time(self, msg: Message):
         try:
@@ -517,26 +517,26 @@ class Controller:
             time_id = reader.read_byte()
             message = reader.read_utf()
             duration = reader.read_short()
-            logger.info(f"Message Time (Cmd {msg.command}): ID={time_id}, Msg='{message}', Duration={duration}s")
+            logger.info(f"Thông báo thời gian (Cmd {msg.command}): ID={time_id}, Thông báo='{message}', Thời hạn={duration}s")
         except Exception as e:
-            logger.error(f"Error parsing MESSAGE_TIME: {e}")
+            logger.error(f"Lỗi khi phân tích MESSAGE_TIME: {e}")
 
     def process_npc_chat(self, msg: Message):
         try:
             reader = msg.reader()
             npc_id = reader.read_short()
             message = reader.read_utf()
-            logger.info(f"NPC Chat (Cmd {msg.command}): NPC_ID={npc_id}, Chat='{message}'")
+            logger.info(f"NPC Chat (Cmd {msg.command}): NPC_ID={npc_id}, Nội dung='{message}'")
         except Exception as e:
-            logger.error(f"Error parsing NPC_CHAT: {e}")
+            logger.error(f"Lỗi khi phân tích NPC_CHAT: {e}")
             
     def process_sub_command(self, msg: Message):
         try:
             reader = msg.reader()
             sub_cmd = reader.read_byte()
-            logger.info(f"SUB_COMMAND (Cmd {msg.command}) sub-command: {sub_cmd}, Payload Hex: {msg.get_data().hex()}")
+            logger.info(f"SUB_COMMAND (Lệnh {msg.command}) lệnh phụ: {sub_cmd}, Payload Hex: {msg.get_data().hex()}")
         except Exception as e:
-            logger.error(f"Error parsing SUB_COMMAND: {e}")
+            logger.error(f"Lỗi khi phân tích SUB_COMMAND: {e}")
 
     def process_change_flag(self, msg: Message):
         try:
@@ -545,57 +545,57 @@ class Controller:
             flag_id = 0
             if reader.available() > 0:
                 flag_id = reader.read_byte()
-            logger.info(f"Change Flag (Cmd {msg.command}): CharID={char_id}, FlagID={flag_id}")
+            logger.info(f"Thay đổi cờ (Lệnh {msg.command}): CharID={char_id}, FlagID={flag_id}")
         except Exception as e:
-            logger.error(f"Error parsing CHANGE_FLAG: {e}")
+            logger.error(f"Lỗi khi phân tích CHANGE_FLAG: {e}")
 
     def process_player_attack_npc(self, msg: Message):
         try:
             reader = msg.reader()
             player_id = reader.read_int()
-            # NPC ID is likely a short (2 bytes) based on log analysis (Payload 6 bytes: 4 + 2)
-            npc_id = reader.read_byte() # Usually Mob ID is byte? Or Short?
-            # Cmd 54 payload: write_byte(mobId) in Service.
-            # But response might include player ID?
-            # Let's peek payload.
+            # NPC ID có khả năng là kiểu short (2 byte) dựa trên phân tích log (Payload 6 byte: 4 + 2)
+            npc_id = reader.read_byte() # Thường Mob ID là byte? Hay Short?
+            # Cmd 54 payload: write_byte(mobId) trong Service.
+            # Nhưng phản hồi có thể bao gồm ID người chơi?
+            # Hãy kiểm tra payload.
             # logger.info(f"ATTACK_NPC Payload: {msg.get_data().hex()}")
-            # Re-reading based on C# logic if available...
-            # But for now, just log what we can.
-            logger.info(f"Player Attack NPC (Cmd {msg.command}): PlayerID={player_id}, NPC_ID={npc_id}")
+            # Đọc lại dựa trên logic C# nếu có...
+            # Nhưng hiện tại, chỉ ghi log những gì có thể.
+            logger.info(f"Người chơi tấn công NPC (Cmd {msg.command}): PlayerID={player_id}, NPC_ID={npc_id}")
         except Exception as e:
-            logger.error(f"Error parsing PLAYER_ATTACK_NPC: {e}")
+            logger.error(f"Lỗi khi phân tích PLAYER_ATTACK_NPC: {e}")
 
     def process_player_die(self, msg: Message):
         try:
             reader = msg.reader()
             player_id = reader.read_int()
-            logger.info(f"Player Died (Cmd {msg.command}): PlayerID={player_id}")
+            logger.info(f"Người chơi đã chết (Cmd {msg.command}): PlayerID={player_id}")
         except Exception as e:
-            logger.error(f"Error parsing PLAYER_DIE: {e}")
+            logger.error(f"Lỗi khi phân tích PLAYER_DIE: {e}")
 
     def process_max_stamina(self, msg: Message):
         try:
             reader = msg.reader()
             max_stamina = reader.read_short()
-            logger.info(f"Max Stamina (Cmd {msg.command}): {max_stamina}")
+            logger.info(f"Thể lực tối đa (Cmd {msg.command}): {max_stamina}")
         except Exception as e:
-            logger.error(f"Error parsing MAXSTAMINA: {e}")
+            logger.error(f"Lỗi khi phân tích MAXSTAMINA: {e}")
 
     def process_stamina(self, msg: Message):
         try:
             reader = msg.reader()
             stamina = reader.read_short()
-            logger.info(f"Current Stamina (Cmd {msg.command}): {stamina}")
+            logger.info(f"Thể lực hiện tại (Cmd {msg.command}): {stamina}")
         except Exception as e:
-            logger.error(f"Error parsing STAMINA: {e}")
+            logger.error(f"Lỗi khi phân tích STAMINA: {e}")
 
     def process_update_active_point(self, msg: Message):
         try:
             reader = msg.reader()
             active_point = reader.read_int()
-            logger.info(f"Update Active Point (Cmd {msg.command}): {active_point}")
+            logger.info(f"Cập nhật điểm năng động (Cmd {msg.command}): {active_point}")
         except Exception as e:
-            logger.error(f"Error parsing UPDATE_ACTIVEPOINT: {e}")
+            logger.error(f"Lỗi khi phân tích UPDATE_ACTIVEPOINT: {e}")
 
     def process_map_offline(self, msg: Message):
         try:
@@ -604,46 +604,46 @@ class Controller:
             time_offline = 0
             if reader.available() > 0:
                 time_offline = reader.read_int()
-            logger.info(f"Map Offline (Cmd {msg.command}): MapID={map_id}, TimeOffline={time_offline}s")
+            logger.info(f"Bản đồ ngoại tuyến (Cmd {msg.command}): MapID={map_id}, Thời gian ngoại tuyến={time_offline}s")
         except Exception as e:
-            logger.error(f"Error parsing MAP_OFFLINE: {e}")
+            logger.error(f"Lỗi khi phân tích MAP_OFFLINE: {e}")
 
     def process_pet_info(self, msg: Message):
         try:
             reader = msg.reader()
-            pet_type = reader.read_byte() # Example field, needs C# source for full structure
-            logger.info(f"Pet Info (Cmd {msg.command}): Type={pet_type}, Payload Hex: {msg.get_data().hex()}")
+            pet_type = reader.read_byte() # Trường ví dụ, cần mã nguồn C# để biết cấu trúc đầy đủ
+            logger.debug(f"Thông tin đệ tử (Cmd {msg.command}): Loại={pet_type}, Payload Hex: {msg.get_data().hex()}")
         except Exception as e:
-            logger.error(f"Error parsing PET_INFO: {e}")
+            logger.error(f"Lỗi khi phân tích PET_INFO: {e}")
 
     def process_thach_dau(self, msg: Message):
         try:
             reader = msg.reader()
-            challenge_id = reader.read_int() # Example field
-            logger.info(f"Thach Dau (Cmd {msg.command}): ChallengeID={challenge_id}, Payload Hex: {msg.get_data().hex()}")
+            challenge_id = reader.read_int() # Trường ví dụ
+            logger.info(f"Thách đấu (Cmd {msg.command}): ChallengeID={challenge_id}, Payload Hex: {msg.get_data().hex()}")
         except Exception as e:
-            logger.error(f"Error parsing THACHDAU: {e}")
+            logger.error(f"Lỗi khi phân tích THACHDAU: {e}")
 
     def process_autoplay(self, msg: Message):
         try:
             reader = msg.reader()
-            auto_mode = reader.read_byte() # Example field
-            logger.info(f"Autoplay (Cmd {msg.command}): Mode={auto_mode}, Payload Hex: {msg.get_data().hex()}")
+            auto_mode = reader.read_byte() # Trường ví dụ
+            logger.info(f"Tự động chơi (Cmd {msg.command}): Chế độ={auto_mode}, Payload Hex: {msg.get_data().hex()}")
         except Exception as e:
-            logger.error(f"Error parsing AUTOPLAY: {e}")
+            logger.error(f"Lỗi khi phân tích AUTOPLAY: {e}")
 
     def process_mabu(self, msg: Message):
         try:
             reader = msg.reader()
-            mabu_state = reader.read_byte() # Example field
-            logger.info(f"Mabu (Cmd {msg.command}): State={mabu_state}, Payload Hex: {msg.get_data().hex()}")
+            mabu_state = reader.read_byte() # Trường ví dụ
+            logger.info(f"Mabu (Cmd {msg.command}): Trạng thái={mabu_state}, Payload Hex: {msg.get_data().hex()}")
         except Exception as e:
-            logger.error(f"Error parsing MABU: {e}")
+            logger.error(f"Lỗi khi phân tích MABU: {e}")
 
     def process_the_luc(self, msg: Message):
         try:
             reader = msg.reader()
-            the_luc_value = reader.read_short() # Example field
-            logger.info(f"The Luc (Cmd {msg.command}): Value={the_luc_value}, Payload Hex: {msg.get_data().hex()}")
+            the_luc_value = reader.read_short() # Trường ví dụ
+            logger.info(f"Thể lực (Cmd {msg.command}): Giá trị={the_luc_value}, Payload Hex: {msg.get_data().hex()}")
         except Exception as e:
-            logger.error(f"Error parsing THELUC: {e}")
+            logger.error(f"Lỗi khi phân tích THELUC: {e}")

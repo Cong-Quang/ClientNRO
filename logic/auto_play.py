@@ -1,49 +1,49 @@
 import asyncio
 import math
-import logging
+from logs.logger_config import logger 
 from model.game_objects import Char, Mob, Skill
 from network.service import Service
 
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
 class AutoPlay:
     def __init__(self, controller):
         self.controller = controller
-        self.interval = False # Active state
+        self.interval = False # Trạng thái hoạt động
         self.task: asyncio.Task = None
 
     def start(self):
         if not self.interval:
             self.interval = True
             self.task = asyncio.create_task(self.loop())
-            logger.info("Auto Attack Started.")
+            logger.info("Bắt đầu Tự động tấn công (Auto Attack).")
 
     def stop(self):
         if self.interval:
             self.interval = False
             if self.task:
                 self.task.cancel()
-            logger.info("Auto Attack Stopped.")
+            logger.info("Đã dừng Tự động tấn công.")
 
     async def loop(self):
-        logger.info("AutoPlay Loop Running...")
+        logger.info("Vòng lặp Tự động chơi đang chạy...")
 
-        await Service.gI().request_change_zone(1,-1)
+        await Service.gI().request_change_zone(1, -1)
 
         while self.interval:
             try:
                 await self.tansat()
-                await asyncio.sleep(0.05) # Faster loop for responsiveness
+                await asyncio.sleep(0.05) # Vòng lặp nhanh để tăng độ phản hồi
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                logger.error(f"Error in AutoPlay loop: {e}")
+                logger.error(f"Lỗi trong vòng lặp Tự động chơi: {e}")
                 await asyncio.sleep(0.05)
 
     async def tansat(self):
         my_char = Char.my_charz()
         
-        # 1. Validate Current Focus
+        # 1. Xác thực Mục tiêu Hiện tại (Focus)
         mob_focus = my_char.mob_focus
         target_valid = False
         
@@ -96,7 +96,7 @@ class AutoPlay:
                 
                 # Gửi gói tin di chuyển tới server
                 await Service.gI().char_move()
-                # Nghỉ một chút siêu ngắn để server cập nhật vị trí trước khi đấm
+                # Nghỉ một chút siêu ngắn để server cập nhật vị trí trước khi tấn công
                 await asyncio.sleep(0.05)
 
             # Thực hiện tấn công
@@ -104,19 +104,19 @@ class AutoPlay:
             if skill:
                 await Service.gI().select_skill(skill.template.id) 
                 
-                # Vòng lặp đấm 2 cái
+                # Vòng lặp tấn công
                 for i in range(20):
-                    if mob_focus.hp > -1: # Kiểm tra quái còn sống không trước khi đấm phát 2
+                    if mob_focus.hp > -1: # Kiểm tra quái còn sống không trước khi đánh tiếp
                         await Service.gI().send_player_attack([mob_focus.mob_id])
-                       # logger.info(f"Auto: Tấn công phát {i+1} vào Mob {mob_focus.mob_id}")
-                        # Nếu muốn đấm cực nhanh thì không cần sleep, 
-                        # hoặc sleep rất ngắn (0.05s) để tránh bị server drop packet.
+                        # logger.info(f"Auto: Tấn công phát {i+1} vào Mob {mob_focus.mob_id}")
+                        
+                        # Nghỉ rất ngắn để tránh bị server drop packet (hủy gói tin)
                         await asyncio.sleep(0.05)
 
     def find_best_skill(self) -> Skill:
         my_char = Char.my_charz()
         if not my_char.skills:
-            # Fallback to default punch if no skills loaded
+            # Trả về đòn đánh mặc định (đấm) nếu chưa tải kỹ năng
             s = Skill()
             s.template.id = 0
             s.mana_use = 0
@@ -125,44 +125,39 @@ class AutoPlay:
 
         best_skill = None
         
-        # In C#: GameScr.onScreenSkill (Shortcut keys usually)
-        # Here we just iterate all available skills for simplicity or define a shortcut list later.
-        # For now, iterate all skills.
+        # Trong C#: GameScr.onScreenSkill (Thường là các phím tắt)
+        # Ở đây chúng ta lặp qua tất cả các kỹ năng có sẵn cho đơn giản.
         
         for s in my_char.skills:
             if s is None: continue
             
-            # Invalid ID check (from C#)
+            # Kiểm tra ID không hợp lệ (theo logic C#)
             # id == 10 || id == 11 || id == 14 || id == 23 || id == 7
             # tid = s.template.id
             # if tid in [10, 11, 14, 23, 7]:
             #     continue
                 
-            # Invalid Type check (from C#)
+            # Kiểm tra loại Mana sử dụng (theo logic C#)
             # type != 0 && type != 1 && type != 2
             mt = s.template.mana_use_type
             if mt not in [0, 1, 2]:
                 continue
                 
-            # Mana Check
+            # Kiểm tra năng lượng (Mana)
             mana_use = s.mana_use
-            if mt == 1: # % MP
+            if mt == 1: # % MP (Năng lượng tối đa)
                 mana_use = int(mana_use * my_char.max_mp / 100)
             elif mt == 2:
                 mana_use = 1
             
             if my_char.mp >= mana_use:
-                # Logic: pick skill with higher cooldown (usually stronger)
+                # Logic: Chọn kỹ năng có thời gian hồi (cooldown) cao hơn (thường là kỹ năng mạnh hơn)
                 if best_skill is None or best_skill.cool_down < s.cool_down:
                     best_skill = s
         
-        # If no skill found (e.g. out of mana), maybe return first skill (punch) or None?
-        # C# returns null if none found.
-        # But we need something to attack.
+        # Nếu không tìm thấy kỹ năng nào (ví dụ: hết mana), trả về kỹ năng đầu tiên (đấm)
         if best_skill is None:
-             # Try to find at least a valid punch/basic skill?
              for s in my_char.skills:
-                 #if s.template.id == 0:
-                     return s
+                 return s
         
         return best_skill
