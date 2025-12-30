@@ -38,7 +38,7 @@ class AutoPet:
         logger.info("Vòng lặp AutoPet đang chạy...")
 
         # Command the pet to attack initially
-        await Service.gI().pet_status(2)
+        await Service.gI().pet_status(1)
         logger.info("AutoPet: Đã ra lệnh cho đệ tử tấn công.")
 
         while self.is_running:

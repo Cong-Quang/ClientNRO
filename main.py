@@ -93,8 +93,9 @@ async def command_loop(session: Session, controller: Controller):
                 else:
                     logger.warning("Vui lòng chỉ định 'on' hoặc 'off' cho autopet.")
 
-            elif command == "clear": # New clear command
-                os.system('cls') # For Windows
+            elif command == "clear" or  command == "cls" :
+                # Kiểm tra: nếu là Windows (nt) dùng 'cls', ngược lại dùng 'clear'
+                os.system('cls' if os.name == 'nt' else 'clear')
             
             elif command.startswith("khu"):
                 parts = command.split()

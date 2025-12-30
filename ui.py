@@ -34,9 +34,9 @@ def display_pet_info():
         f"Trạng thái: {get_pet_status_vietnamese(pet.pet_status)} (Status ID: {pet.pet_status})",
         f"HP: {pet.c_hp:,} / {pet.c_hp_full:,}",
         f"MP: {pet.c_mp:,} / {pet.c_mp_full:,}",
+        f"Sát thương: {pet.c_dam_full:,}",
         f"Sức mạnh: {pet.c_power:,}",
         f"Tiềm năng: {pet.c_tiem_nang:,}",
-        f"Sát thương: {pet.c_dam_full:,}",
         f"Phòng thủ: {pet.c_def_full:,}",
         f"Chí mạng: {pet.c_critical_full}%",
         f"Thể lực: {pet.c_stamina:,} / {pet.c_max_stamina:,}",
@@ -45,25 +45,25 @@ def display_pet_info():
     for line in info_lines:
         print(line) # In trực tiếp để không bị prefix của logger
 
-    if pet.arr_pet_skill:
-        for skill in pet.arr_pet_skill:
-            if skill:
-                if skill.skill_id != -1:
-                    print(f"- Skill ID: {skill.skill_id}")
-                else:
-                    print(f"- Thông tin khác: {skill.more_info}")
-    else:
-        print("Không có kỹ năng.")
+    # if pet.arr_pet_skill:
+    #     for skill in pet.arr_pet_skill:
+    #         if skill:
+    #             if skill.skill_id != -1:
+    #                 print(f"- Skill ID: {skill.skill_id}")
+    #             else:
+    #                 print(f"- Thông tin khác: {skill.more_info}")
+    # else:
+    #     print("Không có kỹ năng.")
         
-    print("--- Trang bị ---")
-    if pet.arr_item_body:
-        for item in pet.arr_item_body:
-            if item:
-                print(f"- Item ID: {item.item_id} (Số lượng: {item.quantity})")
-                for opt in item.item_option:
-                    print(f"  + Option ID: {opt.option_template_id}, Param: {opt.param}")
-    else:
-        print("Không có trang bị.")
+    # print("--- Trang bị ---")
+    # if pet.arr_item_body:
+    #     for item in pet.arr_item_body:
+    #         if item:
+    #             print(f"- Item ID: {item.item_id} (Số lượng: {item.quantity})")
+    #             for opt in item.item_option:
+    #                 print(f"  + Option ID: {opt.option_template_id}, Param: {opt.param}")
+    # else:
+    #     print("Không có trang bị.")
     
     logger.info("--- Kết thúc ---")
 
