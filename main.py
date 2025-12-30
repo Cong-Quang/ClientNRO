@@ -4,6 +4,7 @@ from config import Config
 from account import Account
 from logs.logger_config import logger, set_logger_status, TerminalColors
 from ui import display_help, display_pet_info, display_pet_help, display_character_status
+from autocomplete import get_input_with_autocomplete
 
 class AccountManager:
     def __init__(self):
@@ -85,7 +86,8 @@ async def command_loop(manager: AccountManager):
         prompt = f"[{target_str}]> "
 
         try:
-            command = await asyncio.to_thread(input, prompt)
+            # command = await asyncio.to_thread(input, prompt)
+            command = await asyncio.to_thread(get_input_with_autocomplete, prompt)
             command = command.strip().lower()
             parts = command.split()
             if not command:
