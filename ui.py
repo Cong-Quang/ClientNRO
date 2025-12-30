@@ -44,27 +44,27 @@ def display_pet_info(pet):
     for line in info_lines:
         print(line)
 
-    print(f"{C.CYAN}--- Kỹ năng ---{C.RESET}")
-    if pet.arr_pet_skill and any(skill is not None for skill in pet.arr_pet_skill):
-        for skill in pet.arr_pet_skill:
-            if skill:
-                if skill.skill_id != -1:
-                    print(f"- Skill ID: {C.YELLOW}{skill.skill_id}{C.RESET}")
-                else:
-                    print(f"- Thông tin khác: {skill.more_info}")
-    else:
-        print("Không có kỹ năng.")
+   #print(f"{C.CYAN}--- Kỹ năng ---{C.RESET}")
+    # if pet.arr_pet_skill and any(skill is not None for skill in pet.arr_pet_skill):
+    #     for skill in pet.arr_pet_skill:
+    #         if skill:
+    #             if skill.skill_id != -1:
+    #                 print(f"- Skill ID: {C.YELLOW}{skill.skill_id}{C.RESET}")
+    #             else:
+    #                 print(f"- Thông tin khác: {skill.more_info}")
+    # else:
+    #     print("Không có kỹ năng.")
         
-    print(f"{C.CYAN}--- Trang bị ---{C.RESET}")
-    if pet.arr_item_body and any(item is not None for item in pet.arr_item_body):
-        for item in pet.arr_item_body:
-            if item:
-                print(f"- Item ID: {C.YELLOW}{item.item_id}{C.RESET} (Số lượng: {item.quantity})")
-                if item.item_option:
-                    for opt in item.item_option:
-                        print(f"  + Option ID: {opt.option_template_id}, Param: {opt.param}")
-    else:
-        print("Không có trang bị.")
+    # print(f"{C.CYAN}--- Trang bị ---{C.RESET}")
+    # if pet.arr_item_body and any(item is not None for item in pet.arr_item_body):
+    #     for item in pet.arr_item_body:
+    #         if item:
+    #             print(f"- Item ID: {C.YELLOW}{item.item_id}{C.RESET} (Số lượng: {item.quantity})")
+    #             if item.item_option:
+    #                 for opt in item.item_option:
+    #                     print(f"  + Option ID: {opt.option_template_id}, Param: {opt.param}")
+    # else:
+    #     print("Không có trang bị.")
     
     print(f"{C.CYAN}--- Kết thúc ---{C.RESET}")
 
