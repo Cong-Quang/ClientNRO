@@ -433,10 +433,73 @@ class Controller:
         try:
             reader = msg.reader()
             action = reader.read_byte()
-            logger.info(f"Thông tin túi đồ (Cmd {msg.command}): Hành động={action}, Payload Hex: {msg.get_data().hex()}")
-            # Phần này phức tạp, thường là danh sách vật phẩm v.v.
+            logger.info(f"Thông tin túi đồ (Cmd {msg.command}): Hành động={action}")
+
+            if action == 0:  # Full inventory update
+                from model.game_objects import Char, Item, ItemOption
+                my_char = Char.my_charz()
+
+                if reader.available() < 1: return
+                bag_size = reader.read_ubyte()
+                my_char.arr_item_bag = [None] * bag_size
+                logger.info(f"Đang xử lý {bag_size} ô trong túi đồ.")
+
+                for i in range(bag_size):
+                    if reader.available() < 2: break 
+                    template_id = reader.read_short()
+                    if template_id == -1:
+                        continue
+
+                    item = Item()
+                    item.item_id = template_id
+                    
+                    if reader.available() < 4: break
+                    item.quantity = reader.read_int()
+
+                    if reader.available() < 2: break
+                    item.info = reader.read_utf()
+                    
+                    if reader.available() < len(item.info.encode('utf-8')) + 1: break
+
+                    if reader.available() < 2: break
+                    item.content = reader.read_utf()
+                    
+                    if reader.available() < len(item.content.encode('utf-8')) + 1: break
+                    
+                    item.index_ui = i
+                    
+                    if reader.available() < 1: break
+                    num_options = reader.read_ubyte()
+                    if num_options > 0:
+                        item.item_option = []
+                        for _ in range(num_options):
+                            if reader.available() < 3: break
+                            option_id = reader.read_ubyte()
+                            param = reader.read_ushort()
+                            if option_id != 255:
+                                item.item_option.append(ItemOption(option_id, param))
+                    
+                    my_char.arr_item_bag[i] = item
+                
+                logger.info(f"Đã cập nhật thành công túi đồ với {sum(1 for i in my_char.arr_item_bag if i is not None)} vật phẩm.")
+
+            elif action == 2: # Single item quantity update
+                if reader.available() < 5: return
+                index = reader.read_byte()
+                quantity = reader.read_int()
+                logger.info(f"Cập nhật số lượng vật phẩm tại vị trí {index} thành {quantity}.")
+                my_char = Char.my_charz()
+                if index < len(my_char.arr_item_bag) and my_char.arr_item_bag[index] is not None:
+                    my_char.arr_item_bag[index].quantity = quantity
+                    if quantity == 0:
+                        my_char.arr_item_bag[index] = None
+                else:
+                    logger.warning(f"Nhận được cập nhật số lượng cho vật phẩm không hợp lệ tại vị trí {index}.")
+
         except Exception as e:
-            logger.error(f"Lỗi khi phân tích BAG_INFO: {e}")
+            logger.error(f"Lỗi khi phân tích BAG_INFO (Cmd -36): {e}")
+            import traceback
+            traceback.print_exc()
             
     def process_special_skill(self, msg: Message):
         try:

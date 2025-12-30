@@ -42,6 +42,9 @@ async def command_loop(session: Session, controller: Controller):
                 else:
                     sub_cmd = parts[1]
                     if sub_cmd == "info":
+                        # FIX: Lấy dữ liệu đệ tử mới nhất mỗi khi gọi lệnh
+                        await Service.gI().pet_info()
+                        await asyncio.sleep(0.5) # Đợi server phản hồi
                         display_pet_info()
                     elif sub_cmd in pet_status_map:
                         status_id = pet_status_map[sub_cmd]

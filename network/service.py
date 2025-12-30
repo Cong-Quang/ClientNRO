@@ -131,8 +131,8 @@ class Service:
         :param index: vị trí trong túi đồ (-1 nếu dùng template_id)
         :param template_id: ID mẫu của vật phẩm
         """
-        if Char.my_charz().statusMe == 14: # Nếu đang trong trạng thái không thể hành động
-            return
+        # if Char.my_charz().statusMe == 14: # Nếu đang trong trạng thái không thể hành động
+        #     return
             
         logger.info(f"Sử dụng vật phẩm: type={type} where={where} index={index} template_id={template_id}")
         try:
@@ -146,3 +146,21 @@ class Service:
             await self.session.send_message(msg)
         except Exception as e:
             logger.error(f"Lỗi khi gửi yêu cầu sử dụng vật phẩm: {e}")
+
+    async def get_item(self, type: int, index: int):
+        """
+        Lấy hoặc sử dụng một vật phẩm trên đối tượng khác (VD: đệ tử). (Cmd -40)
+        :param type: 6: Dùng vật phẩm trong túi đồ cho đệ tử (BAG_PET)
+        :param index: Vị trí của vật phẩm trong túi đồ
+        """
+        logger.info(f"Yêu cầu vật phẩm: type={type} index={index}")
+        try:
+            msg = Message(Cmd.GET_ITEM)
+            writer = msg.writer()
+            writer.write_byte(type)
+            writer.write_byte(index)
+            await self.session.send_message(msg)
+        except Exception as e:
+            logger.error(f"Lỗi khi gửi yêu cầu get_item: {e}")
+
+    
