@@ -52,8 +52,24 @@ class Mob:
     is_mob_me: bool = False # Is this a player's pet mob?
 
         
+@dataclass
+class ItemOption:
+    option_template_id: int = 0
+    param: int = 0
+
+class Item:
+    def __init__(self):
+        self.template = None
+        self.item_id = 0
+        self.quantity = 0
+        self.info = ""
+        self.content = ""
+        self.item_option = [] # List[ItemOption]
+        self.index_ui = 0
+
 class Char:
     _instance = None
+    _pet_instance = None
     
     def __init__(self):
         self.char_id = 0
@@ -62,6 +78,9 @@ class Char:
         self.c_hp_full = 0
         self.c_mp = 0
         self.c_mp_full = 0
+        self.c_dam_full = 0
+        self.c_def_full = 0
+        self.c_critical_full = 0
         self.cx = 0
         self.cy = 0
         self.cdir = 1
@@ -73,9 +92,38 @@ class Char:
         self.mob_focus: Mob = None
         self.skills = [] # List[Skill]
         self.myskill: Skill = None # Selected skill
+
+        # Pet related
+        self.have_pet = False
+        self.is_pet = False
+        self.head = 0
+        self.body = 0
+        self.leg = 0
+        self.bag = 0
+        self.arr_item_body = [] # List[Item]
+        self.arr_item_bag = [] # List[Item]
+        self.curr_str_level = ""
+        self.c_power = 0
+        self.c_tiem_nang = 0
+        self.pet_status = 0
+        self.c_stamina = 0
+        self.c_max_stamina = 0
+        self.arr_pet_skill = [] # List[Skill]
+        self.map_id = 0
         
     @classmethod
     def my_charz(cls):
         if cls._instance is None:
             cls._instance = Char()
         return cls._instance
+
+    @classmethod
+    def my_petz(cls):
+        if cls._pet_instance is None:
+            cls._pet_instance = Char()
+            cls._pet_instance.is_pet = True
+        return cls._pet_instance
+
+    def set_default_part(self):
+        # Placeholder for setDefaultPart logic in C#
+        pass

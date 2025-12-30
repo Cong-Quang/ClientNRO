@@ -3,6 +3,7 @@ from network.writer import Writer
 from network.message import Message
 from network.session import Session
 from model.game_objects import Char
+from cmd import Cmd
 
 # logger = logging.getLogger(__name__)
 
@@ -19,6 +20,27 @@ class Service:
     @classmethod
     def setup(cls, session: Session):
         cls._instance = Service(session)
+
+    async def pet_info(self):
+        """Yêu cầu thông tin đệ tử (Cmd -107)"""
+        try:
+            msg = Message(Cmd.PET_INFO)
+            await self.session.send_message(msg)
+            logger.info("Đã gửi yêu cầu thông tin đệ tử (PET_INFO)")
+        except Exception as e:
+            logger.error(f"Lỗi khi gửi yêu cầu pet_info: {e}")
+
+    async def pet_status(self, status: int):
+        """Thay đổi trạng thái đệ tử (Cmd -108)
+        0: Đi theo, 1: Bảo vệ, 2: Tấn công, 3: Về nhà, 4: Hợp thể, 5: Hợp thể vĩnh viễn
+        """
+        try:
+            msg = Message(Cmd.PET_STATUS)
+            msg.writer().write_byte(status)
+            await self.session.send_message(msg)
+            logger.info(f"Đã gửi yêu cầu thay đổi trạng thái đệ tử: {status}")
+        except Exception as e:
+            logger.error(f"Lỗi khi gửi yêu cầu pet_status: {e}")
 
     async def char_move(self):
         # Mã lệnh (CMD): -7

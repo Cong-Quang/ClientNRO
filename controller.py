@@ -4,6 +4,7 @@ from network.message import Message
 from cmd import Cmd
 from network.reader import Reader
 from model.map_objects import TileMap, Waypoint
+from network.service import Service
 from services.movement import MovementService
 from logic.auto_play import AutoPlay
 
@@ -21,7 +22,6 @@ class Controller:
     def on_message(self, msg: Message):
         try:
             cmd = msg.command
-            
             if cmd == Cmd.NOT_LOGIN: # -29
                 self.message_not_login(msg)
             elif cmd == Cmd.NOT_MAP: # -28
@@ -102,6 +102,7 @@ class Controller:
                 self.process_the_luc(msg)
             elif cmd == Cmd.MAP_CLEAR: # -22
                 logger.info(f"Đã nhận MAP_CLEAR (Cmd {cmd}).")
+            
             else:
                 logger.info(f"Đã nhận lệnh chưa được xử lý: {cmd}, Payload Len: {len(msg.get_data())}, Hex: {msg.get_data().hex()}")
         except Exception as e:
@@ -296,8 +297,11 @@ class Controller:
             logger.info(f"Đã phân tích {len(self.mobs)} quái vật.")
             
             # Bắt đầu Tự động chơi (Tấn công)
-            logger.info("Đã nhận MAP_INFO. Bắt đầu AutoPlay...")
+            logger.info(f"Đã nhận MAP_INFO. Bắt đầu AutoPlay...")
             self.auto_play.start()
+            
+            # Yêu cầu thông tin đệ tử sau khi vào map
+            asyncio.create_task(Service.gI().pet_info())
 
         except Exception as e:
             logger.error(f"Lỗi khi phân tích MAP_INFO: {e}")
@@ -341,32 +345,79 @@ class Controller:
     def process_me_load_point(self, msg: Message):
         try:
             reader = msg.reader()
-            hp_goc = reader.read_int3()
-            mp_goc = reader.read_int3()
-            dam_goc = reader.read_int()
-            hp_full = reader.read_int3()
-            mp_full = reader.read_int3()
-            hp = reader.read_int3()
-            mp = reader.read_int3()
+            from model.game_objects import Char
+            char = Char.my_charz()
             
-            speed = reader.read_byte()
-            hp_from_1000 = reader.read_byte()
-            mp_from_1000 = reader.read_byte()
-            dam_from_1000 = reader.read_byte()
+            # Trong source code này, readInt3Byte thực chất gọi readInt (4 bytes)
+            char.c_hp_goc = reader.read_int()
+            char.c_mp_goc = reader.read_int()
+            char.c_dam_goc = reader.read_int()
+            char.c_hp_full = reader.read_int()
+            char.c_mp_full = reader.read_int()
+            char.c_hp = reader.read_int()
+            char.c_mp = reader.read_int()
             
-            dam_full = reader.read_int()
-            def_full = reader.read_int()
-            crit_full = reader.read_byte()
-            potential = reader.read_long()
+            char.cspeed = reader.read_byte()
+            char.hp_from_1000 = reader.read_byte()
+            char.mp_from_1000 = reader.read_byte()
+            char.dam_from_1000 = reader.read_byte()
             
-            logger.info(f"Chỉ số nhân vật (Cmd {msg.command}): HP={hp}/{hp_full}, MP={mp}/{mp_full}, Tiềm năng={potential}, Sát thương={dam_full}")
-            self.char_info.update({
-                'hp': hp, 'max_hp': hp_full, 
-                'mp': mp, 'max_mp': mp_full, 
-                'potential': potential, 'damage': dam_full
-            })
+            char.c_dam_full = reader.read_int()
+            char.c_def_full = reader.read_int()
+            char.c_critical_full = reader.read_byte()
+            char.c_tiem_nang = reader.read_long()
+            
+            if reader.available() >= 2:
+                char.exp_for_one_add = reader.read_short()
+            if reader.available() >= 2:
+                char.c_def_goc = reader.read_short()
+            if reader.available() >= 1:
+                char.c_critical_goc = reader.read_byte()
+            
+            logger.info(f"Chỉ số nhân vật (Cmd {msg.command}): HP={char.c_hp}/{char.c_hp_full}, MP={char.c_mp}/{char.c_mp_full}, Tiềm năng={char.c_tiem_nang}, Sát thương={char.c_dam_full}")
         except Exception as e:
             logger.error(f"Lỗi khi phân tích ME_LOAD_POINT: {e}")
+
+    def process_sub_command(self, msg: Message):
+        try:
+            reader = msg.reader()
+            sub_cmd = reader.read_byte()
+            from model.game_objects import Char
+            char = Char.my_charz()
+
+            if sub_cmd == 0: # ME_LOAD_ALL
+                char.char_id = reader.read_int()
+                char.ctask_id = reader.read_byte()
+                char.gender = reader.read_byte()
+                char.head = reader.read_short()
+                char.name = reader.read_utf()
+                char.c_pk = reader.read_byte()
+                char.c_type_pk = reader.read_byte()
+                char.c_power = reader.read_long()
+                logger.info(f"ME_LOAD_ALL: ID={char.char_id}, Tên={char.name}, Sức mạnh={char.c_power}")
+            
+            elif sub_cmd == 4: # ME_LOAD_INFO
+                char.xu = reader.read_long()
+                char.luong = reader.read_int()
+                char.c_hp = reader.read_int()
+                char.c_mp = reader.read_int()
+                char.luong_khoa = reader.read_int()
+                logger.info(f"Cập nhật tài sản: Vàng={char.xu}, Ngọc={char.luong}, HP={char.c_hp}, MP={char.c_mp}")
+
+            elif sub_cmd == 5: # ME_LOAD_HP
+                old_hp = char.c_hp
+                char.c_hp = reader.read_int()
+                logger.info(f"Cập nhật HP: {old_hp} -> {char.c_hp}")
+
+            elif sub_cmd == 6: # ME_LOAD_MP
+                old_mp = char.c_mp
+                char.c_mp = reader.read_int()
+                logger.info(f"Cập nhật MP: {old_mp} -> {char.c_mp}")
+
+            else:
+                logger.info(f"SUB_COMMAND (Lệnh {msg.command}) lệnh phụ: {sub_cmd}, Payload Hex: {msg.get_data().hex()}")
+        except Exception as e:
+            logger.error(f"Lỗi khi phân tích SUB_COMMAND: {e}")
 
     def process_bag_info(self, msg: Message):
         try:
@@ -607,14 +658,87 @@ class Controller:
             logger.info(f"Bản đồ ngoại tuyến (Cmd {msg.command}): MapID={map_id}, Thời gian ngoại tuyến={time_offline}s")
         except Exception as e:
             logger.error(f"Lỗi khi phân tích MAP_OFFLINE: {e}")
-
     def process_pet_info(self, msg: Message):
         try:
             reader = msg.reader()
-            pet_type = reader.read_byte() # Trường ví dụ, cần mã nguồn C# để biết cấu trúc đầy đủ
-            logger.debug(f"Thông tin đệ tử (Cmd {msg.command}): Loại={pet_type}, Payload Hex: {msg.get_data().hex()}")
+            from model.game_objects import Char, Item, ItemOption, Skill
+            
+            b_pet = reader.read_byte()
+            if b_pet == 0:
+                Char.my_charz().have_pet = False
+                Char.my_petz().have_pet = False
+                logger.info("Nhân vật không có đệ tử.")
+            if b_pet == 1:
+                Char.my_charz().have_pet = True
+                Char.my_petz().have_pet = True
+                logger.info("Nhân vật có đệ tử.")
+            
+            if b_pet != 2:
+                return
+
+            pet = Char.my_petz()
+            pet.have_pet = True
+            pet.head = reader.read_short()
+            pet.set_default_part()
+            
+            num_body = reader.read_ubyte()
+            pet.arr_item_body = [None] * num_body
+            for i in range(num_body):
+                template_id = reader.read_short()
+                if template_id == -1:
+                    continue
+                
+                item = Item()
+                item.item_id = template_id
+                item.quantity = reader.read_int()
+                item.info = reader.read_utf()
+                item.content = reader.read_utf()
+                
+                num_options = reader.read_ubyte()
+                if num_options != 0:
+                    item.item_option = []
+                    for _ in range(num_options):
+                        opt_id = reader.read_ubyte()
+                        opt_param = reader.read_ushort()
+                        if opt_id != 255:
+                             item.item_option.append(ItemOption(opt_id, opt_param))
+                
+                pet.arr_item_body[i] = item
+            
+            pet.c_hp = reader.read_int()
+            pet.c_hp_full = reader.read_int()
+            pet.c_mp = reader.read_int()
+            pet.c_mp_full = reader.read_int()
+            pet.c_dam_full = reader.read_int()
+            pet.name = reader.read_utf()
+            pet.curr_str_level = reader.read_utf()
+            pet.c_power = reader.read_long()
+            pet.c_tiem_nang = reader.read_long()
+            pet.pet_status = reader.read_byte()
+            pet.c_stamina = reader.read_short()
+            pet.c_max_stamina = reader.read_short()
+            pet.c_critical_full = reader.read_byte()
+            pet.c_def_full = reader.read_short()
+            
+            num_skills = reader.read_byte()
+            pet.arr_pet_skill = [None] * num_skills
+            for i in range(num_skills):
+                skill_id = reader.read_short()
+                if skill_id != -1:
+                    s = Skill()
+                    s.skill_id = skill_id
+                    pet.arr_pet_skill[i] = s
+                else:
+                    s = Skill()
+                    s.more_info = reader.read_utf()
+                    pet.arr_pet_skill[i] = s
+            
+            logger.info(f"Đã cập nhật thông tin Đệ tử: {pet.name} | HP: {pet.c_hp}/{pet.c_hp_full} | Sức mạnh: {pet.c_power}")
+
         except Exception as e:
             logger.error(f"Lỗi khi phân tích PET_INFO: {e}")
+            import traceback
+            traceback.print_exc()
 
     def process_thach_dau(self, msg: Message):
         try:
