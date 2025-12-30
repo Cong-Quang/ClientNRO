@@ -81,7 +81,8 @@ class MovementService:
                 target_wp = tile_map.waypoints[waypoint_index]
         elif waypoint_name:
             for wp in tile_map.waypoints:
-                if wp.name == waypoint_name:
+                # Use 'in' for a more robust match, as server names can have extra characters.
+                if waypoint_name in wp.name:
                     target_wp = wp
                     break
         else:

@@ -26,23 +26,28 @@ class Session:
             self.connected = True
             logger.info("Đã kết nối!")
             
-            # Bắt đầu vòng lặp lắng nghe
-            asyncio.create_task(self.listen())
-            
-            # Trong C#, nó gửi một Message(-27) ngay sau khi kết nối?
-            # Session_ME.cs: doSendMessage(new Message(-27));
-            # Lưu ý: Tin nhắn này có khả năng kích hoạt việc trao đổi khóa từ máy chủ?
-            # Hoặc máy chủ gửi khóa trước?
-            # Xem Session_ME.cs: 
-            # "doConnect... connecting = false; doSendMessage(new Message(-27));"
-            # Có vẻ như client là phía khởi tạo gói tin bắt tay (handshake).
+            # Bắt đầu vòng lặp lắng nghe và trả về task để quản lý
+            listen_task = asyncio.create_task(self.listen())
             
             msg = Message(-27)
             await self.send_message(msg)
+            return listen_task
 
         except Exception as e:
             logger.error(f"Kết nối thất bại: {e}")
             self.connected = False
+        return None
+
+    def disconnect(self):
+        """Closes the connection."""
+        self.connected = False
+        if self.writer:
+            try:
+                self.writer.close()
+            except Exception as e:
+                logger.error(f"Lỗi khi đóng writer: {e}")
+        logger.info("Đã ngắt kết nối.")
+
 
     async def send_message(self, msg: Message):
         if not self.writer:

@@ -17,6 +17,8 @@ class AutoPlay:
             self.interval = True
             self.task = asyncio.create_task(self.loop())
             logger.info("Bắt đầu Tự động tấn công (Auto Attack).")
+            return self.task
+        return None
 
     def stop(self):
         if self.interval:
@@ -39,7 +41,8 @@ class AutoPlay:
                 await asyncio.sleep(0.05)
 
     async def tansat(self):
-        my_char = Char.my_charz()
+        my_char = self.controller.account.char
+        service = self.controller.account.service
         
         # 1. Xác thực Mục tiêu Hiện tại (Focus)
         mob_focus = my_char.mob_focus
@@ -93,26 +96,26 @@ class AutoPlay:
                 my_char.cdir = 1 if mob_focus.x > my_char.cx else -1
                 
                 # Gửi gói tin di chuyển tới server
-                await Service.gI().char_move()
+                await service.char_move()
                 # Nghỉ một chút siêu ngắn để server cập nhật vị trí trước khi tấn công
                 await asyncio.sleep(0.05)
 
             # Thực hiện tấn công
             skill = self.find_best_skill()
             if skill:
-                await Service.gI().select_skill(skill.template.id) 
+                await service.select_skill(skill.template.id) 
                 
                 # Vòng lặp tấn công
                 for i in range(20):
                     if mob_focus.hp > -1: # Kiểm tra quái còn sống không trước khi đánh tiếp
-                        await Service.gI().send_player_attack([mob_focus.mob_id])
+                        await service.send_player_attack([mob_focus.mob_id])
                         # logger.info(f"Auto: Tấn công phát {i+1} vào Mob {mob_focus.mob_id}")
                         
                         # Nghỉ rất ngắn để tránh bị server drop packet (hủy gói tin)
                         await asyncio.sleep(0.05)
 
     def find_best_skill(self) -> Skill:
-        my_char = Char.my_charz()
+        my_char = self.controller.account.char
         if not my_char.skills:
             # Trả về đòn đánh mặc định (đấm) nếu chưa tải kỹ năng
             s = Skill()

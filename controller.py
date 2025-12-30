@@ -12,7 +12,8 @@ from logic.auto_pet import AutoPet
 # logger = logging.getLogger(__name__)
 
 class Controller:
-    def __init__(self):
+    def __init__(self, account):
+        self.account = account
         self.char_info = {} # Nơi lưu trữ dữ liệu nhân vật
         self.map_info = {} # Nơi lưu trữ dữ liệu bản đồ
         self.mobs = {} # Lưu trữ thông tin quái vật
@@ -23,13 +24,17 @@ class Controller:
 
     def toggle_autoplay(self, enabled: bool):
         if enabled:
-            self.auto_play.start()
+            task = self.auto_play.start()
+            if task:
+                self.account.tasks.append(task)
         else:
             self.auto_play.stop()
 
     def toggle_auto_pet(self, enabled: bool):
         if enabled:
-            self.auto_pet.start()
+            task = self.auto_pet.start()
+            if task:
+                self.account.tasks.append(task)
         else:
             self.auto_pet.stop()
 
@@ -250,9 +255,10 @@ class Controller:
             
             # Cập nhật vị trí nhân vật
             from model.game_objects import Char, Mob
-            Char.my_charz().cx = cx
-            Char.my_charz().cy = cy
-            Char.my_charz().map_id = map_id
+            char = self.account.char
+            char.cx = cx
+            char.cy = cy
+            char.map_id = map_id
             
             # Waypoints (Điểm chuyển bản đồ)
             num_waypoints = reader.read_byte()
@@ -311,7 +317,7 @@ class Controller:
             logger.info(f"Đã phân tích {len(self.mobs)} quái vật.")
             
             # Yêu cầu thông tin đệ tử sau khi vào map
-            asyncio.create_task(Service.gI().pet_info())
+            asyncio.create_task(self.account.service.pet_info())
 
         except Exception as e:
             logger.error(f"Lỗi khi phân tích MAP_INFO: {e}")
@@ -355,8 +361,7 @@ class Controller:
     def process_me_load_point(self, msg: Message):
         try:
             reader = msg.reader()
-            from model.game_objects import Char
-            char = Char.my_charz()
+            char = self.account.char
             
             # Trong source code này, readInt3Byte thực chất gọi readInt (4 bytes)
             char.c_hp_goc = reader.read_int()
@@ -392,8 +397,7 @@ class Controller:
         try:
             reader = msg.reader()
             sub_cmd = reader.read_byte()
-            from model.game_objects import Char
-            char = Char.my_charz()
+            char = self.account.char
 
             if sub_cmd == 0: # ME_LOAD_ALL
                 char.char_id = reader.read_int()
@@ -437,7 +441,7 @@ class Controller:
 
             if action == 0:  # Full inventory update
                 from model.game_objects import Char, Item, ItemOption
-                my_char = Char.my_charz()
+                my_char = self.account.char
 
                 if reader.available() < 1: return
                 bag_size = reader.read_ubyte()
@@ -488,7 +492,7 @@ class Controller:
                 index = reader.read_byte()
                 quantity = reader.read_int()
                 logger.info(f"Cập nhật số lượng vật phẩm tại vị trí {index} thành {quantity}.")
-                my_char = Char.my_charz()
+                my_char = self.account.char
                 if index < len(my_char.arr_item_bag) and my_char.arr_item_bag[index] is not None:
                     my_char.arr_item_bag[index].quantity = quantity
                     if quantity == 0:
@@ -616,9 +620,8 @@ class Controller:
                 logger.info(f"Quái vật đã CHẾT: ID={mob_id} (ST: {damage})")
                 
                 # Xóa tiêu điểm nếu đó là quái vật này
-                from model.game_objects import Char
-                if Char.my_charz().mob_focus == mob:
-                    Char.my_charz().mob_focus = None
+                if self.account.char.mob_focus == mob:
+                    self.account.char.mob_focus = None
             else:
                 logger.warning(f"Đã nhận NPC_DIE cho MobID không xác định={mob_id}")
         except Exception as e:
@@ -738,18 +741,18 @@ class Controller:
             
             b_pet = reader.read_byte()
             if b_pet == 0:
-                Char.my_charz().have_pet = False
-                Char.my_petz().have_pet = False
+                self.account.char.have_pet = False
+                self.account.pet.have_pet = False
                 logger.info("Nhân vật không có đệ tử.")
             if b_pet == 1:
-                Char.my_charz().have_pet = True
-                Char.my_petz().have_pet = True
+                self.account.char.have_pet = True
+                self.account.pet.have_pet = True
                 logger.info("Nhân vật có đệ tử.")
             
             if b_pet != 2:
                 return
 
-            pet = Char.my_petz()
+            pet = self.account.pet
             pet.have_pet = True
             pet.head = reader.read_short()
             pet.set_default_part()

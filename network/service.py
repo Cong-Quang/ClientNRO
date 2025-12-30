@@ -8,18 +8,9 @@ from cmd import Cmd
 # logger = logging.getLogger(__name__)
 
 class Service:
-    _instance = None
-    
-    def __init__(self, session: Session):
+    def __init__(self, session: Session, char_data: Char):
         self.session = session
-
-    @classmethod
-    def gI(cls):
-        return cls._instance
-
-    @classmethod
-    def setup(cls, session: Session):
-        cls._instance = Service(session)
+        self.char_data = char_data
 
     async def pet_info(self):
         """Yêu cầu thông tin đệ tử (Cmd -107)"""
@@ -44,7 +35,7 @@ class Service:
 
     async def char_move(self):
         # Mã lệnh (CMD): -7
-        my_char = Char.my_charz()
+        my_char = self.char_data
         
         # Tính toán độ chênh lệch (delta)
         num = my_char.cx - my_char.cxSend
@@ -131,8 +122,8 @@ class Service:
         :param index: vị trí trong túi đồ (-1 nếu dùng template_id)
         :param template_id: ID mẫu của vật phẩm
         """
-        # if Char.my_charz().statusMe == 14: # Nếu đang trong trạng thái không thể hành động
-        #     return
+        if self.char_data.statusMe == 14: # Nếu đang trong trạng thái không thể hành động
+            return
             
         logger.info(f"Sử dụng vật phẩm: type={type} where={where} index={index} template_id={template_id}")
         try:

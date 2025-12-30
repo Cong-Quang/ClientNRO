@@ -68,9 +68,6 @@ class Item:
         self.index_ui = 0
 
 class Char:
-    _instance = None
-    _pet_instance = None
-    
     def __init__(self):
         self.char_id = 0
         self.name = ""
@@ -111,19 +108,12 @@ class Char:
         self.arr_pet_skill = [] # List[Skill]
         self.map_id = 0
         
-    @classmethod
-    def my_charz(cls):
-        if cls._instance is None:
-            cls._instance = Char()
-        return cls._instance
-
-    @classmethod
-    def my_petz(cls):
-        if cls._pet_instance is None:
-            cls._pet_instance = Char()
-            cls._pet_instance.is_pet = True
-        return cls._pet_instance
-
     def set_default_part(self):
         # Placeholder for setDefaultPart logic in C#
         pass
+
+class Pet(Char):
+    def __init__(self):
+        super().__init__()
+        self.is_pet = True
+
