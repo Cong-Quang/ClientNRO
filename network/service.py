@@ -122,3 +122,27 @@ class Service:
             
         except Exception as e:
             logger.error(f"Lỗi khi gửi yêu cầu đổi khu vực: {e}")
+
+    async def use_item(self, type: int, where: int, index: int, template_id: int):
+        """
+        Sử dụng một vật phẩm. (Cmd -43)
+        :param type: 0: sử dụng từ túi đồ, 1: đeo vào, ...
+        :param where: 1: sử dụng cho bản thân, ...
+        :param index: vị trí trong túi đồ (-1 nếu dùng template_id)
+        :param template_id: ID mẫu của vật phẩm
+        """
+        if Char.my_charz().statusMe == 14: # Nếu đang trong trạng thái không thể hành động
+            return
+            
+        logger.info(f"Sử dụng vật phẩm: type={type} where={where} index={index} template_id={template_id}")
+        try:
+            msg = Message(Cmd.USE_ITEM)
+            writer = msg.writer()
+            writer.write_byte(type)
+            writer.write_byte(where)
+            writer.write_byte(index)
+            if index == -1:
+                writer.write_short(template_id)
+            await self.session.send_message(msg)
+        except Exception as e:
+            logger.error(f"Lỗi khi gửi yêu cầu sử dụng vật phẩm: {e}")

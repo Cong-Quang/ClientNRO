@@ -7,6 +7,7 @@ from model.map_objects import TileMap, Waypoint
 from network.service import Service
 from services.movement import MovementService
 from logic.auto_play import AutoPlay
+from logic.auto_pet import AutoPet
 
 # logger = logging.getLogger(__name__)
 
@@ -18,6 +19,19 @@ class Controller:
         self.tile_map = TileMap()
         self.movement = MovementService(self)
         self.auto_play = AutoPlay(self)
+        self.auto_pet = AutoPet(self)
+
+    def toggle_autoplay(self, enabled: bool):
+        if enabled:
+            self.auto_play.start()
+        else:
+            self.auto_play.stop()
+
+    def toggle_auto_pet(self, enabled: bool):
+        if enabled:
+            self.auto_pet.start()
+        else:
+            self.auto_pet.stop()
 
     def on_message(self, msg: Message):
         try:
@@ -295,10 +309,6 @@ class Controller:
                 self.mobs[i] = mob
             
             logger.info(f"Đã phân tích {len(self.mobs)} quái vật.")
-            
-            # Bắt đầu Tự động chơi (Tấn công)
-            logger.info(f"Đã nhận MAP_INFO. Bắt đầu AutoPlay...")
-            self.auto_play.start()
             
             # Yêu cầu thông tin đệ tử sau khi vào map
             asyncio.create_task(Service.gI().pet_info())

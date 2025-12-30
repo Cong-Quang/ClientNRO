@@ -67,11 +67,27 @@ def display_pet_info():
     
     logger.info("--- Kết thúc ---")
 
+def display_pet_help():
+    """Hiển thị các lệnh có sẵn cho đệ tử."""
+    logger.info("--- Trợ giúp Đệ Tử ---")
+    print("Các lệnh có sẵn cho đệ tử:")
+    print("  pet info            - Hiển thị thông tin chi tiết của đệ tử.")
+    print("  pet follow          - Ra lệnh đệ tử đi theo.")
+    print("  pet protect         - Ra lệnh đệ tử bảo vệ.")
+    print("  pet attack          - Ra lệnh đệ tử tấn công.")
+    print("  pet home            - Ra lệnh đệ tử về nhà.")
+    logger.info("--- Kết thúc ---")
+
 def display_help():
     """Hiển thị các lệnh có sẵn."""
     logger.info("--- Trợ giúp ---")
     print("Các lệnh có sẵn:")
-    print("  pet   - Hiển thị thông tin chi tiết của đệ tử.")
-    print("  help  - Hiển thị bảng trợ giúp này.")
-    print("  exit  - Thoát khỏi công cụ.")
+    print("  pet               - Hiển thị các lệnh liên quan đến đệ tử.")
+    print("  logger [on|off]   - Bật hoặc tắt logger.")
+    print("  autoplay [on|off] - Bật hoặc tắt tự động tấn công.")
+    print("  autopet [on|off]  - Bật hoặc tắt tự động nâng cấp đệ tử.")
+    print("  clear             - Xóa nội dung hiện tại trong console.")
+    print("  khu [id khu] - Chuyển nhanh đến khu vực có ID [id khu].")
+    print("  help              - Hiển thị bảng trợ giúp này.")
+    print("  exit              - Thoát khỏi công cụ.")
     logger.info("--- Kết thúc ---")

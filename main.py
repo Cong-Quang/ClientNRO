@@ -1,13 +1,14 @@
 import asyncio
+import os # Import the os module
 from network.session import Session
 from network.message import Message
 from network.service import Service
 from config import Config
 from controller import Controller
 from cmd import Cmd
-from logs.logger_config import logger 
+from logs.logger_config import logger, set_logger_status
 
-from ui import display_pet_info, display_help
+from ui import display_pet_info, display_help, display_pet_help
 
 # --- Cấu hình Logging ---
 # Đặt True để xem log chi tiết (DEBUG), đặt False để xem log quan trọng (INFO)
@@ -20,16 +21,89 @@ VERBOSE_LOGGING = True
 
 # logger = logger.getLogger(__name__)
 
-async def command_loop(session: Session):
+async def command_loop(session: Session, controller: Controller):
     """Vòng lặp chờ lệnh từ người dùng."""
+    pet_status_map = {
+        "follow": 0,
+        "protect": 1,
+        "attack": 2,
+        "home": 3,
+    }
     while session.connected:
         try:
             # Chạy input() trong một thread riêng để không block vòng lặp asyncio
             command = await asyncio.to_thread(input, "Nhập lệnh (help, pet, exit): ")
             command = command.strip().lower()
 
-            if command == "pet":
-                display_pet_info()
+            if command.startswith("pet"):
+                parts = command.split()
+                if len(parts) == 1:
+                    display_pet_help()
+                else:
+                    sub_cmd = parts[1]
+                    if sub_cmd == "info":
+                        display_pet_info()
+                    elif sub_cmd in pet_status_map:
+                        status_id = pet_status_map[sub_cmd]
+                        await Service.gI().pet_status(status_id)
+                    else:
+                        logger.warning(f"Lệnh đệ tử không xác định: '{sub_cmd}'. Gõ 'pet' để xem trợ giúp.")
+
+            elif command.startswith("logger"):
+                parts = command.split()
+                if len(parts) > 1:
+                    sub_cmd = parts[1]
+                    if sub_cmd == "on":
+                        set_logger_status(True)
+                        logger.info("Đã BẬT logger.")
+                    elif sub_cmd == "off":
+                        set_logger_status(False)
+                        logger.info("Đã TẮT logger.")
+                    else:
+                        logger.warning(f"Lệnh logger không xác định: '{sub_cmd}'. Sử dụng 'on' hoặc 'off'.")
+                else:
+                    logger.warning("Vui lòng chỉ định 'on' hoặc 'off' cho logger.")
+            
+            elif command.startswith("autoplay"):
+                parts = command.split()
+                if len(parts) > 1:
+                    sub_cmd = parts[1]
+                    if sub_cmd == "on":
+                        controller.toggle_autoplay(True)
+                    elif sub_cmd == "off":
+                        controller.toggle_autoplay(False)
+                    else:
+                        logger.warning(f"Lệnh autoplay không xác định: '{sub_cmd}'. Sử dụng 'on' hoặc 'off'.")
+                else:
+                    logger.warning("Vui lòng chỉ định 'on' hoặc 'off' cho autoplay.")
+
+            elif command.startswith("autopet"):
+                parts = command.split()
+                if len(parts) > 1:
+                    sub_cmd = parts[1]
+                    if sub_cmd == "on":
+                        controller.toggle_auto_pet(True)
+                    elif sub_cmd == "off":
+                        controller.toggle_auto_pet(False)
+                    else:
+                        logger.warning(f"Lệnh autopet không xác định: '{sub_cmd}'. Sử dụng 'on' hoặc 'off'.")
+                else:
+                    logger.warning("Vui lòng chỉ định 'on' hoặc 'off' cho autopet.")
+
+            elif command == "clear": # New clear command
+                os.system('cls') # For Windows
+            
+            elif command.startswith("khu"):
+                parts = command.split()
+                if len(parts) == 2:
+                    try:
+                        zone_id = int(parts[1])
+                        await Service.gI().request_change_zone(zone_id)
+                    except ValueError:
+                        logger.warning("ID khu vực không hợp lệ. Vui lòng nhập một số nguyên.")
+                else:
+                    logger.warning("Cú pháp không đúng. Sử dụng: chuyenkhu [id khu]")
+
             elif command == "help":
                 display_help()
             elif command == "exit":
@@ -100,7 +174,7 @@ async def main():
         display_help()
         
         # Vòng lặp chính để giữ kết nối và nhận lệnh
-        main_loop = asyncio.create_task(command_loop(session))
+        main_loop = asyncio.create_task(command_loop(session, controller))
         await main_loop
     else:
         logger.error("Không thể kết nối tới server.")

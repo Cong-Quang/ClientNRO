@@ -47,3 +47,9 @@ def setup_logger(name="Bot", level=logging.INFO):
 
 # Tạo sẵn một instance mặc định
 logger = setup_logger("Main", level=logging.DEBUG)
+
+def set_logger_status(is_enabled: bool):
+    """Bật hoặc tắt logger."""
+    logger.disabled = not is_enabled
+
+set_logger_status(False)
