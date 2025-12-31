@@ -31,7 +31,7 @@ class XMap:
         self.target_map_id = -1
         self.path = []
         self.last_update = 0
-        self.update_interval = 1.0  # Khoảng thời gian giữa các hành động (1 giây)
+        self.update_interval =  0.1 # Khoảng thời gian giữa các hành động (1 giây)
         self.processing_map_change = False
         self.expected_next_map_id = -1
         self.last_action_time = 0
@@ -54,7 +54,8 @@ class XMap:
             [46, 45, 48, 50, 154, 155, 166], # Tháp Leo
             [153, 156, 157, 158, 159], # Mảnh Vỡ
             [149, 147, 152, 151, 148], # Khí Gas
-            [173, 174, 175] # Noel
+            [173, 174, 175], # Noel
+            [123, 124, 122]  # Ngũ Hành Sơn (123 -> 124 -> 122)
         ]
 
         # Đăng ký các liên kết bản đồ cơ bản (đi bộ/cổng chào)
@@ -161,6 +162,22 @@ class XMap:
         self.add_npc_link(160, 161, item_id=992)
         self.add_npc_link(181, 52, item_id=1852)
 
+        # --- Thêm liên kết cho Ngủ Hành Sơn (maps 123/124/122)
+        # Từ map 0 vào Ngủ Hành Sơn 1 (map 123) thông qua NPC id=49, chọn ô trọn (index 1)
+        self.add_npc_link(0, 123, 49, "Đồng ý", index_npc=0)
+        # Kết nối các map Ngủ Hành Sơn: 123 <-> 124 <-> 122
+        # (Khi đang ở 124, bấm trái về 123, bấm phải qua 122)
+        self.add_link_maps(123, 124, 122)
+
+        # --- Liên kết Ngũ Hành Sơn ---
+        # Từ Map 0 sang Map 123 qua NPC 49, chọn dòng 1 (index_npc=0)
+        self.add_npc_link(0, 123, 49, index_npc=0) 
+
+        # Liên kết chuỗi các map Ngũ Hành Sơn (Đi bộ qua Waypoint)
+        # Thứ tự: 123 <-> 124 <-> 122
+        self.add_link_maps(123, 124, 122)
+
+
     def add_link_maps(self, *args):
         """Tạo chuỗi liên kết 2 chiều giữa các bản đồ: map1 <-> map2 <-> map3..."""
         maps = args
@@ -239,7 +256,13 @@ class XMap:
         """Kết thúc XMap"""
         self.is_xmapping = False
         self.processing_map_change = False
-        logger.info("XMap hoàn tất.")
+        # nếu người dùng không bật logger, in dòng ra thông báo cho người dùng biết là đã tới
+        username = getattr(self.controller.account, 'username', 'Unknown')
+        if logger.disabled:
+            print(f"\n[{C.YELLOW}{username}{C.RESET}] Đã đến bản đồ mục tiêu: {C.GREEN}{self.target_map_id}{C.RESET} {' ' * 20}")
+        else:
+            logger.info(f"\n[{C.YELLOW}{username}{C.RESET}] Đã đến bản đồ mục tiêu: {C.GREEN}{self.target_map_id}{C.RESET} {' ' * 20}")
+      
 
     def find_path(self, start, end):
         """Thuật toán tìm đường đi ngắn nhất (BFS)"""
@@ -271,6 +294,19 @@ class XMap:
 
         current_map = self.controller.tile_map.map_id
         
+        # Nếu nhân vật đang chết, xử lý ngay (về nhà và dừng XMap)
+        try:
+            if getattr(self.controller.account.char, 'is_die', False):
+                logger.warning("XMap: Phát hiện nhân vật đã chết (HP == 0). Thực hiện về nhà và dừng XMap.")
+                self.handle_death()
+                return
+        except Exception:
+            # Fall back to direct HP check if property missing
+            if getattr(self.controller.account.char, 'c_hp', 1) == 0:
+                logger.warning("XMap: Phát hiện nhân vật đã chết (HP == 0). Thực hiện về nhà và dừng XMap.")
+                self.handle_death()
+                return
+
         # Reset cờ đổi khu vực nếu đã sang map mới
         if not self.path or current_map != self.path[0]:
              self.zone_changed_in_map = False
@@ -335,11 +371,23 @@ class XMap:
             self.finish()
 
     def handle_death(self):
-        """Được gọi khi nhân vật chết - Đánh dấu bản đồ này là nguy hiểm"""
+        """Được gọi khi nhân vật chết - Đánh dấu bản đồ này là nguy hiểm, gửi lệnh về nhà và dừng XMap."""
+        current_map = self.controller.tile_map.map_id
+        logger.warning(f"XMap: Nhân vật chết tại map {current_map}. Đánh dấu nguy hiểm.")
+        self.dangerous_maps.add(current_map)
+
+        # Nếu đang trong quá trình XMap, gửi lệnh về nhà và kết thúc XMap
         if self.is_xmapping:
-            current_map = self.controller.tile_map.map_id
-            logger.warning(f"XMap: Nhân vật chết tại map {current_map}. Đánh dấu nguy hiểm.")
-            self.dangerous_maps.add(current_map)
+            try:
+                asyncio.create_task(self.controller.account.service.return_town_from_dead())
+            except Exception as e:
+                logger.error(f"Lỗi khi cố gắng gửi ME_BACK sau khi chết: {e}")
+
+            # Dừng việc di chuyển tự động và xóa đường đi hiện tại
+            self.finish()
+            self.path = []
+            self.processing_map_change = False
+            self.expected_next_map_id = -1
 
     async def process_next_map(self, next_map: NextMap):
         """Quyết định phương thức di chuyển (NPC, Đi bộ, hay Điểm chuyển map)"""
@@ -353,7 +401,7 @@ class XMap:
         # Hiển thị trạng thái di chuyển ra console cho người dùng khi logger tắt
         if logger.disabled:
             username = getattr(self.controller.account, 'username', 'Unknown')
-            print(f"[{C.YELLOW}{username}{C.RESET}] Đang di chuyển: {C.CYAN}{current_map_id}{C.RESET} -> {C.GREEN}{next_map.map_id}{C.RESET}...", end="\r")
+            logger.info(f"[{C.YELLOW}{username}{C.RESET}] Đang di chuyển: {C.CYAN}{current_map_id}{C.RESET} -> {C.GREEN}{next_map.map_id}{C.RESET}...", end="\r")
         if next_map.npc_id != -1:
             action_performed = await self.handle_npc_move(next_map)
         elif next_map.walk:
@@ -442,7 +490,7 @@ class XMap:
                 logger.info(f"Tìm thấy NPC {next_map.npc_id}. Đang tiến tới...")
                 await self.controller.movement.teleport_to(target_npc['x'], target_npc['y'] - 3)
                 break
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.1)
         else:
             logger.warning(f"Không tìm thấy NPC {next_map.npc_id} sau nhiều lần thử.")
             return False 

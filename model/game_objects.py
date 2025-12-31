@@ -112,6 +112,16 @@ class Char:
         # Placeholder for setDefaultPart logic in C#
         pass
 
+    @property
+    def is_die(self) -> bool:
+        """Convenience property to check if the character is dead (HP == 0)."""
+        return self.c_hp == 0
+
+    # Backward-compatible names for users coming from Java/C# style
+    def isDie(self) -> bool:
+        """Compatibility method matching `isDie` (C# style)."""
+        return self.is_die
+
 class Pet(Char):
     def __init__(self):
         super().__init__()

@@ -278,12 +278,17 @@ async def handle_single_command(command: str, account: Account):
                 print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: khu <id>")
 
         elif cmd_base == "gomap":
+            # gomap <map_id>  : Bắt đầu XMap
+            # gomap stop      : Dừng XMap hiện tại
             if len(parts) == 2 and parts[1].isdigit():
                 map_id = int(parts[1])
                 print(f"[{C.YELLOW}{account.username}{C.RESET}] Bắt đầu XMap tới {map_id}...")
                 await account.controller.xmap.start(map_id)
+            elif len(parts) == 2 and parts[1] == "stop":
+                account.controller.xmap.finish()
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Đã dừng XMap.")
             else:
-                print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: gomap <map_id>")
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: gomap <map_id> | gomap stop")
         
         elif cmd_base == "findnpc":
             npcs = account.controller.npcs
@@ -293,7 +298,10 @@ async def handle_single_command(command: str, account: Account):
                 print(f"[{C.YELLOW}{account.username}{C.RESET}] Các NPC trên bản đồ:")
                 for npc_id, npc_data in npcs.items():
                     # thêm màu sắc cho npc id map
-                    print(f" - ID: {C.CYAN}{npc_id}{C.RESET}, Tên: {C.GREEN}{npc_data['name']}{C.RESET}, Vị trí: ({npc_data['x']}, {npc_data['y']})")
+                    name = npc_data.get('name') or f"Template {npc_data.get('template_id', 'N/A')}"
+                    x = npc_data.get('x', 'N/A')
+                    y = npc_data.get('y', 'N/A')
+                    print(f" - ID: {C.CYAN}{npc_id}{C.RESET}, Tên: {C.GREEN}{name}{C.RESET}, Vị trí: ({x}, {y})")
 
         elif cmd_base == "teleport":
             if len(parts) == 3 and parts[1].isdigit() and parts[2].isdigit():

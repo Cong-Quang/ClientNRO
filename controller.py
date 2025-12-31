@@ -741,8 +741,15 @@ class Controller:
             
             if player_id == self.account.char.char_id:
                 logger.warning("Nhân vật của bạn đã chết (PLAYER_DIE).")
+                # Đánh dấu, dừng XMap và gửi lệnh về nhà
                 self.xmap.handle_death()
-                
+                try:
+                    # Gửi ME_BACK (về nhà) bất đồng bộ
+                    import asyncio
+                    asyncio.create_task(self.account.service.return_town_from_dead())
+                except Exception as e:
+                    logger.error(f"Lỗi khi gửi yêu cầu về nhà sau PLAYER_DIE: {e}")
+
             logger.info(f"Người chơi đã chết (Cmd {msg.command}): PlayerID={player_id}")
         except Exception as e:
             logger.error(f"Lỗi khi phân tích PLAYER_DIE: {e}")

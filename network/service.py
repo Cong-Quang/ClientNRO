@@ -208,4 +208,12 @@ class Service:
         except Exception as e:
             logger.error(f"Lỗi khi gửi yêu cầu chọn bản đồ: {e}")
 
+    async def return_town_from_dead(self):
+        """Gửi lệnh về nhà khi chết (Cmd ME_BACK = -15)."""
+        try:
+            msg = Message(Cmd.ME_BACK)
+            await self.session.send_message(msg)
+            logger.info("Gửi yêu cầu về nhà do chết (ME_BACK)")
+        except Exception as e:
+            logger.error(f"Lỗi khi gửi yêu cầu về nhà (ME_BACK): {e}")
     
