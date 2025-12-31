@@ -292,7 +292,8 @@ async def handle_single_command(command: str, account: Account):
             else:
                 print(f"[{C.YELLOW}{account.username}{C.RESET}] Các NPC trên bản đồ:")
                 for npc_id, npc_data in npcs.items():
-                    print(f"  - NPC ID Map: {npc_id}, Template ID: {npc_data['template_id']}, Coords: ({npc_data['x']}, {npc_data['y']})")
+                    # thêm màu sắc cho npc id map
+                    print(f" - ID: {C.CYAN}{npc_id}{C.RESET}, Tên: {C.GREEN}{npc_data['name']}{C.RESET}, Vị trí: ({npc_data['x']}, {npc_data['y']})")
 
         elif cmd_base == "teleport":
             if len(parts) == 3 and parts[1].isdigit() and parts[2].isdigit():

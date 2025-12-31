@@ -2,7 +2,7 @@ import time
 import asyncio
 import random
 from typing import List, Dict, Optional
-from logs.logger_config import logger
+from logs.logger_config import logger, TerminalColors as C
 from network.service import Service
 
 class NextMap:
@@ -295,6 +295,7 @@ class XMap:
         if self.processing_map_change:
             if current_map == self.expected_next_map_id:
                  logger.info(f"Đã sang map {current_map}. Tiếp tục hành trình.")
+                 logger.info(f"Đã sang map {current_map}. Tiếp tục hành trình.")
                  self.processing_map_change = False
                  self.last_action_time = 0
             elif time.time() - self.last_action_time > 5.0: 
@@ -349,6 +350,10 @@ class XMap:
              return
 
         action_performed = False
+        # Hiển thị trạng thái di chuyển ra console cho người dùng khi logger tắt
+        if logger.disabled:
+            username = getattr(self.controller.account, 'username', 'Unknown')
+            print(f"[{C.YELLOW}{username}{C.RESET}] Đang di chuyển: {C.CYAN}{current_map_id}{C.RESET} -> {C.GREEN}{next_map.map_id}{C.RESET}...", end="\r")
         if next_map.npc_id != -1:
             action_performed = await self.handle_npc_move(next_map)
         elif next_map.walk:

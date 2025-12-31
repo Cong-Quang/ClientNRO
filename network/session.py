@@ -89,15 +89,17 @@ class Session:
             try:
                 # Đọc lệnh (Command)
                 cmd_raw = await self.reader.readexactly(1)
-                cmd = struct.unpack('>b', cmd_raw)[0]
-                
+                cmd_unsigned = cmd_raw[0]
+
                 # Gỡ lỗi dữ liệu thô (RAW)
                 logger.debug(f"NHẬN BYTE (CMD): {cmd_raw.hex()}")
 
                 if self.get_key_complete:
-                    cmd = self.read_key(cmd)
-                    if cmd > 127: cmd -= 256
+                    cmd_unsigned = self.read_key(cmd_unsigned)
                 
+                # Chuyển đổi byte không dấu cuối cùng thành ID lệnh có dấu
+                cmd = cmd_unsigned - 256 if cmd_unsigned > 127 else cmd_unsigned
+
                 logger.debug(f"Lệnh sau khi giải mã (Decrypted CMD): {cmd}")
 
                 # Đọc độ dài (Length)

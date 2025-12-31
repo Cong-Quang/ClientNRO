@@ -18,6 +18,7 @@ class Controller:
         self.char_info = {} # Nơi lưu trữ dữ liệu nhân vật
         self.map_info = {} # Nơi lưu trữ dữ liệu bản đồ
         self.mobs = {} # Lưu trữ thông tin quái vật
+        self.npcs = {} # Lưu trữ thông tin NPC
         self.tile_map = TileMap()
         self.movement = MovementService(self)
         self.auto_play = AutoPlay(self)
@@ -238,8 +239,9 @@ class Controller:
     def process_map_info(self, msg: Message):
         try:
             reader = msg.reader()
+            from model.game_objects import Mob # Đảm bảo import Mob từ game_objects.py
             
-            # Map Header (Khớp với Controller.cs case -24)
+            # 1. Map Header
             map_id = reader.read_ubyte()
             planet_id = reader.read_byte()
             tile_id = reader.read_byte()
@@ -248,27 +250,20 @@ class Controller:
             map_name = reader.read_utf()
             zone_id = reader.read_byte()
             
-            logger.info(f"Thông tin bản đồ (Lệnh {msg.command}): ID={map_id}, Tên='{map_name}', Hành tinh={planet_id}, Khu vực={zone_id}")
-            self.map_info = {'id': map_id, 'name': map_name, 'planet': planet_id, 'zone': zone_id}
+            logger.info(f"Vào bản đồ: {map_name} (ID: {map_id}, Khu: {zone_id})")
             
-            # Cập nhật TileMap
-            self.tile_map = TileMap() # Đặt lại
+            # Khởi tạo lại thông tin map
+            self.map_info = {'id': map_id, 'name': map_name, 'planet': planet_id, 'zone': zone_id}
             self.tile_map.set_map_info(map_id, planet_id, tile_id, bg_id, type_map, map_name, zone_id)
 
-            # loadInfoMap (Khớp với loadInfoMap trong Controller.cs)
-            cx = reader.read_short()
-            cy = reader.read_short()
-            
-            # Cập nhật vị trí nhân vật
-            from model.game_objects import Char, Mob
-            char = self.account.char
-            char.cx = cx
-            char.cy = cy
-            char.map_id = map_id
-            
-            # Waypoints (Điểm chuyển bản đồ)
+            # 2. Tọa độ nhân vật (loadInfoMap)
+            self.account.char.cx = reader.read_short()
+            self.account.char.cy = reader.read_short()
+            self.account.char.map_id = map_id
+
+            # 3. Đọc Waypoints (Điểm chuyển map)
+            self.tile_map.waypoints = [] # Reset waypoint cũ
             num_waypoints = reader.read_byte()
-            logger.debug(f"Waypoints: {num_waypoints}")
             for _ in range(num_waypoints):
                 min_x = reader.read_short()
                 min_y = reader.read_short()
@@ -280,72 +275,63 @@ class Controller:
                 
                 wp = Waypoint(min_x, min_y, max_x, max_y, is_enter, is_offline, name)
                 self.tile_map.add_waypoint(wp)
-                logger.debug(f"Đã phân tích Waypoint: {name} (Vào:{is_enter}, Off:{is_offline})")
-            
-            # Quái vật (Mobs)
+
+            # 4. Đọc Quái vật (Mobs) - FIX LỖI SAI KIỂU DỮ LIỆU
             self.mobs = {} 
             num_mobs = reader.read_ubyte()
-            logger.info(f"Quái vật trên bản đồ: {num_mobs}")
-            
             for i in range(num_mobs):
-                # Khớp với Mob constructor trong Controller.cs
-                is_disable = reader.read_bool()
-                is_dont_move = reader.read_bool()
-                is_fire = reader.read_bool()
-                is_ice = reader.read_bool()
-                is_wind = reader.read_bool()
+                # 5 flag hiệu ứng (bool)
+                for _ in range(5): reader.read_bool()
                 
-                template_id = reader.read_short() # Changed from read_ubyte
+                # SỬA: template_id chuẩn là read_byte (hoặc read_ubyte)
+                t_id = reader.read_byte() 
                 sys = reader.read_byte()
-                hp = reader.read_long() # Changed from read_int
+                # SỬA: HP và MaxHP phải là read_int (4 byte). Dùng read_long (8 byte) sẽ gây lệch dữ liệu.
+                hp = reader.read_int() 
                 level = reader.read_byte()
-                max_hp = reader.read_long() # Changed from read_int
-                x = reader.read_short()
-                y = reader.read_short()
+                max_hp = reader.read_int() 
+                
+                mx = reader.read_short()
+                my = reader.read_short()
                 status = reader.read_byte()
                 level_boss = reader.read_byte()
                 is_boss = reader.read_bool()
                 
-                mob = Mob()
-                mob.mob_id = i 
-                mob.template_id = template_id
-                mob.x = x
-                mob.y = y
-                mob.x_first = x
-                mob.y_first = y
-                mob.hp = hp
-                mob.max_hp = max_hp
+                mob = Mob(mob_id=i, template_id=t_id, x=mx, y=my, hp=hp, max_hp=max_hp)
+                mob.x_first, mob.y_first = mx, my
                 mob.status = status
-                mob.is_disable = is_disable
-                
                 self.mobs[i] = mob
-            
-            logger.info(f"Đã phân tích {len(self.mobs)} quái vật.")
 
-            # Skip byte (aligns with C# client skipping a loop count)
-            # if reader.available() > 0:
-            #     reader.read_byte()
-
-            # NPCs
-            self.npcs = {}
-            try:
+            # 5. Đọc Dữ liệu bổ sung (Extra Data)
+            # Đây là byte b3 trong Controller.cs, nếu không đọc sẽ lệch NPC
+            num_extra = reader.read_byte()
+            for _ in range(num_extra):
                 if reader.available() > 0:
-                    num_npcs = reader.read_ubyte()
-                    logger.info(f"NPCs trên bản đồ: {num_npcs}")
-                    for i in range(num_npcs):
-                        status = reader.read_byte()
-                        cx = reader.read_short()
-                        cy = reader.read_short()
-                        template_id = reader.read_byte() # Changed to read_byte based on C# code
-                        avatar = reader.read_short()
-                        
-                        npc = {'id': i, 'status': status, 'x': cx, 'y': cy, 'template_id': template_id, 'avatar': avatar}
-                        self.npcs[i] = npc # Store by index/ID on map, not template ID.
-                        logger.debug(f"NPC: ID={i} Template={template_id} ({cx},{cy})")
-            except Exception as e:
-                logger.warning(f"Lỗi khi đọc danh sách NPC: {e}")
-            
-            # Yêu cầu thông tin đệ tử sau khi vào map
+                    reader.read_byte()
+
+            # 6. Đọc NPCs - FIX THỨ TỰ ĐỌC
+            self.npcs = {}
+            if reader.available() > 0:
+                num_npcs = reader.read_byte()
+                for i in range(num_npcs):
+                    # Thứ tự chuẩn trong Game: Status -> X -> Y -> TemplateID -> Avatar
+                    status = reader.read_byte()     # Byte 1
+                    nx = reader.read_short()        # Byte 2-3
+                    ny = reader.read_short()        # Byte 4-5
+                    t_id = reader.read_byte()       # Byte 6 (SỬA: Đây mới là ID thực)
+                    avatar = reader.read_short()    # Byte 7-8
+                    
+                    self.npcs[i] = {
+                        'id': i, 
+                        'status': status, 
+                        'x': nx, 
+                        'y': ny, 
+                        'template_id': t_id, 
+                        'avatar': avatar
+                    }
+                    logger.info(f"Loaded NPC: MapID={i}, Template={t_id} at ({nx}, {ny})")
+
+            # Yêu cầu thông tin đệ tử
             asyncio.create_task(self.account.service.pet_info())
 
         except Exception as e:
