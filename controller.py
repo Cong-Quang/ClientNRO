@@ -8,6 +8,7 @@ from network.service import Service
 from services.movement import MovementService
 from logic.auto_play import AutoPlay
 from logic.auto_pet import AutoPet
+from logic.xmap import XMap
 
 # logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ class Controller:
         self.movement = MovementService(self)
         self.auto_play = AutoPlay(self)
         self.auto_pet = AutoPet(self)
+        self.xmap = XMap(self)
 
     def toggle_autoplay(self, enabled: bool):
         if enabled:
@@ -85,8 +87,12 @@ class Controller:
                 self.process_player_up_exp(msg)
             elif cmd == Cmd.MESSAGE_TIME: # 65
                 self.process_message_time(msg)
+            elif cmd == Cmd.OPEN_UI_CONFIRM: # 32
+                self.process_open_ui_confirm(msg)
             elif cmd == Cmd.NPC_CHAT: # 124
                 self.process_npc_chat(msg)
+            elif cmd == Cmd.NPC_ADD_REMOVE: # -73
+                self.process_npc_add_remove(msg)
             elif cmd == Cmd.SUB_COMMAND: # -30 (thường chứa các lệnh phụ bên trong)
                 self.process_sub_command(msg)
             elif cmd == Cmd.CHANGE_FLAG: # -103
@@ -289,11 +295,11 @@ class Controller:
                 is_ice = reader.read_bool()
                 is_wind = reader.read_bool()
                 
-                template_id = reader.read_ubyte()
+                template_id = reader.read_short() # Changed from read_ubyte
                 sys = reader.read_byte()
-                hp = reader.read_int() # C# dùng readInt() (4 bytes) ở đây
+                hp = reader.read_long() # Changed from read_int
                 level = reader.read_byte()
-                max_hp = reader.read_int() # C# dùng readInt() (4 bytes) ở đây
+                max_hp = reader.read_long() # Changed from read_int
                 x = reader.read_short()
                 y = reader.read_short()
                 status = reader.read_byte()
@@ -315,6 +321,29 @@ class Controller:
                 self.mobs[i] = mob
             
             logger.info(f"Đã phân tích {len(self.mobs)} quái vật.")
+
+            # Skip byte (aligns with C# client skipping a loop count)
+            if reader.available() > 0:
+                reader.read_byte()
+
+            # NPCs
+            self.npcs = {}
+            try:
+                if reader.available() > 0:
+                    num_npcs = reader.read_ubyte()
+                    logger.info(f"NPCs trên bản đồ: {num_npcs}")
+                    for i in range(num_npcs):
+                        status = reader.read_byte()
+                        cx = reader.read_short()
+                        cy = reader.read_short()
+                        template_id = reader.read_byte() # Changed to read_byte based on C# code
+                        avatar = reader.read_short()
+                        
+                        npc = {'id': i, 'status': status, 'x': cx, 'y': cy, 'template_id': template_id, 'avatar': avatar}
+                        self.npcs[i] = npc # Store by index/ID on map, not template ID.
+                        logger.debug(f"NPC: ID={i} Template={template_id} ({cx},{cy})")
+            except Exception as e:
+                logger.warning(f"Lỗi khi đọc danh sách NPC: {e}")
             
             # Yêu cầu thông tin đệ tử sau khi vào map
             asyncio.create_task(self.account.service.pet_info())
@@ -389,15 +418,25 @@ class Controller:
             if reader.available() >= 1:
                 char.c_critical_goc = reader.read_byte()
             
+            if char.c_hp == 0:
+                self.xmap.handle_death()
+
             logger.info(f"Chỉ số nhân vật (Cmd {msg.command}): HP={char.c_hp}/{char.c_hp_full}, MP={char.c_mp}/{char.c_mp_full}, Tiềm năng={char.c_tiem_nang}, Sát thương={char.c_dam_full}")
         except Exception as e:
             logger.error(f"Lỗi khi phân tích ME_LOAD_POINT: {e}")
 
-    def process_sub_command(self, msg: Message):
+    def process_npc_add_remove(self, msg: Message):
         try:
             reader = msg.reader()
-            sub_cmd = reader.read_byte()
-            char = self.account.char
+            npc_template_id = reader.read_byte()
+            # Based on C# logic, this toggles visibility for existing NPCs
+            # But if we don't have the NPC, we can't do anything.
+            pass
+        except Exception as e:
+            logger.error(f"Lỗi khi phân tích NPC_ADD_REMOVE: {e}")
+
+    def process_sub_command(self, msg: Message):
+        try:
 
             if sub_cmd == 0: # ME_LOAD_ALL
                 char.char_id = reader.read_int()
@@ -648,6 +687,23 @@ class Controller:
         except Exception as e:
             logger.error(f"Lỗi khi phân tích MESSAGE_TIME: {e}")
 
+    def process_open_ui_confirm(self, msg: Message):
+        try:
+            reader = msg.reader()
+            npc_template_id = reader.read_short()
+            menu_chat = reader.read_utf()
+            num_options = reader.read_byte()
+            options = []
+            for _ in range(num_options):
+                options.append(reader.read_utf())
+            
+            logger.info(f"NPC Menu (Template ID {npc_template_id}): '{menu_chat}'")
+            for i, opt in enumerate(options):
+                logger.info(f"  [{i}] {opt}")
+                
+        except Exception as e:
+            logger.error(f"Lỗi khi phân tích OPEN_UI_CONFIRM: {e}")
+
     def process_npc_chat(self, msg: Message):
         try:
             reader = msg.reader()
@@ -696,6 +752,11 @@ class Controller:
         try:
             reader = msg.reader()
             player_id = reader.read_int()
+            
+            if player_id == self.account.char.char_id:
+                logger.warning("Nhân vật của bạn đã chết (PLAYER_DIE).")
+                self.xmap.handle_death()
+                
             logger.info(f"Người chơi đã chết (Cmd {msg.command}): PlayerID={player_id}")
         except Exception as e:
             logger.error(f"Lỗi khi phân tích PLAYER_DIE: {e}")

@@ -276,6 +276,14 @@ async def handle_single_command(command: str, account: Account):
                 await account.service.request_change_zone(int(parts[1]))
             else:
                 logger.warning(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: khu <id>")
+
+        elif cmd_base == "gomap":
+            if len(parts) == 2 and parts[1].isdigit():
+                map_id = int(parts[1])
+                logger.info(f"[{C.YELLOW}{account.username}{C.RESET}] Bắt đầu XMap tới {map_id}...")
+                await account.controller.xmap.start(map_id)
+            else:
+                logger.warning(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: gomap <map_id>")
         
         else:
             logger.warning(f"[{C.YELLOW}{account.username}{C.RESET}] Lệnh không xác định: '{command}'. Gõ 'help'.")

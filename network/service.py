@@ -154,4 +154,58 @@ class Service:
         except Exception as e:
             logger.error(f"Lỗi khi gửi yêu cầu get_item: {e}")
 
+    async def open_menu(self, npc_id: int):
+        """Mở menu NPC (Cmd 27 - OPEN_MENU_ID)"""
+        try:
+            msg = Message(27)
+            msg.writer().write_short(npc_id)
+            await self.session.send_message(msg)
+            logger.info(f"Gửi yêu cầu mở menu NPC: {npc_id}")
+        except Exception as e:
+            logger.error(f"Lỗi khi mở menu NPC: {e}")
+
+    async def confirm_menu(self, npc_id: int, select: int):
+        """Xác nhận chọn menu (Cmd 22 - MENU)"""
+        try:
+            msg = Message(22)
+            writer = msg.writer()
+            writer.write_short(npc_id)
+            writer.write_byte(select)
+            await self.session.send_message(msg)
+            logger.info(f"Gửi xác nhận menu NPC {npc_id} chọn {select}")
+        except Exception as e:
+            logger.error(f"Lỗi khi xác nhận menu: {e}")
+
+    async def open_menu_npc(self, npc_id: int):
+        """Mở menu NPC (Cmd 33 - OPEN_MENU)"""
+        try:
+            msg = Message(33)
+            msg.writer().write_short(npc_id)
+            await self.session.send_message(msg)
+            logger.info(f"Gửi yêu cầu mở menu NPC (Cmd 33): {npc_id}")
+        except Exception as e:
+            logger.error(f"Lỗi khi mở menu NPC (Cmd 33): {e}")
+
+    async def confirm_menu_npc(self, npc_id: int, select: int):
+        """Xác nhận menu NPC (Cmd 32 - CONFIRM_MENU)"""
+        try:
+            msg = Message(32)
+            writer = msg.writer()
+            writer.write_short(npc_id)
+            writer.write_byte(select)
+            await self.session.send_message(msg)
+            logger.info(f"Gửi xác nhận menu NPC (Cmd 32) {npc_id} chọn {select}")
+        except Exception as e:
+            logger.error(f"Lỗi khi xác nhận menu NPC (Cmd 32): {e}")
+
+    async def request_map_select(self, selected: int):
+        """Yêu cầu chọn bản đồ (Cmd -91)"""
+        try:
+            msg = Message(-91)
+            msg.writer().write_byte(selected)
+            await self.session.send_message(msg)
+            logger.info(f"Gửi yêu cầu chọn bản đồ (Cmd -91): {selected}")
+        except Exception as e:
+            logger.error(f"Lỗi khi gửi yêu cầu chọn bản đồ: {e}")
+
     

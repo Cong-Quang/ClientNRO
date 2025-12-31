@@ -1,4 +1,3 @@
-# toolsDev/models/pet.py
 from typing import List, Optional
 
 class ItemOption:
@@ -75,8 +74,7 @@ class Pet:
         if not self.has_pet:
             return "Không có đệ tử."
 
-        info = f"--- Thông Tin Đệ Tử: {self.name} ---
-"
+        info = f"--- Thông Tin Đệ Tử: {self.name} ---"
         info += f"Tên: {self.name}\n"
         info += f"Trạng thái: {self.get_status_vietnamese()} <--- (Đây là trạng thái có thể đang bị bug)\n"
         info += f"HP: {self.hp} / {self.hp_full}\n"
@@ -88,16 +86,14 @@ class Pet:
         info += f"Chí mạng: {self.critical_full}%\n"
         info += f"Thể lực: {self.stamina} / {self.max_stamina}\n"
         
-        info += "\n--- Kỹ năng ---
-"
+        info += "\n--- Kỹ năng ---"
         if self.skills:
             for skill in self.skills:
                 info += f"- {skill}\n"
         else:
             info += "Không có kỹ năng.\n"
             
-        info += "\n--- Trang bị ---
-"
+        info += "\n--- Trang bị ---"
         if self.items_body:
             for item in self.items_body:
                 if item:

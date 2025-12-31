@@ -29,7 +29,7 @@ class MovementService:
         self.is_moving = False
 
     async def _move_loop(self, tx: int, ty: int):
-        char = Char.my_charz()
+        char = self.controller.account.char
         speed = 10 # Pixels per tick (approx)
         
         try:
@@ -41,7 +41,7 @@ class MovementService:
                 if dist <= speed:
                     char.cx = tx
                     char.cy = ty
-                    await Service.gI().char_move()
+                    await self.controller.account.service.char_move()
                     break
                 
                 # Normalize and scale
@@ -55,7 +55,7 @@ class MovementService:
                 if dx > 0: char.cdir = 1
                 else: char.cdir = -1
                 
-                await Service.gI().char_move()
+                await self.controller.account.service.char_move()
                 await asyncio.sleep(0.1) # 100ms per step
                 
         except asyncio.CancelledError:
@@ -64,6 +64,28 @@ class MovementService:
             logger.error(f"Error in movement loop: {e}")
         finally:
             self.is_moving = False
+
+    async def teleport_to(self, target_x: int, target_y: int):
+        """
+        Teleports the character to target coordinates immediately with 'wiggle' to ensure server sync.
+        """
+        self.stop_moving()
+        char = self.controller.account.char
+        
+        # 1. Main Teleport
+        char.cx = target_x
+        char.cy = target_y
+        await self.controller.account.service.char_move()
+        
+        # 2. Wiggle (Simulation of landing/adjusting)
+        char.cy = target_y + 1
+        await self.controller.account.service.char_move()
+        
+        char.cy = target_y
+        await self.controller.account.service.char_move()
+        
+        # 3. Wait for server to register position
+        await asyncio.sleep(0.3)
 
     async def enter_waypoint(self, waypoint_name: str = None, waypoint_index: int = None):
         """
@@ -96,22 +118,41 @@ class MovementService:
             logger.warning(f"Waypoint not found (Name: {waypoint_name}, Index: {waypoint_index})")
             return
 
-        logger.info(f"Moving to Waypoint: {target_wp.name} at ({target_wp.center_x}, {target_wp.center_y})")
+        logger.info(f"Teleporting to Waypoint: {target_wp.name} at ({target_wp.center_x}, {target_wp.center_y})")
         
-        # Move to waypoint
-        await self.move_to(target_wp.center_x, target_wp.center_y)
+        # Teleport to waypoint
+        await self.teleport_to(target_wp.center_x, target_wp.center_y)
         
         # Send change map request
         if target_wp.is_offline:
              logger.info("Sending Get Map Offline request...")
-             await Service.gI().get_map_offline()
+             await self.controller.account.service.get_map_offline()
         elif target_wp.is_enter:
              logger.info("Sending Request Change Map...")
-             await Service.gI().request_change_map()
+             await self.controller.account.service.request_change_map()
         else:
-            # Waypoint might be just a transition (like Left/Right map edge)
-            # In NRO, stepping on the edge often triggers map change automatically via server check,
-            # or client sends requestChangeMap when inside the zone.
             logger.info("Arrived at waypoint. Sending Change Map request just in case.")
-            await Service.gI().request_change_map()
+            await self.controller.account.service.request_change_map()
+
+    async def teleport_to_npc(self, npc_template_id: int) -> bool:
+        """
+        Finds an NPC by template ID and teleports to them.
+        Returns True if successful, False otherwise.
+        """
+        # Search through values since npcs is keyed by index
+        target_npc = None
+        for npc in self.controller.npcs.values():
+            if npc['template_id'] == npc_template_id:
+                target_npc = npc
+                break
+        
+        if target_npc:
+            logger.info(f"Teleporting to NPC {npc_template_id} at ({target_npc['x']}, {target_npc['y']})")
+            # Teleport slightly above the NPC (y-3) like C# source
+            await self.teleport_to(target_npc['x'], target_npc['y'] - 3)
+            return True
+        else:
+            # logger.warning(f"NPC {npc_template_id} not found on this map. Available NPCs: {list(self.controller.npcs.values())}")
+            logger.warning(f"NPC {npc_template_id} not found on this map.")
+            return False
 
