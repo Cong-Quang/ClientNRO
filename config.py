@@ -10,8 +10,8 @@ class Config:
     # List of accounts to run
     # You can add more accounts here
     ACCOUNTS = [
-        #{"username": "poopooi01", "password": "02082003"},
-        {"username": "poopooi03", "password": "02082003"},
+        {"username": "poopooi01", "password": "02082003"},
+        #{"username": "poopooi03", "password": "02082003"},
         # {"username": "poopooi04", "password": "02082003"},
         # {"username": "poopooi05", "password": "02082003"},
     ]

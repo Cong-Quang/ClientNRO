@@ -211,9 +211,21 @@ async def command_loop(manager: AccountManager):
                 print("Không có mục tiêu hợp lệ nào được chọn hoặc mục tiêu không online. Dùng 'target'.")
                 continue
             
-            print(f"Đang gửi lệnh '{C.PURPLE}{command}{C.RESET}' đến {len(target_accounts)} tài khoản...")
-            all_tasks = [handle_single_command(command, acc) for acc in target_accounts]
-            await asyncio.gather(*all_tasks)
+            # Build a readable recipient list (index and username, show offline if any)
+            recipients = []
+            for i, acc in enumerate(target_accounts):
+                status_tag = f" {C.RED}(Offline){C.RESET}" if not acc.is_logged_in else ""
+                recipients.append(f"[{C.YELLOW}{i}{C.RESET}] {acc.username}{status_tag}")
+            print(f"Đang gửi lệnh '{C.PURPLE}{command}{C.RESET}' đến {len(target_accounts)} tài khoản: {', '.join(recipients)}")
+            
+            tasks = [handle_single_command(command, acc) for acc in target_accounts]
+            results = await asyncio.gather(*tasks)
+            # Print per-account delivery status
+            for acc, (success, msg) in zip(target_accounts, results):
+                if success:
+                    print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.GREEN}Đã nhận{C.RESET}")
+                else:
+                    print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.RED}Không nhận{C.RESET} - {msg}")
 
         except (EOFError, KeyboardInterrupt):
             logger.info("Đã nhận tín hiệu thoát, đang đóng tất cả kết nối...")
@@ -327,9 +339,10 @@ async def handle_single_command(command: str, account: Account):
         
         else:
             print(f"[{C.YELLOW}{account.username}{C.RESET}] Lệnh không xác định: '{command}'. Gõ 'help'.")
-
+        return True, "OK"
     except Exception as e:
         print(f"Lỗi khi xử lý lệnh '{command}' cho {account.username}: {e}")
+        return False, str(e)
 
 
 async def main():
