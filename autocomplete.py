@@ -15,7 +15,11 @@ COMMAND_TREE = {
     "list": [],
     "target": [],
     "show": [],
-    "khu": []
+    "khu": [],
+    "gomap": [],
+    "findnpc": [],
+    "teleport": [],
+    "teleportnpc": []
 }
 
 def common_prefix(strings):

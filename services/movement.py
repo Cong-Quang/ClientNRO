@@ -134,25 +134,36 @@ class MovementService:
             logger.info("Arrived at waypoint. Sending Change Map request just in case.")
             await self.controller.account.service.request_change_map()
 
-    async def teleport_to_npc(self, npc_template_id: int) -> bool:
+    async def teleport_to_npc(self, npc_id: int) -> bool:
         """
-        Finds an NPC by template ID and teleports to them.
+        Finds an NPC by its map ID or template ID and teleports to them.
         Returns True if successful, False otherwise.
         """
-        # Search through values since npcs is keyed by index
         target_npc = None
-        for npc in self.controller.npcs.values():
-            if npc['template_id'] == npc_template_id:
-                target_npc = npc
-                break
+        npc_map_id_log = None
+        npc_template_id_log = None
+
+        # 1. Try to find by NPC map ID (dictionary key)
+        if npc_id in self.controller.npcs:
+            target_npc = self.controller.npcs[npc_id]
+            npc_map_id_log = npc_id
+            npc_template_id_log = target_npc.get('template_id', 'N/A')
+
+        # 2. If not found by map ID, search by template ID
+        if not target_npc:
+            for map_id, npc_data in self.controller.npcs.items():
+                if npc_data.get('template_id') == npc_id:
+                    target_npc = npc_data
+                    npc_map_id_log = map_id
+                    npc_template_id_log = npc_id
+                    break
         
         if target_npc:
-            logger.info(f"Teleporting to NPC {npc_template_id} at ({target_npc['x']}, {target_npc['y']})")
+            logger.info(f"Teleporting to NPC (MapID: {npc_map_id_log}, TemplateID: {npc_template_id_log}) at ({target_npc['x']}, {target_npc['y']})")
             # Teleport slightly above the NPC (y-3) like C# source
             await self.teleport_to(target_npc['x'], target_npc['y'] - 3)
             return True
         else:
-            # logger.warning(f"NPC {npc_template_id} not found on this map. Available NPCs: {list(self.controller.npcs.values())}")
-            logger.warning(f"NPC {npc_template_id} not found on this map.")
+            logger.warning(f"NPC with ID {npc_id} not found on this map.")
             return False
 

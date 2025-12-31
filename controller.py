@@ -323,9 +323,8 @@ class Controller:
             logger.info(f"Đã phân tích {len(self.mobs)} quái vật.")
 
             # Skip byte (aligns with C# client skipping a loop count)
-            # lỗi nằm ở đây
-            if reader.available() > 0:
-                reader.read_byte()
+            # if reader.available() > 0:
+            #     reader.read_byte()
 
             # NPCs
             self.npcs = {}

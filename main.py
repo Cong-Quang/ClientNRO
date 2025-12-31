@@ -120,7 +120,7 @@ async def command_loop(manager: AccountManager):
             # --- Group Management ---
             elif cmd_base == "group":
                 if len(parts) < 2:
-                    logger.warning("Lệnh group không hợp lệ. Dùng 'group list', 'group create <name> <ids>', 'group delete <name>', ...")
+                    print("Lệnh group không hợp lệ. Dùng 'group list', 'group create <name> <ids>', 'group delete <name>', ...")
                     continue
                 
                 sub_cmd = parts[1]
@@ -133,85 +133,85 @@ async def command_loop(manager: AccountManager):
                 elif sub_cmd == "create" and len(parts) >= 4:
                     name = parts[2]
                     if name == "all":
-                        logger.error("Không thể tạo nhóm với tên 'all'.")
+                        print("Không thể tạo nhóm với tên 'all'.")
                         continue
                     try:
                         indices = [int(i) for i in parts[3].split(',')]
                         if all(0 <= i < len(manager.accounts) for i in indices):
                             manager.groups[name] = sorted(list(set(indices)))
-                            logger.info(f"Đã tạo nhóm '{C.YELLOW}{name}{C.RESET}' với các thành viên: {manager.groups[name]}")
+                            print(f"Đã tạo nhóm '{C.YELLOW}{name}{C.RESET}' với các thành viên: {manager.groups[name]}")
                         else:
-                            logger.error("Một hoặc nhiều chỉ số không hợp lệ.")
+                            print("Một hoặc nhiều chỉ số không hợp lệ.")
                     except ValueError:
-                        logger.error("Chỉ số thành viên không hợp lệ. Phải là các số được phân tách bằng dấu phẩy (VD: 1,2,3).")
+                        print("Chỉ số thành viên không hợp lệ. Phải là các số được phân tách bằng dấu phẩy (VD: 1,2,3).")
 
                 elif sub_cmd == "delete" and len(parts) == 3:
                     name = parts[2]
                     if name == "all":
-                        logger.error("Không thể xóa nhóm 'all'.")
+                        print("Không thể xóa nhóm 'all'.")
                     elif name in manager.groups:
                         del manager.groups[name]
-                        logger.info(f"Đã xóa nhóm '{C.YELLOW}{name}{C.RESET}'.")
+                        print(f"Đã xóa nhóm '{C.YELLOW}{name}{C.RESET}'.")
                     else:
-                        logger.error(f"Không tìm thấy nhóm '{C.YELLOW}{name}{C.RESET}'.")
+                        print(f"Không tìm thấy nhóm '{C.YELLOW}{name}{C.RESET}'.")
                 
                 elif sub_cmd == "add" and len(parts) >= 4:
                     name = parts[2]
-                    if name == "all": logger.error("Không thể thêm thành viên vào nhóm 'all'."); continue
-                    if name not in manager.groups: logger.error(f"Không tìm thấy nhóm '{C.YELLOW}{name}{C.RESET}'."); continue
+                    if name == "all": print("Không thể thêm thành viên vào nhóm 'all'."); continue
+                    if name not in manager.groups: print(f"Không tìm thấy nhóm '{C.YELLOW}{name}{C.RESET}'."); continue
                     try:
                         indices_to_add = {int(i) for i in parts[3].split(',')}
                         valid_indices = {i for i in indices_to_add if 0 <= i < len(manager.accounts)}
-                        if len(valid_indices) != len(indices_to_add): logger.warning("Một vài chỉ số không hợp lệ đã bị bỏ qua.");
+                        if len(valid_indices) != len(indices_to_add): print("Một vài chỉ số không hợp lệ đã bị bỏ qua.");
                         current_members = set(manager.groups[name])
                         current_members.update(valid_indices)
                         manager.groups[name] = sorted(list(current_members))
-                        logger.info(f"Đã cập nhật nhóm '{C.YELLOW}{name}{C.RESET}': {manager.groups[name]}")
-                    except ValueError: logger.error("Chỉ số không hợp lệ.");
+                        print(f"Đã cập nhật nhóm '{C.YELLOW}{name}{C.RESET}': {manager.groups[name]}")
+                    except ValueError: print("Chỉ số không hợp lệ.");
 
                 elif sub_cmd == "remove" and len(parts) >= 4:
                     name = parts[2]
-                    if name == "all": logger.error("Không thể xóa thành viên khỏi nhóm 'all'."); continue
-                    if name not in manager.groups: logger.error(f"Không tìm thấy nhóm '{C.YELLOW}{name}{C.RESET}'."); continue
+                    if name == "all": print("Không thể xóa thành viên khỏi nhóm 'all'."); continue
+                    if name not in manager.groups: print(f"Không tìm thấy nhóm '{C.YELLOW}{name}{C.RESET}'."); continue
                     try:
                         indices_to_remove = {int(i) for i in parts[3].split(',')}
                         current_members = set(manager.groups[name])
                         current_members.difference_update(indices_to_remove)
                         manager.groups[name] = sorted(list(current_members))
-                        logger.info(f"Đã cập nhật nhóm '{C.YELLOW}{name}{C.RESET}': {manager.groups[name]}")
-                    except ValueError: logger.error("Chỉ số không hợp lệ.");
+                        print(f"Đã cập nhật nhóm '{C.YELLOW}{name}{C.RESET}': {manager.groups[name]}")
+                    except ValueError: print("Chỉ số không hợp lệ.");
 
                 else:
-                    logger.warning("Lệnh group không hợp lệ.")
+                    print("Lệnh group không hợp lệ.")
                 continue
 
             # --- Target Switching ---
             elif cmd_base == "target":
                 if len(parts) != 2:
-                    logger.warning("Sử dụng: target <index|group_name|all>"); continue
+                    print("Sử dụng: target <index|group_name|all>"); continue
                 
                 new_target = parts[1]
                 if new_target.isdigit():
                     new_target_idx = int(new_target)
                     if 0 <= new_target_idx < len(manager.accounts):
                         manager.command_target = new_target_idx
-                        logger.info(f"Đã đặt mục tiêu là tài khoản [{C.YELLOW}{new_target_idx}{C.RESET}].")
+                        print(f"Đã đặt mục tiêu là tài khoản [{C.YELLOW}{new_target_idx}{C.RESET}].")
                     else:
-                        logger.error("Chỉ số tài khoản không hợp lệ.")
+                        print("Chỉ số tài khoản không hợp lệ.")
                 elif new_target in manager.groups:
                     manager.command_target = new_target
-                    logger.info(f"Đã đặt mục tiêu là nhóm '{C.YELLOW}{new_target}{C.RESET}'.")
+                    print(f"Đã đặt mục tiêu là nhóm '{C.YELLOW}{new_target}{C.RESET}'.")
                 else:
-                    logger.error(f"Không tìm thấy tài khoản hoặc nhóm với tên/chỉ số '{new_target}'.")
+                    print(f"Không tìm thấy tài khoản hoặc nhóm với tên/chỉ số '{new_target}'.")
                 continue
 
             # --- Command Execution ---
             target_accounts = manager.get_target_accounts()
             if not target_accounts:
-                logger.error("Không có mục tiêu hợp lệ nào được chọn hoặc mục tiêu không online. Dùng 'target'.")
+                print("Không có mục tiêu hợp lệ nào được chọn hoặc mục tiêu không online. Dùng 'target'.")
                 continue
             
-            logger.info(f"Đang gửi lệnh '{C.PURPLE}{command}{C.RESET}' đến {len(target_accounts)} tài khoản...")
+            print(f"Đang gửi lệnh '{C.PURPLE}{command}{C.RESET}' đến {len(target_accounts)} tài khoản...")
             all_tasks = [handle_single_command(command, acc) for acc in target_accounts]
             await asyncio.gather(*all_tasks)
 
@@ -242,31 +242,31 @@ async def handle_single_command(command: str, account: Account):
                     status_map = {"follow": 0, "protect": 1, "attack": 2, "home": 3}
                     await account.service.pet_status(status_map[sub_cmd])
                 else:
-                    logger.warning(f"[{C.YELLOW}{account.username}{C.RESET}] Lệnh đệ tử không xác định: '{sub_cmd}'.")
+                    print(f"[{C.YELLOW}{account.username}{C.RESET}] Lệnh đệ tử không xác định: '{sub_cmd}'.")
 
         elif cmd_base == "logger":
             if len(parts) > 1 and parts[1] in ["on", "off"]:
                 status = parts[1] == "on"
                 set_logger_status(status)
-                logger.info(f"Đã {'BẬT' if status else 'TẮT'} logger.")
+                print(f"Đã {'BẬT' if status else 'TẮT'} logger.")
             else:
-                logger.warning("Sử dụng: logger <on|off>")
+                print("Sử dụng: logger <on|off>")
 
         elif cmd_base == "autoplay":
             if len(parts) > 1 and parts[1] in ["on", "off"]:
                 status = parts[1] == "on"
                 account.controller.toggle_autoplay(status)
-                logger.info(f"[{C.YELLOW}{account.username}{C.RESET}] Đã {'BẬT' if status else 'TẮT'} autoplay.")
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Đã {'BẬT' if status else 'TẮT'} autoplay.")
             else:
-                logger.warning(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: autoplay <on|off>")
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: autoplay <on|off>")
 
         elif cmd_base == "autopet":
             if len(parts) > 1 and parts[1] in ["on", "off"]:
                 status = parts[1] == "on"
                 account.controller.toggle_auto_pet(status)
-                logger.info(f"[{C.YELLOW}{account.username}{C.RESET}] Đã {'BẬT' if status else 'TẮT'} autopet.")
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Đã {'BẬT' if status else 'TẮT'} autopet.")
             else:
-                logger.warning(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: autopet <on|off>")
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: autopet <on|off>")
         
         elif cmd_base == "show":
             display_character_status(account)
@@ -275,21 +275,47 @@ async def handle_single_command(command: str, account: Account):
             if len(parts) == 2 and parts[1].isdigit():
                 await account.service.request_change_zone(int(parts[1]))
             else:
-                logger.warning(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: khu <id>")
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: khu <id>")
 
         elif cmd_base == "gomap":
             if len(parts) == 2 and parts[1].isdigit():
                 map_id = int(parts[1])
-                logger.info(f"[{C.YELLOW}{account.username}{C.RESET}] Bắt đầu XMap tới {map_id}...")
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Bắt đầu XMap tới {map_id}...")
                 await account.controller.xmap.start(map_id)
             else:
-                logger.warning(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: gomap <map_id>")
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: gomap <map_id>")
+        
+        elif cmd_base == "findnpc":
+            npcs = account.controller.npcs
+            if not npcs:
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Không tìm thấy NPC nào trên bản đồ hiện tại.")
+            else:
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Các NPC trên bản đồ:")
+                for npc_id, npc_data in npcs.items():
+                    print(f"  - NPC ID Map: {npc_id}, Template ID: {npc_data['template_id']}, Coords: ({npc_data['x']}, {npc_data['y']})")
+
+        elif cmd_base == "teleport":
+            if len(parts) == 3 and parts[1].isdigit() and parts[2].isdigit():
+                x, y = int(parts[1]), int(parts[2])
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Dịch chuyển tới ({x}, {y})...")
+                await account.controller.movement.teleport_to(x, y)
+            else:
+               print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: teleport <x> <y>")
+
+        elif cmd_base == "teleportnpc":
+            if len(parts) == 2 and parts[1].isdigit():
+                npc_id = int(parts[1])
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Dịch chuyển tới NPC ID {npc_id}...")
+                await account.controller.movement.teleport_to_npc(npc_id)
+            else:
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: teleportnpc <id>")
+
         
         else:
-            logger.warning(f"[{C.YELLOW}{account.username}{C.RESET}] Lệnh không xác định: '{command}'. Gõ 'help'.")
+            print(f"[{C.YELLOW}{account.username}{C.RESET}] Lệnh không xác định: '{command}'. Gõ 'help'.")
 
     except Exception as e:
-        logger.error(f"Lỗi khi xử lý lệnh '{command}' cho {account.username}: {e}")
+        print(f"Lỗi khi xử lý lệnh '{command}' cho {account.username}: {e}")
 
 
 async def main():
