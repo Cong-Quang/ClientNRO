@@ -13,12 +13,13 @@ class Account:
     """
     Encapsulates all objects and data for a single game account session.
     """
-    def __init__(self, username, password, version, host, port):
+    def __init__(self, username, password, version, host, port, proxy=None):
         self.username = username
         self.password = password
         self.version = version
         self.host = host
         self.port = port
+        self.proxy = proxy
         self.is_logged_in = False
         self.tasks = []
 
@@ -27,7 +28,7 @@ class Account:
         self.pet = Pet()
         # The controller needs a reference to this account to access other components
         self.controller = Controller(self) 
-        self.session = Session(self.controller)
+        self.session = Session(self.controller, proxy=self.proxy)
         # The service is now a regular object, instantiated per account
         self.service = Service(self.session, self.char)
 

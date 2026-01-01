@@ -87,7 +87,7 @@ def display_help():
     print(f"{C.CYAN}--- Trợ giúp ---{C.RESET}")
     print(f"{C.PURPLE}--- Quản lý mục tiêu & Nhóm ---{C.RESET}")
     print(f"  {C.GREEN}list{C.RESET}              - Liệt kê tất cả các tài khoản và trạng thái.")
-    print(f"  {C.GREEN}login{C.RESET} {C.YELLOW}<index|list|all>{C.RESET} - Đăng nhập tài khoản (VD: 'login 0', 'login 1,3,5', 'login all').")
+    print(f"  {C.GREEN}login{C.RESET} {C.YELLOW}<index|list|all|default>{C.RESET} - Đăng nhập tài khoản (VD: 'login 0', 'login default').")
     print(f"  {C.GREEN}logout{C.RESET} {C.YELLOW}<index|list|all>{C.RESET}- Đăng xuất tài khoản (VD: 'logout 0', 'logout 1,3', 'logout all').")
     print(f"  {C.GREEN}target{C.RESET} {C.YELLOW}<id|name>{C.RESET}  - Chọn mục tiêu để gửi lệnh (VD: 'target 0', 'target all', 'target nhom1').")
     print(f"  {C.GREEN}group list{C.RESET}        - Liệt kê các nhóm đã tạo.")
@@ -123,6 +123,10 @@ def display_character_status(account):
 
     print(f"{C.BOLD_RED}--- Trạng thái: {C.YELLOW}{account.username}{C.BOLD_RED} ---{C.RESET}")
     
+    # Hiển thị thông tin Proxy
+    proxy_info = account.proxy if account.proxy else "Local IP"
+    print(f"  {C.CYAN}Kết nối:{C.RESET} {C.PURPLE}{proxy_info}{C.RESET}")
+
     # Thông tin nhân vật
     print(f"  {C.CYAN}Nhân vật:{C.RESET}")
     print(f"    - {C.GREEN}Tên:{C.RESET} {char.name} ({C.YELLOW}ID: {char.char_id}{C.RESET})")

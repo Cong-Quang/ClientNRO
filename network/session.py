@@ -9,7 +9,7 @@ from cmd import Cmd
 logger = logging.getLogger(__name__)
 
 class Session:
-    def __init__(self, controller=None):
+    def __init__(self, controller=None, proxy=None):
         self.reader: Optional[asyncio.StreamReader] = None
         self.writer: Optional[asyncio.StreamWriter] = None
         self.connected = False
@@ -18,11 +18,55 @@ class Session:
         self.cur_w = 0
         self.get_key_complete = False
         self.controller = controller
+        self.proxy = proxy
 
     async def connect(self, host: str, port: int):
         try:
-            logger.info(f"Đang kết nối tới {host}:{port}...")
-            self.reader, self.writer = await asyncio.open_connection(host, port)
+            if self.proxy:
+                logger.info(f"Đang kết nối qua proxy: {self.proxy}")
+                from urllib.parse import urlparse
+                import base64
+                
+                parsed = urlparse(self.proxy)
+                proxy_host = parsed.hostname
+                proxy_port = parsed.port
+                proxy_auth = None
+                
+                if parsed.username and parsed.password:
+                    auth_str = f"{parsed.username}:{parsed.password}"
+                    proxy_auth = base64.b64encode(auth_str.encode()).decode()
+                
+                logger.info(f"Kết nối tới Proxy Server {proxy_host}:{proxy_port}...")
+                self.reader, self.writer = await asyncio.open_connection(proxy_host, proxy_port)
+                
+                # HTTP CONNECT handshake
+                connect_req = f"CONNECT {host}:{port} HTTP/1.1\r\n"
+                connect_req += f"Host: {host}:{port}\r\n"
+                if proxy_auth:
+                    connect_req += f"Proxy-Authorization: Basic {proxy_auth}\r\n"
+                connect_req += "\r\n"
+                
+                self.writer.write(connect_req.encode())
+                await self.writer.drain()
+                
+                # Read response line
+                line = await self.reader.readline()
+                if b"200" not in line:
+                    logger.error(f"Proxy handshake failed: {line.decode().strip()}")
+                    self.connected = False
+                    return None
+                
+                # Read remaining headers until empty line
+                while True:
+                    line = await self.reader.readline()
+                    if line == b"\r\n" or line == b"":
+                        break
+                
+                logger.info("Proxy tunnel established!")
+            else:
+                logger.info(f"Đang kết nối tới {host}:{port}...")
+                self.reader, self.writer = await asyncio.open_connection(host, port)
+
             self.connected = True
             logger.info("Đã kết nối!")
             

@@ -43,7 +43,8 @@ class AccountManager:
                     password=acc_data["password"],
                     version=Config.VERSION,
                     host=Config.HOST,
-                    port=Config.PORT
+                    port=Config.PORT,
+                    proxy=acc_data.get("proxy")
                 )
                 self.accounts.append(acc)
                 self.groups["all"].append(i) # Add all account indices to 'all' group
@@ -102,13 +103,47 @@ class AccountManager:
         
         return []
 
+def load_proxies():
+    """Đọc danh sách proxy từ file proxy.txt và chuyển đổi sang định dạng URL chuẩn."""
+    proxies = []
+    if os.path.exists("proxy.txt"):
+        try:
+            with open("proxy.txt", "r", encoding="utf-8") as f:
+                for line in f:
+                    p = line.strip()
+                    if not p:
+                        continue
+                    
+                    # Xử lý định dạng IP:PORT:USER:PASS
+                    parts = p.split(':')
+                    if len(parts) == 4:
+                        ip, port, user, password = parts
+                        # Chuyển đổi sang http://user:pass@ip:port
+                        formatted_proxy = f"http://{user}:{password}@{ip}:{port}"
+                        proxies.append(formatted_proxy)
+                    else:
+                        # Giữ nguyên nếu không phải định dạng trên (ví dụ đã là http://...)
+                        proxies.append(p)
+                        
+            logger.info(f"Đã tải {len(proxies)} proxy từ file.")
+        except Exception as e:
+            logger.error(f"Lỗi khi đọc file proxy.txt: {e}")
+    else:
+        logger.warning("Không tìm thấy file proxy.txt. Chỉ sử dụng IP máy (Giới hạn 5 acc).")
+    return proxies
+
 async def command_loop(manager: AccountManager):
     """The main interactive command loop for managing multiple accounts."""
     C = TerminalColors
+    # Tải danh sách proxy khi bắt đầu
+    proxy_list = load_proxies()
+    
     while True:
         # Update autocomplete with current groups
         current_group_names = list(manager.groups.keys())
-        COMMAND_TREE["login"] = current_group_names
+        # Thêm 'default' vào danh sách gợi ý cho login
+        login_suggestions = current_group_names + ["default"]
+        COMMAND_TREE["login"] = login_suggestions
         COMMAND_TREE["logout"] = current_group_names
         COMMAND_TREE["target"] = current_group_names
 
@@ -155,20 +190,21 @@ async def command_loop(manager: AccountManager):
                      else:
                          target = manager.command_target
                 else:
-                    print("Sử dụng: login <index|all|group_name> hoặc chọn target trước.")
-                    continue
+                    # Mặc định là login default nếu không có tham số và không có target
+                    target = "default"
                 
                 # Logic xử lý danh sách acc cần login
                 accounts_to_login = []
                 
                 if target == "all":
-                    # Ưu tiên Config.DEFAULT_LOGIN nếu có, nhưng ở đây ta cứ lấy hết theo limit
-                    # Hoặc giữ logic cũ
+                    accounts_to_login = manager.accounts
+                
+                elif target == "default":
                     target_indices = Config.DEFAULT_LOGIN
                     for idx in target_indices:
                         if 0 <= idx < len(manager.accounts):
                             accounts_to_login.append(manager.accounts[idx])
-                            
+
                 elif target in manager.groups:
                      # Login theo nhóm
                      indices = manager.groups[target]
@@ -202,32 +238,85 @@ async def command_loop(manager: AccountManager):
                     print("Không có tài khoản nào được chọn để đăng nhập.")
                     continue
 
-                current_active = manager.get_active_account_count()
+                current_active_total = manager.get_active_account_count()
                 limit = Config.MAX_ACCOUNTS
-                available_slots = limit - current_active
+                available_slots_global = limit - current_active_total
                 
-                if available_slots <= 0:
+                if available_slots_global <= 0:
                     print(f"{C.RED}Đã đạt giới hạn {limit} tài khoản đang chạy.{C.RESET}")
                     continue
                 
-                tasks = []
-                for acc in accounts_to_login:
+                # --- PHÂN PHỐI PROXY ---
+                # Tính toán usage hiện tại của tất cả các account ĐANG online
+                local_ip_usage = 0
+                proxy_usage = {p: 0 for p in proxy_list}
+                
+                for acc in manager.accounts:
                     if acc.is_logged_in:
-                         print(f"Tài khoản {acc.username} đã online. Bỏ qua.")
+                        if acc.proxy is None:
+                            local_ip_usage += 1
+                        elif acc.proxy in proxy_usage:
+                            proxy_usage[acc.proxy] += 1
+                
+                tasks = []
+                stop_login_sequence = False
+
+                for acc in accounts_to_login:
+                    if stop_login_sequence:
+                        break
+
+                    if acc.is_logged_in:
+                         print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.RED}Đã online. Bỏ qua.{C.RESET}")
                          continue
                     
-                    if len(tasks) >= available_slots:
-                        print(f"{C.RED}Đã đạt giới hạn slot login. Dừng thêm.{C.RESET}")
+                    if len(tasks) >= available_slots_global:
+                        print(f"{C.RED}Đã đạt giới hạn slot login toàn cục ({limit}). Dừng thêm.{C.RESET}")
                         break
+                    
+                    # Logic gán proxy
+                    assigned_proxy = None
+                    
+                    # 1. Ưu tiên dùng IP máy (max 5)
+                    if local_ip_usage < 5:
+                        assigned_proxy = None
+                        local_ip_usage += 1
+                        print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.GREEN}Gán IP máy{C.RESET} (Slot {C.CYAN}{local_ip_usage}/5{C.RESET})")
+                    else:
+                        # 2. Tìm proxy còn slot (max 5)
+                        found_proxy = False
+                        for p in proxy_list:
+                            if proxy_usage[p] < 5:
+                                assigned_proxy = p
+                                proxy_usage[p] += 1
+                                found_proxy = True
+                                try:
+                                    display_p = p.split('@')[-1]
+                                except:
+                                    display_p = p
+                                print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.PURPLE}Gán Proxy{C.RESET} {C.GREY}...{display_p[-15:]}{C.RESET} (Slot {C.CYAN}{proxy_usage[p]}/5{C.RESET})")
+                                break
                         
-                    print(f"Đang đăng nhập {acc.username}...")
+                        if not found_proxy:
+                            print(f"{C.RED}Hết tài nguyên mạng (IP máy & Proxy đều full 5 acc).{C.RESET}")
+                            print(f"{C.RED}Dừng đăng nhập từ tài khoản: {acc.username}{C.RESET}")
+                            stop_login_sequence = True
+                            break # Thoát khỏi vòng lặp accounts_to_login
+                    
+                    # Cập nhật proxy cho account và login
+                    acc.proxy = assigned_proxy
+                    # Cần cập nhật lại session proxy vì session được tạo khi init Account
+                    if acc.session:
+                        acc.session.proxy = assigned_proxy
+
+                    print(f"Đang đăng nhập {C.YELLOW}{acc.username}{C.RESET}...")
                     tasks.append(acc.login())
                 
                 if tasks:
                     await asyncio.gather(*tasks)
-                    print(f"Đã thực hiện đăng nhập {len(tasks)} tài khoản.")
+                    print(f"{C.GREEN}Đã hoàn tất quy trình đăng nhập cho {len(tasks)} tài khoản.{C.RESET}")
                 else:
-                    print("Không có tài khoản nào được gửi yêu cầu đăng nhập (có thể đã online hết hoặc lỗi).")
+                    if not stop_login_sequence:
+                        print(f"{C.YELLOW}Không có tác vụ đăng nhập nào được khởi tạo.{C.RESET}")
 
                 continue
 
@@ -284,6 +373,50 @@ async def command_loop(manager: AccountManager):
                     print("Không có tài khoản nào đang online trong danh sách chọn.")
                 continue
 
+            elif cmd_base == "proxy":
+                if len(parts) > 1 and parts[1] == "list":
+                    print(f"{C.CYAN}--- Danh sách Proxy ---{C.RESET}")
+                    
+                    # Tính toán usage
+                    usage_map = {p: 0 for p in proxy_list}
+                    local_usage = 0
+                    
+                    for acc in manager.accounts:
+                        if acc.is_logged_in:
+                            if acc.proxy:
+                                if acc.proxy in usage_map:
+                                    usage_map[acc.proxy] += 1
+                            else:
+                                local_usage += 1
+                    
+                    # Hiển thị Local IP
+                    local_color = C.GREEN if local_usage > 0 else C.GREY
+                    print(f"[Local] {local_color}{'IP Máy':<30} - Đang dùng: {local_usage}/5{C.RESET}")
+
+                    # Hiển thị Proxy List
+                    if not proxy_list:
+                        print("  (Không có proxy nào được tải)")
+                    
+                    for i, p in enumerate(proxy_list):
+                        count = usage_map.get(p, 0)
+                        # Lấy phần IP:Port để hiển thị cho đẹp
+                        try:
+                            display_p = p.split('@')[-1]
+                        except:
+                            display_p = p
+                        
+                        if count > 0:
+                            color = C.GREEN
+                            status = f"Đang dùng: {count}/5"
+                        else:
+                            color = C.GREY
+                            status = "Chưa dùng"
+                        
+                        print(f"[{i+1}]     {color}{display_p:<30} - {status}{C.RESET}")
+                else:
+                    print("Sử dụng: proxy list")
+                continue
+
             elif cmd_base == "list":
                 print(f"{C.CYAN}--- Danh sách tài khoản ---{C.RESET}")
                 for i, acc in enumerate(manager.accounts):
@@ -291,7 +424,19 @@ async def command_loop(manager: AccountManager):
                     target_marker = ""
                     if isinstance(manager.command_target, int) and i == manager.command_target:
                         target_marker = f"{C.PURPLE}(*){C.RESET}"
-                    print(f"[{C.YELLOW}{i}{C.RESET}] {acc.username:<20} {status} {target_marker}")
+                    
+                    # Hiển thị thông tin proxy ngắn gọn
+                    proxy_info = "Local"
+                    if acc.proxy:
+                        # Chỉ hiển thị IP cuối cho gọn
+                        try:
+                             # format http://user:pass@ip:port
+                             ip_part = acc.proxy.split('@')[-1]
+                             proxy_info = f"Proxy({ip_part})"
+                        except:
+                             proxy_info = "Proxy"
+
+                    print(f"[{C.YELLOW}{i}{C.RESET}] {acc.username:<15} {status} [{C.CYAN}{proxy_info}{C.RESET}] {target_marker}")
                 continue
             
             # --- Group Management ---
