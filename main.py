@@ -516,7 +516,12 @@ async def handle_single_command(command: str, account: Account):
             else:
                 print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: teleportnpc <id>")
 
+        elif cmd_base == "andau":
+            await account.controller.eat_pea()
         
+        elif cmd_base == "hit":
+            await account.controller.attack_nearest_mob()
+
         else:
             print(f"[{C.YELLOW}{account.username}{C.RESET}] Lệnh không xác định: '{command}'. Gõ 'help'.")
         return True, "OK"

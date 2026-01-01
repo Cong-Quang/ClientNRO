@@ -946,6 +946,87 @@ class Controller:
         except Exception as e:
             logger.error(f"Lỗi khi phân tích MABU: {e}")
 
+    async def eat_pea(self):
+        """Tìm và ăn đậu thần trong hành trang nếu chỉ số thấp."""
+        PEAN_IDS = [595]
+        char = self.account.char
+        pet = self.account.pet
+        
+        # 1. Kiểm tra xem có cần ăn đậu không
+        needs_eat = False
+        reasons = []
+
+        # Check HP (dưới 80%)
+        if char.c_hp_full > 0 and (char.c_hp / char.c_hp_full) < 0.8:
+            needs_eat = True
+            reasons.append(f"HP thấp ({int(char.c_hp/char.c_hp_full*100)}%)")
+            
+        # Check MP (dưới 80%)
+        if char.c_mp_full > 0 and (char.c_mp / char.c_mp_full) < 0.8:
+            needs_eat = True
+            reasons.append(f"MP thấp ({int(char.c_mp/char.c_mp_full*100)}%)")
+
+        # # Check Pet Stamina (dưới 20%)
+        # if pet.have_pet and pet.c_max_stamina > 0:
+        #     stamina_pct = pet.c_stamina / pet.c_max_stamina
+        #     if stamina_pct < 0.2: # Ngưỡng 20% cho thể lực
+        #         needs_eat = True
+        #         reasons.append(f"Thể lực đệ tử thấp ({int(stamina_pct*100)}%)")
+        
+        if not needs_eat:
+            logger.info(f"[{self.account.username}] Không cần ăn đậu (HP/MP > 80%, Thể lực > 20%).")
+            return
+
+        logger.info(f"[{self.account.username}] Quyết định ăn đậu. Lý do: {', '.join(reasons)}")
+
+        found_index = -1
+        
+        # Tìm đậu trong hành trang
+        if char.arr_item_bag:
+            for i, item in enumerate(char.arr_item_bag):
+                if item and item.item_id in PEAN_IDS:
+                    found_index = i
+                    break
+        
+        if found_index != -1:
+            logger.info(f"[{self.account.username}] Sử dụng đậu thần tại vị trí {found_index}...")
+            # 0: type (dùng?), 1: ?, index: vị trí, -1: ?
+            # Dựa trên snippet user cung cấp: service.use_item(0, 1, bean_inventory_index, -1)
+            await self.account.service.use_item(0, 1, found_index, -1)
+        else:
+            logger.warning(f"[{self.account.username}] Cần ăn đậu nhưng không tìm thấy trong hành trang.")
+
+    async def attack_nearest_mob(self):
+        """Tấn công quái vật gần nhất một lần."""
+        char = self.account.char
+        mobs = self.mobs
+        if not mobs:
+            logger.warning(f"[{self.account.username}] Không có quái vật nào trong khu vực.")
+            return
+
+        closest_mob = None
+        min_dist = float('inf')
+
+        # Tìm quái gần nhất
+        for mob in mobs.values():
+            if mob.status == 0 or mob.hp <= 0:
+                continue # Bỏ qua quái chết
+            
+            dist = (char.cx - mob.x)**2 + (char.cy - mob.y)**2
+            if dist < min_dist:
+                min_dist = dist
+                closest_mob = mob
+
+        if closest_mob:
+            logger.info(f"[{self.account.username}] Tấn công quái ID {closest_mob.mob_id} (Khoảng cách: {int(min_dist**0.5)})")
+            # Gửi gói tin tấn công (sử dụng phương thức có sẵn trong Service)
+            # send_player_attack nhận list mob_ids và cdir (hướng quay mặt)
+            # Tính hướng quay mặt (cdir)
+            cdir = 1 if closest_mob.x > char.cx else -1
+            await self.account.service.send_player_attack([closest_mob.mob_id], cdir)
+        else:
+            logger.warning(f"[{self.account.username}] Không tìm thấy quái vật nào còn sống.")
+
     def process_the_luc(self, msg: Message):
         try:
             reader = msg.reader()

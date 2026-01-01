@@ -21,8 +21,12 @@ COMMAND_TREE = {
     "gomap": ["stop"],
     "findnpc": [],
     "teleport": [],
-    "teleportnpc": []
+    "teleportnpc": [],
+    "andau": [],
+    "hit": []
 }
+
+COMMAND_HISTORY = []
 
 def common_prefix(strings):
     """Tìm tiền tố chung dài nhất."""
@@ -79,6 +83,7 @@ def get_input_with_autocomplete(prompt, commands=None):
     sys.stdout.write(prompt)
     sys.stdout.flush()
     buffer = []
+    history_index = len(COMMAND_HISTORY)
     
     if os.name == 'nt':
         import msvcrt
@@ -86,9 +91,12 @@ def get_input_with_autocomplete(prompt, commands=None):
             char = msvcrt.getwch()
             
             if char in ('\r', '\n'):
+                line = "".join(buffer)
+                if line and (not COMMAND_HISTORY or line != COMMAND_HISTORY[-1]):
+                    COMMAND_HISTORY.append(line)
                 sys.stdout.write('\n')
                 sys.stdout.flush()
-                return "".join(buffer)
+                return line
             
             elif char == '\t':
                 current_text = "".join(buffer)
@@ -140,7 +148,26 @@ def get_input_with_autocomplete(prompt, commands=None):
                 raise KeyboardInterrupt
             
             elif char == '\x00' or char == '\xe0':
-                msvcrt.getwch()
+                key = msvcrt.getwch()
+                if key == 'H': # Up Arrow
+                    if history_index > 0:
+                        # Xóa dòng hiện tại
+                        sys.stdout.write('\b \b' * len(buffer))
+                        history_index -= 1
+                        buffer = list(COMMAND_HISTORY[history_index])
+                        sys.stdout.write("".join(buffer))
+                        sys.stdout.flush()
+                elif key == 'P': # Down Arrow
+                    if history_index < len(COMMAND_HISTORY):
+                        # Xóa dòng hiện tại
+                        sys.stdout.write('\b \b' * len(buffer))
+                        history_index += 1
+                        if history_index == len(COMMAND_HISTORY):
+                            buffer = []
+                        else:
+                            buffer = list(COMMAND_HISTORY[history_index])
+                        sys.stdout.write("".join(buffer))
+                        sys.stdout.flush()
             
             else:
                 if char.isprintable():

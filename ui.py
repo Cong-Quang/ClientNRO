@@ -104,6 +104,8 @@ def display_help():
     print(f"  {C.GREEN}findnpc{C.RESET}            - Liệt kê các NPC có trong bản đồ hiện tại.")
     print(f"  {C.GREEN}teleport{C.RESET} {C.YELLOW}<x> <y>{C.RESET}   - Dịch chuyển đến tọa độ (x, y).")
     print(f"  {C.GREEN}teleportnpc{C.RESET} {C.YELLOW}<id>{C.RESET} - Dịch chuyển đến NPC có ID là [id].")
+    print(f"  {C.GREEN}andau{C.RESET}               - Sử dụng đậu thần trong hành trang (hồi HP/MP/Thể lực).")
+    print(f"  {C.GREEN}hit{C.RESET}                 - Tấn công quái vật gần nhất một lần.")
     print(f"\n{C.PURPLE}--- Lệnh chung ---{C.RESET}")
     print(f"  {C.GREEN}logger{C.RESET} {C.YELLOW}[on|off]{C.RESET}   - Bật hoặc tắt logger chi tiết.")
     print(f"  {C.GREEN}clear{C.RESET}             - Xóa nội dung hiện tại trong console.")

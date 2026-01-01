@@ -82,6 +82,9 @@ class Char:
         self.cy = 0
         self.cdir = 1
         
+        # State
+        self.statusMe = 0
+        
         # Movement state
         self.cxSend = 0
         self.cySend = 0
