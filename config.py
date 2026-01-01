@@ -1,17 +1,18 @@
+import random
 class Config:
     # --- Server ---
     HOST = "103.245.255.222"
     PORT = 12451
 
     # --- Version ---
-    VERSION = "2.3.5"
+    VERSION = f"2.{random.randint(1, 100)}.{random.randint(1, 100)}"
 
     # --- Account ---
     # List of accounts to run
     # You can add more accounts here
     MAX_ACCOUNTS = 5 # Giới hạn số lượng tài khoản chạy cùng lúc
     AUTO_RECONNECT = True # Tự động đăng nhập lại khi mất kết nối
-    DEFAULT_LOGIN = [3, 4, 5, 6, 7] # Danh sách ID mặc định muốn login khi gõ 'login' hoặc 'login all'
+    DEFAULT_LOGIN = [1, 2, 3, 4, 5] # Danh sách ID mặc định muốn login khi gõ 'login' hoặc 'login all'
 
     ACCOUNTS = [
         {"username": "poopooi01", "password": "02082003"},
