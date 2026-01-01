@@ -542,14 +542,26 @@ async def command_loop(manager: AccountManager):
                 recipients.append(f"[{C.YELLOW}{acc.username}{C.RESET}]")
             print(f"Đang gửi lệnh '{C.PURPLE}{command}{C.RESET}' đến {len(online_targets)} tài khoản: {', '.join(recipients)}")
             
-            tasks = [handle_single_command(command, acc) for acc in online_targets]
+            # Xác định chế độ hiển thị gọn (compact) nếu gửi cho nhiều hơn 1 tài khoản
+            is_compact = len(online_targets) > 1
+            if is_compact and "pet info" in command:
+                 # User(18+1space) | Name(12+3) | Status(11+3) | HP(15+3) | MP(15+3) | SM(19)
+                 # Note: Headers don't have color codes so padding is direct
+                 print(f"{C.CYAN}{'Tài khoản':<18} {'Tên Đệ':<12} | {'TT':<11} | {'HP':<15} | {'MP':<15} | {'Sức Mạnh':<19}{C.RESET}")
+            elif is_compact and command.strip() == "show":
+                 # Header matching ui.py columns
+                 print(f"{C.CYAN}{'Tài khoản':<13} | {'Bản đồ':<20} | {'ID':<3} | {'Khu':<3} | {'Tọa độ':<9} | {'HP':<7} | {'MP':<7} | {'SM':<7} | {'Trạng thái'}{C.RESET}")
+
+            tasks = [handle_single_command(command, acc, compact_mode=is_compact) for acc in online_targets]
             results = await asyncio.gather(*tasks)
             # Print per-account delivery status
-            for acc, (success, msg) in zip(online_targets, results):
-                if success:
-                    print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.GREEN}Đã nhận{C.RESET}")
-                else:
-                    print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.RED}Không nhận{C.RESET} - {msg}")
+            # Nếu là lệnh hiển thị thông tin (như pet info compact), ta không cần in trạng thái "Đã nhận" nữa vì nó sẽ làm rối
+            if not (is_compact and ("pet info" in command or command.strip() == "show")):
+                for acc, (success, msg) in zip(online_targets, results):
+                    if success:
+                        print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.GREEN}Đã nhận{C.RESET}")
+                    else:
+                        print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.RED}Không nhận{C.RESET} - {msg}")
 
 
         except (EOFError, KeyboardInterrupt):
@@ -559,7 +571,7 @@ async def command_loop(manager: AccountManager):
         except Exception as e:
             logger.error(f"Lỗi trong vòng lặp lệnh chính: {e}")
 
-async def handle_single_command(command: str, account: Account):
+async def handle_single_command(command: str, account: Account, compact_mode: bool = False):
     """Processes a command for a single, specified account."""
     parts = command.strip().lower().split()
     cmd_base = parts[0]
@@ -574,7 +586,7 @@ async def handle_single_command(command: str, account: Account):
                     await account.service.pet_info()
                     await asyncio.sleep(0.5)
                     # This now needs the specific pet object and username
-                    display_pet_info(account.pet, account.username)
+                    display_pet_info(account.pet, account.username, compact=compact_mode)
                 elif sub_cmd in {"follow", "protect", "attack", "home"}:
                     status_map = {"follow": 0, "protect": 1, "attack": 2, "home": 3}
                     await account.service.pet_status(status_map[sub_cmd])
@@ -606,7 +618,7 @@ async def handle_single_command(command: str, account: Account):
                 print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: autopet <on|off>")
         
         elif cmd_base == "show":
-            display_character_status(account)
+            display_character_status(account, compact=compact_mode)
 
         elif cmd_base == "khu":
             if len(parts) == 2 and parts[1].isdigit():

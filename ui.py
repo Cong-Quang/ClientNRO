@@ -16,58 +16,75 @@ def get_pet_status_vietnamese(status: int) -> str:
     }
     return status_map.get(status, f"Không xác định ({status})")
 
-def display_pet_info(pet, username="Unknown"):
+def get_pet_status_short(status: int) -> str:
+    """Trả về trạng thái ngắn gọn."""
+    C = TerminalColors
+    status_map = {
+        0: f"{C.GREEN}Theo{C.RESET}",
+        1: f"{C.PURPLE}B.Vệ{C.RESET}",
+        2: f"{C.RED}T.Công{C.RESET}",
+        3: f"{C.YELLOW}Về{C.RESET}",
+        4: f"{C.CYAN}H.Thể{C.RESET}",
+        5: f"{C.BOLD_RED}H.Thể VV{C.RESET}"
+    }
+    return status_map.get(status, f"Unk({status})")
+
+def display_pet_info(pet, username="Unknown", compact=False):
     """
-    Hiển thị thông tin chi tiết của đệ tử được cung cấp.
-    :param pet: Đối tượng Pet để hiển thị.
-    :param username: Tên tài khoản của đệ tử này.
+    Hiển thị thông tin chi tiết của đệ tử.
+    :param compact: Nếu True, hiển thị dạng 1 dòng (dành cho multi-account).
     """
     C = TerminalColors
     if not pet or not pet.have_pet:
-        logger.info(f"[{username}] Không có thông tin đệ tử hoặc chưa nhận được dữ liệu từ server.")
+        if compact:
+             print(f"[{C.YELLOW}{username:<15}{C.RESET}] {C.GREY}Không có đệ tử{C.RESET}")
+        else:
+             logger.info(f"[{username}] Không có thông tin đệ tử hoặc chưa nhận được dữ liệu từ server.")
         return
 
-    # Sử dụng logger để in ra console với định dạng màu
-    print(f"{C.CYAN}--- Thông Tin Đệ Tử [{C.YELLOW}{username}{C.CYAN}] ---{C.RESET}")
-    
-    info_lines = [
-        f"{C.GREEN}Tên:{C.RESET} {pet.name}",
-        f"{C.GREEN}Trạng thái:{C.RESET} {get_pet_status_vietnamese(pet.pet_status)} (Status ID: {pet.pet_status})",
-        f"{C.GREEN}HP:{C.RESET} {C.RED}{pet.c_hp:,} / {pet.c_hp_full:,}{C.RESET}",
-        f"{C.GREEN}MP:{C.RESET} {C.BLUE}{pet.c_mp:,} / {pet.c_mp_full:,}{C.RESET}",
-        f"{C.GREEN}Sát thương:{C.RESET} {pet.c_dam_full:,}",
-        f"{C.GREEN}Sức mạnh:{C.RESET} {C.YELLOW}{pet.c_power:,}{C.RESET}",
-        f"{C.GREEN}Tiềm năng:{C.RESET} {C.CYAN}{pet.c_tiem_nang:,}{C.RESET}",
-        f"{C.GREEN}Phòng thủ:{C.RESET} {pet.c_def_full:,}",
-        f"{C.GREEN}Chí mạng:{C.RESET} {pet.c_critical_full}%",
-        f"{C.GREEN}Thể lực:{C.RESET} {pet.c_stamina:,} / {pet.c_max_stamina:,}",
-    ]
-    for line in info_lines:
-        print(line)
-
-   #print(f"{C.CYAN}--- Kỹ năng ---{C.RESET}")
-    # if pet.arr_pet_skill and any(skill is not None for skill in pet.arr_pet_skill):
-    #     for skill in pet.arr_pet_skill:
-    #         if skill:
-    #             if skill.skill_id != -1:
-    #                 print(f"- Skill ID: {C.YELLOW}{skill.skill_id}{C.RESET}")
-    #             else:
-    #                 print(f"- Thông tin khác: {skill.more_info}")
-    # else:
-    #     print("Không có kỹ năng.")
+    if compact:
+        # Chế độ hiển thị 1 dòng ngắn gọn
+        # Căn chỉnh cột:
+        # User: 18 chars (bao gồm [])
+        # Name: 12 chars
+        # Status: ~20 chars (do chứa mã màu ẩn ~9 chars, hiển thị thực tế khoảng 11 chars)
+        # HP: 15 chars (HP: + 12 số)
+        # MP: 15 chars (MP: + 12 số)
+        # SM: 19 chars (SM: + 16 số)
         
-    # print(f"{C.CYAN}--- Trang bị ---{C.RESET}")
-    # if pet.arr_item_body and any(item is not None for item in pet.arr_item_body):
-    #     for item in pet.arr_item_body:
-    #         if item:
-    #             print(f"- Item ID: {C.YELLOW}{item.item_id}{C.RESET} (Số lượng: {item.quantity})")
-    #             if item.item_option:
-    #                 for opt in item.item_option:
-    #                     print(f"  + Option ID: {opt.option_template_id}, Param: {opt.param}")
-    # else:
-    #     print("Không có trang bị.")
-    
-    print(f"{C.CYAN}--- Kết thúc ---{C.RESET}")
+        user_str = f"[{username}]"
+        status = get_pet_status_short(pet.pet_status)
+        
+        # Format số liệu raw
+        hp_raw = f"{pet.c_hp:,}"
+        mp_raw = f"{pet.c_mp:,}"
+        pow_raw = f"{pet.c_power:,}"
+        
+        print(f"{C.YELLOW}{user_str:<18}{C.RESET} "
+              f"{C.GREEN}{pet.name:<12}{C.RESET} | "
+              f"{status:<20} | " 
+              f"{C.RED}HP:{hp_raw:<12}{C.RESET} | "
+              f"{C.BLUE}MP:{mp_raw:<12}{C.RESET} | "
+              f"{C.YELLOW}SM:{pow_raw:<16}{C.RESET}")
+    else:
+        # Chế độ hiển thị chi tiết (cũ)
+        print(f"{C.CYAN}--- Thông Tin Đệ Tử [{C.YELLOW}{username}{C.CYAN}] ---{C.RESET}")
+        
+        info_lines = [
+            f"{C.GREEN}Tên:{C.RESET} {pet.name}",
+            f"{C.GREEN}Trạng thái:{C.RESET} {get_pet_status_vietnamese(pet.pet_status)} (Status ID: {pet.pet_status})",
+            f"{C.GREEN}HP:{C.RESET} {C.RED}{pet.c_hp:,} / {pet.c_hp_full:,}{C.RESET}",
+            f"{C.GREEN}MP:{C.RESET} {C.BLUE}{pet.c_mp:,} / {pet.c_mp_full:,}{C.RESET}",
+            f"{C.GREEN}Sát thương:{C.RESET} {pet.c_dam_full:,}",
+            f"{C.GREEN}Sức mạnh:{C.RESET} {C.YELLOW}{pet.c_power:,}{C.RESET}",
+            f"{C.GREEN}Tiềm năng:{C.RESET} {C.CYAN}{pet.c_tiem_nang:,}{C.RESET}",
+            f"{C.GREEN}Phòng thủ:{C.RESET} {pet.c_def_full:,}",
+            f"{C.GREEN}Chí mạng:{C.RESET} {pet.c_critical_full}%",
+            f"{C.GREEN}Thể lực:{C.RESET} {pet.c_stamina:,} / {pet.c_max_stamina:,}",
+        ]
+        for line in info_lines:
+            print(line)
+        print(f"{C.CYAN}--- Kết thúc ---{C.RESET}")
 
 def display_pet_help():
     """Hiển thị các lệnh có sẵn cho đệ tử."""
@@ -114,43 +131,89 @@ def display_help():
     print(f"  {C.GREEN}exit{C.RESET}              - Thoát khỏi công cụ.")
     print(f"{C.CYAN}--- Kết thúc ---{C.RESET}")
 
-def display_character_status(account):
-    """Hiển thị thông tin trạng thái của một tài khoản."""
+def short_number(num: int) -> str:
+    """Định dạng số ngắn gọn (VD: 1.2tr, 5.5tỷ)."""
+    if num >= 1_000_000_000:
+        return f"{num/1_000_000_000:.1f}tỷ".replace('.0tỷ', 'tỷ')
+    if num >= 1_000_000:
+        return f"{num/1_000_000:.1f}tr".replace('.0tr', 'tr')
+    if num >= 1_000:
+        return f"{num/1_000:.1f}k".replace('.0k', 'k')
+    return str(num)
+
+def display_character_status(account, compact=False):
+    """
+    Hiển thị thông tin trạng thái của một tài khoản.
+    :param compact: Nếu True, hiển thị dạng 1 dòng (dành cho multi-account).
+    """
     C = TerminalColors
     char = account.char
     pet = account.pet
     map_info = account.controller.map_info
 
-    print(f"{C.BOLD_RED}--- Trạng thái: {C.YELLOW}{account.username}{C.BOLD_RED} ---{C.RESET}")
-    
-    # Hiển thị thông tin Proxy
-    proxy_info = account.proxy if account.proxy else "Local IP"
-    print(f"  {C.CYAN}Kết nối:{C.RESET} {C.PURPLE}{proxy_info}{C.RESET}")
-
-    # Thông tin nhân vật
-    print(f"  {C.CYAN}Nhân vật:{C.RESET}")
-    print(f"    - {C.GREEN}Tên:{C.RESET} {char.name} ({C.YELLOW}ID: {char.char_id}{C.RESET})")
-    print(f"    - {C.GREEN}Vị trí:{C.RESET} {map_info.get('name', 'N/A')} [{C.YELLOW}{map_info.get('id', 'N/A')}{C.RESET}] / Khu {C.YELLOW}{map_info.get('zone', 'N/A')}{C.RESET} / Tọa độ ({C.YELLOW}{char.cx}{C.RESET}, {C.YELLOW}{char.cy}{C.RESET})")
-    print(f"    - {C.GREEN}HP:{C.RESET} {C.RED}{char.c_hp:,} / {char.c_hp_full:,}{C.RESET}")
-    print(f"    - {C.GREEN}MP:{C.RESET} {C.BLUE}{char.c_mp:,} / {char.c_mp_full:,}{C.RESET}")
-    print(f"    - {C.GREEN}Sức mạnh:{C.RESET} {C.YELLOW}{char.c_power:,}{C.RESET}")
-
-    # Hiển thị trạng thái chức năng
-    print(f"  {C.CYAN}Chức năng:{C.RESET}")
-    autoplay_status = f"{C.GREEN}Bật{C.RESET}" if account.controller.auto_play.interval else f"{C.RED}Tắt{C.RESET}"
-    autopet_status = f"{C.GREEN}Bật{C.RESET}" if account.controller.auto_pet.is_running else f"{C.RED}Tắt{C.RESET}"
-    print(f"    - Tự động đánh: {autoplay_status}")
-    print(f"    - Tự động đệ tử: {autopet_status}")
-
-    # Thông tin đệ tử
-    print(f"  {C.CYAN}Đệ tử:{C.RESET}")
-    if pet and pet.have_pet:
-        print(f"    - {C.GREEN}Tên:{C.RESET} {pet.name}")
-        print(f"    - {C.GREEN}HP:{C.RESET} {C.RED}{pet.c_hp:,} / {pet.c_hp_full:,}{C.RESET}")
-        print(f"    - {C.GREEN}MP:{C.RESET} {C.BLUE}{pet.c_mp:,} / {pet.c_mp_full:,}{C.RESET}")
-        print(f"    - {C.GREEN}Sức mạnh:{C.RESET} {C.YELLOW}{pet.c_power:,}{C.RESET}")
+    if compact:
+        # Format 1 dòng: [User] | Map | ID | Zone | X,Y | HP | MP | SM | Status
+        user_str = f"[{account.username}]"
+        
+        hp_str = short_number(char.c_hp)
+        mp_str = short_number(char.c_mp)
+        pow_str = short_number(char.c_power)
+        
+        map_name = map_info.get('name', 'N/A')
+        # Cắt tên map nếu quá dài
+        if len(map_name) > 20:
+            map_name = map_name[:18] + ".."
+            
+        map_id = str(map_info.get('id', 'N/A'))
+        zone_id = str(map_info.get('zone', 'N/A'))
+        coords = f"{char.cx},{char.cy}"
+        
+        # Thêm trạng thái chức năng
+        ap_status = f"{C.GREEN}A.Play{C.RESET}" if account.controller.auto_play.interval else f"{C.GREY}A.Play{C.RESET}"
+        apet_status = f"{C.GREEN}A.Pet{C.RESET}" if account.controller.auto_pet.is_running else f"{C.GREY}A.Pet{C.RESET}"
+        funcs_str = f"{ap_status} {apet_status}"
+        
+        print(f"{C.YELLOW}{user_str:<13}{C.RESET} | "
+              f"{C.CYAN}{map_name:<20}{C.RESET} | "
+              f"{C.PURPLE}{map_id:<3}{C.RESET} | "
+              f"{C.BLUE}{zone_id:<3}{C.RESET} | "
+              f"{C.GREY}{coords:<9}{C.RESET} | "
+              f"{C.RED}{hp_str:<7}{C.RESET} | "
+              f"{C.BLUE}{mp_str:<7}{C.RESET} | "
+              f"{C.YELLOW}{pow_str:<7}{C.RESET} | "
+              f"{funcs_str:<31}")
     else:
-        print(f"    - {C.GREY}Không có đệ tử.{C.RESET}")
-    print(f"{C.BOLD_RED}---" + "-" * (len(account.username) + 12) + f"---{C.RESET}\n")
+        # Chế độ chi tiết cũ
+        print(f"{C.BOLD_RED}--- Trạng thái: {C.YELLOW}{account.username}{C.BOLD_RED} ---{C.RESET}")
+        
+        # Hiển thị thông tin Proxy
+        proxy_info = account.proxy if account.proxy else "Local IP"
+        print(f"  {C.CYAN}Kết nối:{C.RESET} {C.PURPLE}{proxy_info}{C.RESET}")
+
+        # Thông tin nhân vật
+        print(f"  {C.CYAN}Nhân vật:{C.RESET}")
+        print(f"    - {C.GREEN}Tên:{C.RESET} {char.name} ({C.YELLOW}ID: {char.char_id}{C.RESET})")
+        print(f"    - {C.GREEN}Vị trí:{C.RESET} {map_info.get('name', 'N/A')} [{C.YELLOW}{map_info.get('id', 'N/A')}{C.RESET}] / Khu {C.YELLOW}{map_info.get('zone', 'N/A')}{C.RESET} / Tọa độ ({C.YELLOW}{char.cx}{C.RESET}, {C.YELLOW}{char.cy}{C.RESET})")
+        print(f"    - {C.GREEN}HP:{C.RESET} {C.RED}{char.c_hp:,} / {char.c_hp_full:,}{C.RESET}")
+        print(f"    - {C.GREEN}MP:{C.RESET} {C.BLUE}{char.c_mp:,} / {char.c_mp_full:,}{C.RESET}")
+        print(f"    - {C.GREEN}Sức mạnh:{C.RESET} {C.YELLOW}{char.c_power:,}{C.RESET}")
+
+        # Hiển thị trạng thái chức năng
+        print(f"  {C.CYAN}Chức năng:{C.RESET}")
+        autoplay_status = f"{C.GREEN}Bật{C.RESET}" if account.controller.auto_play.interval else f"{C.RED}Tắt{C.RESET}"
+        autopet_status = f"{C.GREEN}Bật{C.RESET}" if account.controller.auto_pet.is_running else f"{C.RED}Tắt{C.RESET}"
+        print(f"    - Tự động đánh: {autoplay_status}")
+        print(f"    - Tự động đệ tử: {autopet_status}")
+
+        # Thông tin đệ tử
+        print(f"  {C.CYAN}Đệ tử:{C.RESET}")
+        if pet and pet.have_pet:
+            print(f"    - {C.GREEN}Tên:{C.RESET} {pet.name}")
+            print(f"    - {C.GREEN}HP:{C.RESET} {C.RED}{pet.c_hp:,} / {pet.c_hp_full:,}{C.RESET}")
+            print(f"    - {C.GREEN}MP:{C.RESET} {C.BLUE}{pet.c_mp:,} / {pet.c_mp_full:,}{C.RESET}")
+            print(f"    - {C.GREEN}Sức mạnh:{C.RESET} {C.YELLOW}{pet.c_power:,}{C.RESET}")
+        else:
+            print(f"    - {C.GREY}Không có đệ tử.{C.RESET}")
+        print(f"{C.BOLD_RED}---" + "-" * (len(account.username) + 12) + f"---{C.RESET}\n")
 
 

@@ -397,6 +397,7 @@ class Controller:
             char.c_critical_full = reader.read_byte()
             char.c_tiem_nang = reader.read_long()
             char.c_power = reader.read_int()
+            # char.c_power = reader.read_long() # Power thường không có ở đây
             
             if reader.available() >= 2:
                 char.exp_for_one_add = reader.read_short()
@@ -424,8 +425,11 @@ class Controller:
 
     def process_sub_command(self, msg: Message):
         try:
-
+            reader = msg.reader()
+            sub_cmd = reader.read_byte()
+            
             if sub_cmd == 0: # ME_LOAD_ALL
+                char = self.account.char
                 char.char_id = reader.read_int()
                 char.ctask_id = reader.read_byte()
                 char.gender = reader.read_byte()
@@ -656,11 +660,28 @@ class Controller:
     def process_player_up_exp(self, msg: Message):
         try:
             reader = msg.reader()
-            # C#: sbyte b73 = msg.reader().readByte();
-            # C#: int num181 = msg.reader().readInt();
             exp_type = reader.read_byte()
-            amount = reader.read_int()
-            logger.info(f"Người chơi tăng EXP (Cmd {msg.command}): Loại={exp_type}, Số lượng={amount}")
+            amount = reader.read_long()
+            
+            char = self.account.char
+            
+            # Cập nhật chỉ số dựa trên loại EXP
+            # Type 0: Tiềm năng? Type 1: Sức mạnh? (Cần kiểm tra thực tế)
+            # Theo logic thông thường: Khi đánh quái -> Tăng cả SM và TN
+            # Server thường gửi 2 gói tin: 1 cho SM, 1 cho TN.
+            
+            # Giả định: 0=Tiềm năng, 1=Sức mạnh (hoặc ngược lại)
+            # Nếu SM đang = 0, thì cập nhật cả hai để test
+            
+            if exp_type == 0:
+                char.c_tiem_nang += amount
+            elif exp_type == 1:
+                char.c_power += amount
+            
+            # Đôi khi server gửi 1 gói nhưng tăng cả 2 (nếu type=2 chẳng hạn)
+            # Nhưng an toàn nhất là cộng dồn.
+            
+            logger.info(f"Người chơi tăng EXP (Cmd {msg.command}): Loại={exp_type}, Số lượng={amount}. SM Hiện tại: {char.c_power}")
         except Exception as e:
             logger.error(f"Lỗi khi phân tích PLAYER_UP_EXP: {e}")
 
