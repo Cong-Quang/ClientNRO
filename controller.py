@@ -741,18 +741,69 @@ class Controller:
             
             if player_id == self.account.char.char_id:
                 logger.warning("Nhân vật của bạn đã chết (PLAYER_DIE).")
+                
+                # Lưu trạng thái auto trước khi chết
+                was_auto_playing = self.auto_play.interval
+                was_auto_pet = self.auto_pet.is_running
+                current_map_id = self.tile_map.map_id
+                
                 # Đánh dấu, dừng XMap và gửi lệnh về nhà
                 self.xmap.handle_death()
-                try:
-                    # Gửi ME_BACK (về nhà) bất đồng bộ
-                    import asyncio
+                
+                # Nếu đang auto, kích hoạt quy trình hồi sinh và quay lại
+                if was_auto_playing or was_auto_pet:
+                    asyncio.create_task(self._handle_revive_and_return(current_map_id, was_auto_playing, was_auto_pet))
+                else:
+                     # Nếu không auto, chỉ hồi sinh bình thường
                     asyncio.create_task(self.account.service.return_town_from_dead())
-                except Exception as e:
-                    logger.error(f"Lỗi khi gửi yêu cầu về nhà sau PLAYER_DIE: {e}")
 
             logger.info(f"Người chơi đã chết (Cmd {msg.command}): PlayerID={player_id}")
         except Exception as e:
             logger.error(f"Lỗi khi phân tích PLAYER_DIE: {e}")
+
+    async def _handle_revive_and_return(self, target_map_id: int, resume_auto_play: bool, resume_auto_pet: bool):
+        """Xử lý hồi sinh, đợi về nhà, quay lại map cũ (khu ngẫu nhiên) và tiếp tục auto."""
+        logger.info(f"Đang thực hiện quy trình Hồi sinh -> Quay lại Map {target_map_id}...")
+        
+        # 1. Gửi lệnh về nhà
+        await asyncio.sleep(1) # Đợi một chút cho chắc chắn
+        await self.account.service.return_town_from_dead()
+        
+        # 2. Đợi cho đến khi về tới nhà (Map thay đổi và HP > 0)
+        # Map nhà thường là 21, 22, 23 (Vách núi, Làng Aru, ...) hoặc các map tương đương
+        # Đơn giản là đợi map ID thay đổi khác target_map_id
+        timeout = 20
+        start_wait = asyncio.get_event_loop().time()
+        while asyncio.get_event_loop().time() - start_wait < timeout:
+            if self.tile_map.map_id != target_map_id and self.account.char.c_hp > 0:
+                logger.info("Đã hồi sinh và về nhà thành công.")
+                break
+            await asyncio.sleep(1)
+        
+        if self.tile_map.map_id == target_map_id:
+            logger.warning("Không thể về nhà sau khi chết. Hủy quy trình quay lại.")
+            return
+
+        # 3. Quay lại map cũ (giữ lại thông tin map nguy hiểm để XMap tự đổi khu)
+        # Lưu ý: xmap.handle_death đã thêm map hiện tại vào dangerous_maps
+        await asyncio.sleep(2) # Nghỉ ngơi lấy sức
+        
+        # Bắt đầu XMap với cờ keep_dangerous=True
+        await self.xmap.start(target_map_id, keep_dangerous=True)
+        
+        # 4. Đợi XMap hoàn thành
+        while self.xmap.is_xmapping:
+            await asyncio.sleep(1)
+        
+        # 5. Kích hoạt lại Auto
+        if self.tile_map.map_id == target_map_id:
+            logger.info("Đã quay lại điểm cũ. Kích hoạt lại Auto...")
+            if resume_auto_play:
+                self.toggle_autoplay(True)
+            if resume_auto_pet:
+                self.toggle_auto_pet(True)
+        else:
+             logger.warning(f"Không thể quay lại map {target_map_id}.")
 
     def process_max_stamina(self, msg: Message):
         try:

@@ -86,6 +86,8 @@ def display_help():
     print(f"{C.CYAN}--- Trợ giúp ---{C.RESET}")
     print(f"{C.PURPLE}--- Quản lý mục tiêu & Nhóm ---{C.RESET}")
     print(f"  {C.GREEN}list{C.RESET}              - Liệt kê tất cả các tài khoản và trạng thái.")
+    print(f"  {C.GREEN}login{C.RESET} {C.YELLOW}<index|list|all>{C.RESET} - Đăng nhập tài khoản (VD: 'login 0', 'login 1,3,5', 'login all').")
+    print(f"  {C.GREEN}logout{C.RESET} {C.YELLOW}<index|list|all>{C.RESET}- Đăng xuất tài khoản (VD: 'logout 0', 'logout 1,3', 'logout all').")
     print(f"  {C.GREEN}target{C.RESET} {C.YELLOW}<id|name>{C.RESET}  - Chọn mục tiêu để gửi lệnh (VD: 'target 0', 'target all', 'target nhom1').")
     print(f"  {C.GREEN}group list{C.RESET}        - Liệt kê các nhóm đã tạo.")
     print(f"  {C.GREEN}group create{C.RESET} {C.YELLOW}<name> <ids>{C.RESET} - Tạo nhóm mới (VD: 'group nhom1 0,1,2').")

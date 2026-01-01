@@ -157,7 +157,10 @@ class Session:
                 await self.on_message(msg)
 
             except asyncio.IncompleteReadError:
-                logger.error("Kết nối đã bị đóng bởi máy chủ (IncompleteReadError).")
+                acc_name = "Unknown"
+                if self.controller and hasattr(self.controller, 'account') and hasattr(self.controller.account, 'username'):
+                    acc_name = self.controller.account.username
+                logger.error(f"[{acc_name}] Kết nối đã bị đóng bởi máy chủ (IncompleteReadError).")
                 self.connected = False
                 break
             except Exception as e:

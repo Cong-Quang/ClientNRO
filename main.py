@@ -1,10 +1,31 @@
 import asyncio
 import os
+import shutil
 from config import Config
 from account import Account
 from logs.logger_config import logger, set_logger_status, TerminalColors
 from ui import display_help, display_pet_info, display_pet_help, display_character_status
 from autocomplete import get_input_with_autocomplete
+
+def clean_pycache():
+    """Tìm và xóa tất cả thư mục __pycache__ trong thư mục hiện tại và thư mục con."""
+    root_dir = os.getcwd()
+    logger.info("Đang dọn dẹp các file rác (__pycache__)...")
+    deleted_count = 0
+    
+    for root, dirs, files in os.walk(root_dir):
+        if "__pycache__" in dirs:
+            pycache_path = os.path.join(root, "__pycache__")
+            try:
+                shutil.rmtree(pycache_path)
+                deleted_count += 1
+            except Exception as e:
+                logger.warning(f"Không thể xóa {pycache_path}: {e}")
+    
+    if deleted_count > 0:
+        logger.info(f"Đã xóa {deleted_count} thư mục __pycache__.")
+    else:
+        logger.info("Không tìm thấy thư mục __pycache__ nào.")
 
 class AccountManager:
     def __init__(self):
@@ -33,12 +54,17 @@ class AccountManager:
             self.command_target = 0
 
     async def start_all(self):
-        """Starts the login process for all loaded accounts concurrently."""
+        """Starts the login process for all loaded accounts concurrently (respecting limit)."""
         if not self.accounts:
             logger.warning("Không có tài khoản nào để bắt đầu.")
             return
         
-        login_tasks = [acc.login() for acc in self.accounts]
+        limit = Config.MAX_ACCOUNTS
+        accounts_to_start = self.accounts[:limit]
+        
+        logger.info(f"Bắt đầu đăng nhập {len(accounts_to_start)} tài khoản (Giới hạn: {limit})...")
+        
+        login_tasks = [acc.login() for acc in accounts_to_start]
         await asyncio.gather(*login_tasks)
         
         # Set the first successfully logged-in account as the current target if none is set
@@ -54,6 +80,9 @@ class AccountManager:
         for acc in self.accounts:
             acc.stop()
 
+    def get_active_account_count(self):
+        return sum(1 for acc in self.accounts if acc.is_logged_in or (acc.session and acc.session.connected))
+
     def get_target_accounts(self) -> list[Account]:
         """Resolves the command_target to a list of account objects."""
         if self.command_target is None:
@@ -68,7 +97,8 @@ class AccountManager:
         if isinstance(self.command_target, str):
             group_indices = self.groups.get(self.command_target)
             if group_indices is not None:
-                return [self.accounts[i] for i in group_indices if 0 <= i < len(self.accounts) and self.accounts[i].is_logged_in]
+                # Trả về cả acc offline để có thể gửi lệnh login
+                return [self.accounts[i] for i in group_indices if 0 <= i < len(self.accounts)]
         
         return []
 
@@ -105,6 +135,141 @@ async def command_loop(manager: AccountManager):
 
             elif cmd_base == "help":
                 display_help()
+                continue
+            
+            elif cmd_base == "login":
+                # login <index> hoặc login all
+                if len(parts) < 2:
+                    print("Sử dụng: login <index|all>")
+                    continue
+                
+                target = parts[1]
+                if target == "all":
+                    current_active = manager.get_active_account_count()
+                    limit = Config.MAX_ACCOUNTS
+                    available_slots = limit - current_active
+                    
+                    if available_slots <= 0:
+                        print(f"{C.RED}Đã đạt giới hạn {limit} tài khoản đang chạy.{C.RESET}")
+                        continue
+                    
+                    tasks = []
+                    # 1. Ưu tiên login các acc trong DEFAULT_LOGIN trước
+                    target_indices = Config.DEFAULT_LOGIN
+                    # 2. Nếu vẫn còn trống chỗ, có thể lấy thêm các acc khác (tùy chọn)
+                    # Ở đây ta chỉ lấy đúng các acc trong DEFAULT_LOGIN để đảm bảo tính tùy chỉnh của bạn
+                    
+                    for idx in target_indices:
+                        if 0 <= idx < len(manager.accounts):
+                            acc = manager.accounts[idx]
+                            if not acc.is_logged_in and len(tasks) < available_slots:
+                                print(f"Đang đăng nhập {acc.username}...")
+                                tasks.append(acc.login())
+                    
+                    if tasks:
+                        await asyncio.gather(*tasks)
+                        print(f"Đã thực hiện đăng nhập {len(tasks)} tài khoản từ danh sách mặc định.")
+                    else:
+                        print("Tất cả tài khoản trong danh sách mặc định đã online hoặc đã đạt giới hạn.")
+
+                elif ',' in target:
+                    # Handle multiple indices: login 1,2,3
+                    try:
+                        indices = [int(i.strip()) for i in target.split(',')]
+                        tasks = []
+                        current_active = manager.get_active_account_count()
+                        limit = Config.MAX_ACCOUNTS
+                        
+                        for idx in indices:
+                            if 0 <= idx < len(manager.accounts):
+                                acc = manager.accounts[idx]
+                                if acc.is_logged_in:
+                                    print(f"Tài khoản {acc.username} đã online. Bỏ qua.")
+                                    continue
+                                
+                                if current_active >= limit:
+                                    print(f"{C.RED}Đã đạt giới hạn {limit} tài khoản đang chạy. Bỏ qua {acc.username}.{C.RESET}")
+                                    continue
+
+                                print(f"Đang đăng nhập {acc.username}...")
+                                tasks.append(acc.login())
+                                current_active += 1
+                            else:
+                                print(f"Chỉ số {idx} không hợp lệ. Bỏ qua.")
+
+                        if tasks:
+                            await asyncio.gather(*tasks)
+                            print(f"Đã thực hiện đăng nhập {len(tasks)} tài khoản.")
+                    except ValueError:
+                         print("Danh sách chỉ số không hợp lệ. Sử dụng định dạng: login 1,2,3")
+
+                elif target.isdigit():
+                    idx = int(target)
+                    if 0 <= idx < len(manager.accounts):
+                        acc = manager.accounts[idx]
+                        if manager.get_active_account_count() >= Config.MAX_ACCOUNTS and not acc.is_logged_in:
+                             print(f"{C.RED}Đã đạt giới hạn {Config.MAX_ACCOUNTS} tài khoản.{C.RESET}")
+                        else:
+                            if not acc.is_logged_in:
+                                print(f"Đang đăng nhập {acc.username}...")
+                                await acc.login()
+                            else:
+                                print(f"Tài khoản {acc.username} đã online.")
+                    else:
+                         print("Chỉ số tài khoản không hợp lệ.")
+                continue
+
+            elif cmd_base == "logout":
+                # logout <index> hoặc logout all hoặc logout 1,2,3
+                if len(parts) < 2:
+                    print("Sử dụng: logout <index|list|all>")
+                    continue
+                
+                target = parts[1]
+                if target == "all":
+                    count = 0
+                    for acc in manager.accounts:
+                        if acc.is_logged_in:
+                            print(f"Đang đăng xuất {acc.username}...")
+                            acc.stop()
+                            count += 1
+                    if count > 0:
+                        print(f"Đã đăng xuất {count} tài khoản.")
+                    else:
+                        print("Không có tài khoản nào đang online.")
+
+                elif ',' in target:
+                    try:
+                        indices = [int(i.strip()) for i in target.split(',')]
+                        count = 0
+                        for idx in indices:
+                            if 0 <= idx < len(manager.accounts):
+                                acc = manager.accounts[idx]
+                                if acc.is_logged_in:
+                                    print(f"Đang đăng xuất {acc.username}...")
+                                    acc.stop()
+                                    count += 1
+                                else:
+                                    print(f"Tài khoản {acc.username} đã offline. Bỏ qua.")
+                            else:
+                                print(f"Chỉ số {idx} không hợp lệ. Bỏ qua.")
+                        if count > 0:
+                            print(f"Đã đăng xuất {count} tài khoản.")
+                    except ValueError:
+                         print("Danh sách chỉ số không hợp lệ. Sử dụng định dạng: logout 1,2,3")
+
+                elif target.isdigit():
+                    idx = int(target)
+                    if 0 <= idx < len(manager.accounts):
+                        acc = manager.accounts[idx]
+                        if acc.is_logged_in:
+                            print(f"Đang đăng xuất {acc.username}...")
+                            acc.stop()
+                            print(f"Đã đăng xuất {acc.username}.")
+                        else:
+                            print(f"Tài khoản {acc.username} đã offline.")
+                    else:
+                         print("Chỉ số tài khoản không hợp lệ.")
                 continue
 
             elif cmd_base == "list":
@@ -207,25 +372,28 @@ async def command_loop(manager: AccountManager):
 
             # --- Command Execution ---
             target_accounts = manager.get_target_accounts()
-            if not target_accounts:
-                print("Không có mục tiêu hợp lệ nào được chọn hoặc mục tiêu không online. Dùng 'target'.")
+            # Lọc chỉ gửi lệnh cho acc online, trừ lệnh 'login' (nhưng login đã xử lý riêng ở trên)
+            online_targets = [acc for acc in target_accounts if acc.is_logged_in]
+            
+            if not online_targets:
+                print("Không có mục tiêu nào đang online để thực hiện lệnh.")
                 continue
             
             # Build a readable recipient list (index and username, show offline if any)
             recipients = []
-            for i, acc in enumerate(target_accounts):
-                status_tag = f" {C.RED}(Offline){C.RESET}" if not acc.is_logged_in else ""
-                recipients.append(f"[{C.YELLOW}{i}{C.RESET}] {acc.username}{status_tag}")
-            print(f"Đang gửi lệnh '{C.PURPLE}{command}{C.RESET}' đến {len(target_accounts)} tài khoản: {', '.join(recipients)}")
+            for i, acc in enumerate(online_targets):
+                recipients.append(f"[{C.YELLOW}{acc.username}{C.RESET}]")
+            print(f"Đang gửi lệnh '{C.PURPLE}{command}{C.RESET}' đến {len(online_targets)} tài khoản: {', '.join(recipients)}")
             
-            tasks = [handle_single_command(command, acc) for acc in target_accounts]
+            tasks = [handle_single_command(command, acc) for acc in online_targets]
             results = await asyncio.gather(*tasks)
             # Print per-account delivery status
-            for acc, (success, msg) in zip(target_accounts, results):
+            for acc, (success, msg) in zip(online_targets, results):
                 if success:
                     print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.GREEN}Đã nhận{C.RESET}")
                 else:
                     print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.RED}Không nhận{C.RESET} - {msg}")
+
 
         except (EOFError, KeyboardInterrupt):
             logger.info("Đã nhận tín hiệu thoát, đang đóng tất cả kết nối...")
@@ -366,17 +534,17 @@ async def main():
 
     manager = AccountManager()
     manager.load_accounts()
-    await manager.start_all()
+    # Không tự động login nữa
+    # await manager.start_all()
 
-    if any(acc.is_logged_in for acc in manager.accounts):
-        logger.info("Sẵn sàng nhận lệnh. Gõ 'help' để xem các lệnh có sẵn.")
-        display_help()
-        await command_loop(manager)
-    else:
-        logger.error("Không có tài khoản nào đăng nhập thành công. Thoát.")
+    logger.info("Sẵn sàng nhận lệnh. Gõ 'login' để đăng nhập, gõ 'help' để xem trợ giúp.")
+    display_help()
+    await command_loop(manager)
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Đang dừng...")
+    finally:
+        clean_pycache()

@@ -222,14 +222,15 @@ class XMap:
         
         return "Center" # Mặc định ở giữa
 
-    async def start(self, map_id: int):
+    async def start(self, map_id: int, keep_dangerous: bool = False):
         """Bắt đầu tiến trình XMap đến bản đồ mục tiêu"""
         self.is_xmapping = True
         self.target_map_id = map_id
         current_map = self.controller.tile_map.map_id
         
-        # Xóa dữ liệu bản đồ nguy hiểm cũ khi bắt đầu hành trình mới
-        self.dangerous_maps.clear()
+        # Xóa dữ liệu bản đồ nguy hiểm cũ khi bắt đầu hành trình mới, trừ khi được yêu cầu giữ lại
+        if not keep_dangerous:
+            self.dangerous_maps.clear()
         
         logger.info(f"Bắt đầu XMap: {current_map} -> {map_id}")
         

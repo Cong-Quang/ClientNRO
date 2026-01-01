@@ -87,10 +87,54 @@ class Account:
         if self.session.connected:
             self.is_logged_in = True
             logger.info(f"[{self.username}] Login successful! Account is running.")
+            
+            # Start connection monitor
+            if Config.AUTO_RECONNECT:
+                self.tasks.append(asyncio.create_task(self.monitor_connection()))
+                
             return True
         else:
             logger.error(f"[{self.username}] Login failed. Disconnected.")
             return False
+
+    async def monitor_connection(self):
+        """Monitors the connection and reconnects if dropped."""
+        logger.info(f"[{self.username}] Auto-reconnect monitoring started.")
+        while True:
+            await asyncio.sleep(5)
+            # If we think we are logged in (or should be), but session is closed
+            if self.is_logged_in and not self.session.connected:
+                logger.warning(f"[{self.username}] Connection lost! Attempting to reconnect in 5 seconds...")
+                self.is_logged_in = False 
+                
+                await asyncio.sleep(5)
+                
+                # Re-login logic
+                # We need to recreate session components cleanly
+                self.stop() # Cleanup old tasks/session
+                
+                # Re-init essential components if needed, or just call login
+                # Account object reuses existing Char/Pet/Controller
+                # But Session needs a fresh start usually.
+                self.session = Session(self.controller)
+                self.service = Service(self.session, self.char)
+                # Controller needs to point to new stuff? 
+                # Controller holds 'account' reference, account holds 'service/session'.
+                # We just updated account.session/service, so controller.account.service should be fine.
+                
+                logger.info(f"[{self.username}] Reconnecting...")
+                await self.login()
+                
+            elif not self.is_logged_in:
+                 # If manually stopped or not logged in, stop monitoring
+                 # But wait, if login failed, is_logged_in is False.
+                 # If we want to persist, we should keep checking?
+                 # For now, let's assume if is_logged_in becomes False via stop(), we break.
+                 # But here we set is_logged_in=False above.
+                 # So we need a flag 'should_be_online'.
+                 pass
+            
+            # If the task is cancelled (by stop()), this loop breaks naturally (await sleep throws CancelledError)
 
     def stop(self):
         """

@@ -16,6 +16,8 @@ COMMAND_TREE = {
     "target": [],
     "show": [],
     "khu": [],
+    "login": ["all"],
+    "logout": ["all"],
     "gomap": ["stop"],
     "findnpc": [],
     "teleport": [],
