@@ -396,6 +396,7 @@ class Controller:
             char.c_def_full = reader.read_int()
             char.c_critical_full = reader.read_byte()
             char.c_tiem_nang = reader.read_long()
+            char.c_power = reader.read_int()
             
             if reader.available() >= 2:
                 char.exp_for_one_add = reader.read_short()

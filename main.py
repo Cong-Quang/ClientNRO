@@ -5,7 +5,7 @@ from config import Config
 from account import Account
 from logs.logger_config import logger, set_logger_status, TerminalColors
 from ui import display_help, display_pet_info, display_pet_help, display_character_status
-from autocomplete import get_input_with_autocomplete
+from autocomplete import get_input_with_autocomplete, COMMAND_TREE
 
 def clean_pycache():
     """Tìm và xóa tất cả thư mục __pycache__ trong thư mục hiện tại và thư mục con."""
@@ -106,6 +106,12 @@ async def command_loop(manager: AccountManager):
     """The main interactive command loop for managing multiple accounts."""
     C = TerminalColors
     while True:
+        # Update autocomplete with current groups
+        current_group_names = list(manager.groups.keys())
+        COMMAND_TREE["login"] = current_group_names
+        COMMAND_TREE["logout"] = current_group_names
+        COMMAND_TREE["target"] = current_group_names
+
         target_str = f"{C.RED}None{C.RESET}"
         if manager.command_target is not None:
             if isinstance(manager.command_target, int):
@@ -138,138 +144,144 @@ async def command_loop(manager: AccountManager):
                 continue
             
             elif cmd_base == "login":
-                # login <index> hoặc login all
-                if len(parts) < 2:
-                    print("Sử dụng: login <index|all>")
+                # login [target]
+                target = None
+                if len(parts) >= 2:
+                    target = parts[1]
+                elif manager.command_target is not None:
+                     # Use current target
+                     if isinstance(manager.command_target, int):
+                         target = str(manager.command_target)
+                     else:
+                         target = manager.command_target
+                else:
+                    print("Sử dụng: login <index|all|group_name> hoặc chọn target trước.")
                     continue
                 
-                target = parts[1]
+                # Logic xử lý danh sách acc cần login
+                accounts_to_login = []
+                
                 if target == "all":
-                    current_active = manager.get_active_account_count()
-                    limit = Config.MAX_ACCOUNTS
-                    available_slots = limit - current_active
-                    
-                    if available_slots <= 0:
-                        print(f"{C.RED}Đã đạt giới hạn {limit} tài khoản đang chạy.{C.RESET}")
-                        continue
-                    
-                    tasks = []
-                    # 1. Ưu tiên login các acc trong DEFAULT_LOGIN trước
+                    # Ưu tiên Config.DEFAULT_LOGIN nếu có, nhưng ở đây ta cứ lấy hết theo limit
+                    # Hoặc giữ logic cũ
                     target_indices = Config.DEFAULT_LOGIN
-                    # 2. Nếu vẫn còn trống chỗ, có thể lấy thêm các acc khác (tùy chọn)
-                    # Ở đây ta chỉ lấy đúng các acc trong DEFAULT_LOGIN để đảm bảo tính tùy chỉnh của bạn
-                    
                     for idx in target_indices:
                         if 0 <= idx < len(manager.accounts):
-                            acc = manager.accounts[idx]
-                            if not acc.is_logged_in and len(tasks) < available_slots:
-                                print(f"Đang đăng nhập {acc.username}...")
-                                tasks.append(acc.login())
-                    
-                    if tasks:
-                        await asyncio.gather(*tasks)
-                        print(f"Đã thực hiện đăng nhập {len(tasks)} tài khoản từ danh sách mặc định.")
-                    else:
-                        print("Tất cả tài khoản trong danh sách mặc định đã online hoặc đã đạt giới hạn.")
-
+                            accounts_to_login.append(manager.accounts[idx])
+                            
+                elif target in manager.groups:
+                     # Login theo nhóm
+                     indices = manager.groups[target]
+                     for idx in indices:
+                         if 0 <= idx < len(manager.accounts):
+                             accounts_to_login.append(manager.accounts[idx])
+                             
                 elif ',' in target:
-                    # Handle multiple indices: login 1,2,3
                     try:
                         indices = [int(i.strip()) for i in target.split(',')]
-                        tasks = []
-                        current_active = manager.get_active_account_count()
-                        limit = Config.MAX_ACCOUNTS
-                        
                         for idx in indices:
                             if 0 <= idx < len(manager.accounts):
-                                acc = manager.accounts[idx]
-                                if acc.is_logged_in:
-                                    print(f"Tài khoản {acc.username} đã online. Bỏ qua.")
-                                    continue
-                                
-                                if current_active >= limit:
-                                    print(f"{C.RED}Đã đạt giới hạn {limit} tài khoản đang chạy. Bỏ qua {acc.username}.{C.RESET}")
-                                    continue
-
-                                print(f"Đang đăng nhập {acc.username}...")
-                                tasks.append(acc.login())
-                                current_active += 1
-                            else:
-                                print(f"Chỉ số {idx} không hợp lệ. Bỏ qua.")
-
-                        if tasks:
-                            await asyncio.gather(*tasks)
-                            print(f"Đã thực hiện đăng nhập {len(tasks)} tài khoản.")
+                                accounts_to_login.append(manager.accounts[idx])
                     except ValueError:
-                         print("Danh sách chỉ số không hợp lệ. Sử dụng định dạng: login 1,2,3")
-
+                         print("Danh sách chỉ số không hợp lệ.")
+                         continue
+                         
                 elif target.isdigit():
                     idx = int(target)
                     if 0 <= idx < len(manager.accounts):
-                        acc = manager.accounts[idx]
-                        if manager.get_active_account_count() >= Config.MAX_ACCOUNTS and not acc.is_logged_in:
-                             print(f"{C.RED}Đã đạt giới hạn {Config.MAX_ACCOUNTS} tài khoản.{C.RESET}")
-                        else:
-                            if not acc.is_logged_in:
-                                print(f"Đang đăng nhập {acc.username}...")
-                                await acc.login()
-                            else:
-                                print(f"Tài khoản {acc.username} đã online.")
+                        accounts_to_login.append(manager.accounts[idx])
                     else:
-                         print("Chỉ số tài khoản không hợp lệ.")
+                        print("Chỉ số không hợp lệ.")
+                        continue
+                else:
+                    print(f"Không tìm thấy nhóm hoặc chỉ số '{target}'.")
+                    continue
+
+                # Thực hiện login
+                if not accounts_to_login:
+                    print("Không có tài khoản nào được chọn để đăng nhập.")
+                    continue
+
+                current_active = manager.get_active_account_count()
+                limit = Config.MAX_ACCOUNTS
+                available_slots = limit - current_active
+                
+                if available_slots <= 0:
+                    print(f"{C.RED}Đã đạt giới hạn {limit} tài khoản đang chạy.{C.RESET}")
+                    continue
+                
+                tasks = []
+                for acc in accounts_to_login:
+                    if acc.is_logged_in:
+                         print(f"Tài khoản {acc.username} đã online. Bỏ qua.")
+                         continue
+                    
+                    if len(tasks) >= available_slots:
+                        print(f"{C.RED}Đã đạt giới hạn slot login. Dừng thêm.{C.RESET}")
+                        break
+                        
+                    print(f"Đang đăng nhập {acc.username}...")
+                    tasks.append(acc.login())
+                
+                if tasks:
+                    await asyncio.gather(*tasks)
+                    print(f"Đã thực hiện đăng nhập {len(tasks)} tài khoản.")
+                else:
+                    print("Không có tài khoản nào được gửi yêu cầu đăng nhập (có thể đã online hết hoặc lỗi).")
+
                 continue
 
             elif cmd_base == "logout":
-                # logout <index> hoặc logout all hoặc logout 1,2,3
+                # logout <index> hoặc logout all hoặc logout 1,2,3 hoặc logout <group>
                 if len(parts) < 2:
-                    print("Sử dụng: logout <index|list|all>")
+                    print("Sử dụng: logout <index|list|all|group_name>")
                     continue
                 
                 target = parts[1]
-                if target == "all":
-                    count = 0
-                    for acc in manager.accounts:
-                        if acc.is_logged_in:
-                            print(f"Đang đăng xuất {acc.username}...")
-                            acc.stop()
-                            count += 1
-                    if count > 0:
-                        print(f"Đã đăng xuất {count} tài khoản.")
-                    else:
-                        print("Không có tài khoản nào đang online.")
+                accounts_to_logout = []
 
+                if target == "all":
+                    accounts_to_logout = manager.accounts
+                
+                elif target in manager.groups:
+                    indices = manager.groups[target]
+                    for idx in indices:
+                         if 0 <= idx < len(manager.accounts):
+                             accounts_to_logout.append(manager.accounts[idx])
+                
                 elif ',' in target:
                     try:
                         indices = [int(i.strip()) for i in target.split(',')]
-                        count = 0
                         for idx in indices:
                             if 0 <= idx < len(manager.accounts):
-                                acc = manager.accounts[idx]
-                                if acc.is_logged_in:
-                                    print(f"Đang đăng xuất {acc.username}...")
-                                    acc.stop()
-                                    count += 1
-                                else:
-                                    print(f"Tài khoản {acc.username} đã offline. Bỏ qua.")
-                            else:
-                                print(f"Chỉ số {idx} không hợp lệ. Bỏ qua.")
-                        if count > 0:
-                            print(f"Đã đăng xuất {count} tài khoản.")
+                                accounts_to_logout.append(manager.accounts[idx])
                     except ValueError:
-                         print("Danh sách chỉ số không hợp lệ. Sử dụng định dạng: logout 1,2,3")
-
+                         print("Danh sách chỉ số không hợp lệ.")
+                         continue
+                
                 elif target.isdigit():
                     idx = int(target)
                     if 0 <= idx < len(manager.accounts):
-                        acc = manager.accounts[idx]
-                        if acc.is_logged_in:
-                            print(f"Đang đăng xuất {acc.username}...")
-                            acc.stop()
-                            print(f"Đã đăng xuất {acc.username}.")
-                        else:
-                            print(f"Tài khoản {acc.username} đã offline.")
+                        accounts_to_logout.append(manager.accounts[idx])
                     else:
                          print("Chỉ số tài khoản không hợp lệ.")
+                         continue
+                else:
+                    print(f"Không tìm thấy nhóm hoặc chỉ số '{target}'.")
+                    continue
+                
+                # Thực hiện logout
+                count = 0
+                for acc in accounts_to_logout:
+                    if acc.is_logged_in:
+                        print(f"Đang đăng xuất {acc.username}...")
+                        acc.stop()
+                        count += 1
+                
+                if count > 0:
+                    print(f"Đã đăng xuất {count} tài khoản.")
+                else:
+                    print("Không có tài khoản nào đang online trong danh sách chọn.")
                 continue
 
             elif cmd_base == "list":
@@ -416,8 +428,8 @@ async def handle_single_command(command: str, account: Account):
                 if sub_cmd == "info":
                     await account.service.pet_info()
                     await asyncio.sleep(0.5)
-                    # This now needs the specific pet object
-                    display_pet_info(account.pet)
+                    # This now needs the specific pet object and username
+                    display_pet_info(account.pet, account.username)
                 elif sub_cmd in {"follow", "protect", "attack", "home"}:
                     status_map = {"follow": 0, "protect": 1, "attack": 2, "home": 3}
                     await account.service.pet_status(status_map[sub_cmd])

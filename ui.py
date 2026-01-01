@@ -16,18 +16,19 @@ def get_pet_status_vietnamese(status: int) -> str:
     }
     return status_map.get(status, f"Không xác định ({status})")
 
-def display_pet_info(pet):
+def display_pet_info(pet, username="Unknown"):
     """
     Hiển thị thông tin chi tiết của đệ tử được cung cấp.
     :param pet: Đối tượng Pet để hiển thị.
+    :param username: Tên tài khoản của đệ tử này.
     """
     C = TerminalColors
     if not pet or not pet.have_pet:
-        logger.info("Không có thông tin đệ tử hoặc chưa nhận được dữ liệu từ server.")
+        logger.info(f"[{username}] Không có thông tin đệ tử hoặc chưa nhận được dữ liệu từ server.")
         return
 
     # Sử dụng logger để in ra console với định dạng màu
-    print(f"{C.CYAN}--- Thông Tin Đệ Tử ---{C.RESET}")
+    print(f"{C.CYAN}--- Thông Tin Đệ Tử [{C.YELLOW}{username}{C.CYAN}] ---{C.RESET}")
     
     info_lines = [
         f"{C.GREEN}Tên:{C.RESET} {pet.name}",
@@ -123,7 +124,7 @@ def display_character_status(account):
     # Thông tin nhân vật
     print(f"  {C.CYAN}Nhân vật:{C.RESET}")
     print(f"    - {C.GREEN}Tên:{C.RESET} {char.name} ({C.YELLOW}ID: {char.char_id}{C.RESET})")
-    print(f"    - {C.GREEN}Vị trí:{C.RESET} {map_info.get('name', 'N/A')} [{C.YELLOW}{map_info.get('id', 'N/A')}{C.RESET}] / Khu {C.YELLOW}{map_info.get('zone', 'N/A')}{C.RESET}")
+    print(f"    - {C.GREEN}Vị trí:{C.RESET} {map_info.get('name', 'N/A')} [{C.YELLOW}{map_info.get('id', 'N/A')}{C.RESET}] / Khu {C.YELLOW}{map_info.get('zone', 'N/A')}{C.RESET} / Tọa độ ({C.YELLOW}{char.cx}{C.RESET}, {C.YELLOW}{char.cy}{C.RESET})")
     print(f"    - {C.GREEN}HP:{C.RESET} {C.RED}{char.c_hp:,} / {char.c_hp_full:,}{C.RESET}")
     print(f"    - {C.GREEN}MP:{C.RESET} {C.BLUE}{char.c_mp:,} / {char.c_mp_full:,}{C.RESET}")
     print(f"    - {C.GREEN}Sức mạnh:{C.RESET} {C.YELLOW}{char.c_power:,}{C.RESET}")

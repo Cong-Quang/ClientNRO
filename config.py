@@ -11,7 +11,7 @@ class Config:
     # You can add more accounts here
     MAX_ACCOUNTS = 5 # Giới hạn số lượng tài khoản chạy cùng lúc
     AUTO_RECONNECT = True # Tự động đăng nhập lại khi mất kết nối
-    DEFAULT_LOGIN = [0, 1, 2, 3, 4] # Danh sách ID mặc định muốn login khi gõ 'login' hoặc 'login all'
+    DEFAULT_LOGIN = [3, 4, 5, 6, 7] # Danh sách ID mặc định muốn login khi gõ 'login' hoặc 'login all'
 
     ACCOUNTS = [
         {"username": "poopooi01", "password": "02082003"},
