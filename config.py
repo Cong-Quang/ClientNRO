@@ -1,12 +1,8 @@
 import random
 class Config:
-    
-   
-   
-   
-     
     # HOST: địa chỉ server (IP hoặc domain)
     HOST = "103.245.255.222"
+    
     # PORT: cổng server (int)
     PORT = 12451
 
