@@ -216,4 +216,15 @@ class Service:
             logger.info("Gửi yêu cầu về nhà do chết (ME_BACK)")
         except Exception as e:
             logger.error(f"Lỗi khi gửi yêu cầu về nhà (ME_BACK): {e}")
+
+    async def client_ok(self):
+        """Gửi gói tin clientOk để xác nhận với server (Cmd -28, sub 13)."""
+        try:
+            msg = Message(Cmd.NOT_MAP)
+            msg.writer().write_byte(13)
+            await self.session.send_message(msg)
+            logger.info("Đã gửi gói tin clientOk (Cmd -28, sub 13)")
+        except Exception as e:
+            logger.error(f"Lỗi khi gửi gói tin clientOk: {e}")
+
     

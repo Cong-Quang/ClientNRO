@@ -197,6 +197,10 @@ def display_character_status(account, compact=False):
         print(f"    - {C.GREEN}HP:{C.RESET} {C.RED}{char.c_hp:,} / {char.c_hp_full:,}{C.RESET}")
         print(f"    - {C.GREEN}MP:{C.RESET} {C.BLUE}{char.c_mp:,} / {char.c_mp_full:,}{C.RESET}")
         print(f"    - {C.GREEN}Sức mạnh:{C.RESET} {C.YELLOW}{char.c_power:,}{C.RESET}")
+        print(f"    - {C.GREEN}Tiềm năng:{C.RESET} {C.CYAN}{getattr(char, 'c_tiem_nang', 0):,}{C.RESET}")
+        print(f"    - {C.GREEN}Vàng:{C.RESET} {C.YELLOW}{getattr(char, 'xu', 0):,}{C.RESET}")
+        print(f"    - {C.GREEN}Ngọc:{C.RESET} {C.GREEN}{getattr(char, 'luong', 0):,}{C.RESET}")
+        print(f"    - {C.GREEN}Ngọc khóa:{C.RESET} {C.PURPLE}{getattr(char, 'luong_khoa', 0):,}{C.RESET}")
 
         # Hiển thị trạng thái chức năng
         print(f"  {C.CYAN}Chức năng:{C.RESET}")

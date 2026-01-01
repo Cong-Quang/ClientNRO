@@ -209,7 +209,7 @@ class Controller:
                 vsSkill = reader.read_byte()
                 vsItem = reader.read_byte()
                 logger.info(f"Phiên bản máy chủ - Dữ liệu: {vsData}, Bản đồ: {vsMap}, Kỹ năng: {vsSkill}, Vật phẩm: {vsItem}")
-                
+                asyncio.create_task(self.account.service.client_ok())                
             else:
                 logger.info(f"Đã nhận được lệnh phụ NOT_MAP chưa được xử lý: {sub_cmd}, Payload Hex: {msg.get_data().hex()}")
 
@@ -378,7 +378,7 @@ class Controller:
             reader = msg.reader()
             char = self.account.char
             
-            # Trong source code này, readInt3Byte thực chất gọi readInt (4 bytes)
+            # Reverting to what was working for HP/MP, based on user feedback
             char.c_hp_goc = reader.read_int()
             char.c_mp_goc = reader.read_int()
             char.c_dam_goc = reader.read_int()
@@ -395,10 +395,10 @@ class Controller:
             char.c_dam_full = reader.read_int()
             char.c_def_full = reader.read_int()
             char.c_critical_full = reader.read_byte()
-            char.c_tiem_nang = reader.read_long()
-            char.c_power = reader.read_int()
-            # char.c_power = reader.read_long() # Power thường không có ở đây
-            
+            char.c_tiem_nang = reader.read_long() # This was long, seems correct
+
+            # c_power should not be read in this message, removing it.
+
             if reader.available() >= 2:
                 char.exp_for_one_add = reader.read_short()
             if reader.available() >= 2:
@@ -427,9 +427,9 @@ class Controller:
         try:
             reader = msg.reader()
             sub_cmd = reader.read_byte()
-            
+            char = self.account.char
+
             if sub_cmd == 0: # ME_LOAD_ALL
-                char = self.account.char
                 char.char_id = reader.read_int()
                 char.ctask_id = reader.read_byte()
                 char.gender = reader.read_byte()
@@ -438,8 +438,73 @@ class Controller:
                 char.c_pk = reader.read_byte()
                 char.c_type_pk = reader.read_byte()
                 char.c_power = reader.read_long()
-                logger.info(f"ME_LOAD_ALL: ID={char.char_id}, Tên={char.name}, Sức mạnh={char.c_power}")
-            
+                
+                char.eff5BuffHp = reader.read_short()
+                char.eff5BuffMp = reader.read_short()
+                
+                nClass_id = reader.read_byte() 
+                
+                # Skills
+                num_skills = reader.read_byte()
+                for _ in range(num_skills):
+                    reader.read_short()
+                
+                # Money
+                char.xu = reader.read_long()
+                char.luong_khoa = reader.read_int()
+                char.luong = reader.read_int()
+
+                # Item Arrays - Wrap each in a try-except to prevent crashing on parsing error
+                try:
+                    # Body Items
+                    num_body_items = reader.read_byte()
+                    for _ in range(num_body_items):
+                        template_id = reader.read_short()
+                        if template_id != -1:
+                            reader.read_int() # quantity
+                            reader.read_utf() # info
+                            reader.read_utf() # content
+                            num_options = reader.read_ubyte()
+                            for _ in range(num_options):
+                                reader.read_short() # option Template id
+                                reader.read_int()  # param
+                except Exception as e:
+                    logger.error(f"Lỗi khi phân tích Body Items: {e}")
+
+                try:
+                    # Bag Items
+                    num_bag_items = reader.read_byte()
+                    for _ in range(num_bag_items):
+                        template_id = reader.read_short()
+                        if template_id != -1:
+                            reader.read_int() # quantity
+                            reader.read_utf() # info
+                            reader.read_utf() # content
+                            num_options = reader.read_ubyte()
+                            for _ in range(num_options):
+                                reader.read_short() # option Template id
+                                reader.read_int()  # param
+                except Exception as e:
+                    logger.error(f"Lỗi khi phân tích Bag Items: {e}")
+
+                try:
+                    # Box Items
+                    num_box_items = reader.read_byte()
+                    for _ in range(num_box_items):
+                        template_id = reader.read_short()
+                        if template_id != -1:
+                            reader.read_int() # quantity
+                            reader.read_utf() # info
+                            reader.read_utf() # content
+                            num_options = reader.read_ubyte()
+                            for _ in range(num_options):
+                                reader.read_short() # option Template id
+                                reader.read_int()  # param
+                except Exception as e:
+                    logger.error(f"Lỗi khi phân tích Box Items: {e}")
+
+                logger.info(f"Đã xử lý đầy đủ ME_LOAD_ALL: Tên={char.name}, SM={char.c_power}, Vàng={char.xu}")
+
             elif sub_cmd == 4: # ME_LOAD_INFO
                 char.xu = reader.read_long()
                 char.luong = reader.read_int()
@@ -459,10 +524,11 @@ class Controller:
                 logger.info(f"Cập nhật MP: {old_mp} -> {char.c_mp}")
 
             else:
-                logger.info(f"SUB_COMMAND (Lệnh {msg.command}) lệnh phụ: {sub_cmd}, Payload Hex: {msg.get_data().hex()}")
+                logger.info(f"SUB_COMMAND (Lệnh {msg.command}) lệnh phụ chưa xử lý: {sub_cmd}")
         except Exception as e:
             logger.error(f"Lỗi khi phân tích SUB_COMMAND: {e}")
-
+            import traceback
+            traceback.print_exc()
     def process_bag_info(self, msg: Message):
         try:
             reader = msg.reader()
@@ -721,13 +787,7 @@ class Controller:
         except Exception as e:
             logger.error(f"Lỗi khi phân tích NPC_CHAT: {e}")
             
-    def process_sub_command(self, msg: Message):
-        try:
-            reader = msg.reader()
-            sub_cmd = reader.read_byte()
-            logger.info(f"SUB_COMMAND (Lệnh {msg.command}) lệnh phụ: {sub_cmd}, Payload Hex: {msg.get_data().hex()}")
-        except Exception as e:
-            logger.error(f"Lỗi khi phân tích SUB_COMMAND: {e}")
+
 
     def process_change_flag(self, msg: Message):
         try:
