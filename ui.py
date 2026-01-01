@@ -17,7 +17,7 @@ def get_pet_status_vietnamese(status: int) -> str:
     return status_map.get(status, f"Không xác định ({status})")
 
 def get_pet_status_short(status: int) -> str:
-    """Trả về trạng thái ngắn gọn."""
+    """Trả về trạng thái ngắn gọn (có màu)."""
     C = TerminalColors
     status_map = {
         0: f"{C.GREEN}Theo{C.RESET}",
@@ -29,43 +29,88 @@ def get_pet_status_short(status: int) -> str:
     }
     return status_map.get(status, f"Unk({status})")
 
-def display_pet_info(pet, username="Unknown", compact=False):
+
+def get_pet_status_short_raw(status: int) -> str:
+    """Trả về trạng thái ngắn gọn không màu (dùng để căn chỉnh)."""
+    status_map = {
+        0: "Theo",
+        1: "B.Vệ",
+        2: "T.Công",
+        3: "Về",
+        4: "H.Thể",
+        5: "H.Thể VV"
+    }
+    return status_map.get(status, f"Unk({status})")
+
+
+def display_pet_info(pet, username="Unknown", compact=False, idx: int = None):
     """
     Hiển thị thông tin chi tiết của đệ tử.
     :param compact: Nếu True, hiển thị dạng 1 dòng (dành cho multi-account).
+    :param idx: Nếu được cung cấp, in số thứ tự (ví dụ: [0]) bên cạnh tên tài khoản.
     """
     C = TerminalColors
     if not pet or not pet.have_pet:
         if compact:
-             print(f"[{C.YELLOW}{username:<15}{C.RESET}] {C.GREY}Không có đệ tử{C.RESET}")
+             # Hiển thị gọn nếu không có đệ tử
+             user_str = f"[{username}] {f'[{idx}]' if idx is not None else ''}"
+             print(f"{C.YELLOW}{user_str:<15}{C.RESET} {C.GREY}Không có đệ tử{C.RESET}")
         else:
              logger.info(f"[{username}] Không có thông tin đệ tử hoặc chưa nhận được dữ liệu từ server.")
         return
 
     if compact:
-        # Chế độ hiển thị 1 dòng ngắn gọn
-        # Căn chỉnh cột:
-        # User: 18 chars (bao gồm [])
-        # Name: 12 chars
-        # Status: ~20 chars (do chứa mã màu ẩn ~9 chars, hiển thị thực tế khoảng 11 chars)
-        # HP: 15 chars (HP: + 12 số)
-        # MP: 15 chars (MP: + 12 số)
-        # SM: 19 chars (SM: + 16 số)
-        
-        user_str = f"[{username}]"
-        status = get_pet_status_short(pet.pet_status)
-        
-        # Format số liệu raw
-        hp_raw = f"{pet.c_hp:,}"
-        mp_raw = f"{pet.c_mp:,}"
-        pow_raw = f"{pet.c_power:,}"
-        
-        print(f"{C.YELLOW}{user_str:<18}{C.RESET} "
-              f"{C.GREEN}{pet.name:<12}{C.RESET} | "
-              f"{status:<20} | " 
-              f"{C.RED}HP:{hp_raw:<12}{C.RESET} | "
-              f"{C.BLUE}MP:{mp_raw:<12}{C.RESET} | "
-              f"{C.YELLOW}SM:{pow_raw:<16}{C.RESET}")
+        # Chế độ hiển thị 1 dòng ngắn gọn (gọn hơn, căn chỉnh chặt)
+        idx_str = f"[{idx}]" if idx is not None else ""
+
+        # Raw/short values
+        hp_short = short_number(pet.c_hp)
+        mp_short = short_number(pet.c_mp)
+        sm_short = short_number(pet.c_power)
+        dam_short = short_number(getattr(pet, 'c_dam_full', getattr(pet, 'damage_full', 0)))
+
+        # Status raw + color mapping for consistent padding
+        status_raw = get_pet_status_short_raw(pet.pet_status)
+        status_colors = {
+            0: C.GREEN, 1: C.PURPLE, 2: C.RED, 3: C.YELLOW, 4: C.CYAN, 5: C.BOLD_RED
+        }
+        status_plain = f"{status_raw:<6}"
+        status_col = f"{status_colors.get(pet.pet_status, C.GREY)}{status_plain}{C.RESET}"
+
+        # Build padded plain columns first, then colorize to avoid ANSI misalignment
+        user_plain = f"[{username}]"
+        # Widen username area to align ID under header
+        user_padded = f"{user_plain:<15}"
+        user_col = f"{C.YELLOW}{user_padded}{C.RESET}"
+
+        id_plain = f"{idx_str:<4}"
+        id_col = f"{C.PURPLE}{id_plain}{C.RESET}"
+
+        name_plain = f"{pet.name:<12}"
+        name_col = f"{C.GREEN}{name_plain}{C.RESET}"
+
+        hp_plain = f"{hp_short:>7}"
+        hp_col = f"{C.RED}{hp_plain}{C.RESET}"
+
+        mp_plain = f"{mp_short:>7}"
+        mp_col = f"{C.BLUE}{mp_plain}{C.RESET}"
+
+        sm_plain = f"{sm_short:>7}"
+        sm_col = f"{C.YELLOW}{sm_plain}{C.RESET}"
+
+        dam_plain = f"{dam_short:>7}"
+        dam_col = f"{C.PURPLE}{dam_plain}{C.RESET}"
+
+        line = f"{user_col} {id_col} {name_col} | {status_col} | {hp_col} | {mp_col} | {sm_col} | {dam_col}"
+
+        # Alternate row color: even -> GREEN, odd -> GREY
+        if idx is not None:
+            if (idx % 2) == 0:
+                print(f"{C.GREEN}{line}{C.RESET}")
+            else:
+                print(f"{C.GREY}{line}{C.RESET}")
+        else:
+            print(line)
     else:
         # Chế độ hiển thị chi tiết (cũ)
         print(f"{C.CYAN}--- Thông Tin Đệ Tử [{C.YELLOW}{username}{C.CYAN}] ---{C.RESET}")
@@ -128,6 +173,7 @@ def display_help():
     print(f"  {C.GREEN}clear{C.RESET}             - Xóa nội dung hiện tại trong console.")
     print(f"  {C.GREEN}show{C.RESET}              - Hiển thị thông tin nhân vật.")
     print(f"  {C.GREEN}help{C.RESET}              - Hiển thị bảng trợ giúp này.")
+    print(f"  {C.GREEN}blacklist{C.RESET} <list|add|remove|clear> - Quản lý blacklist (bỏ qua khi 'login all').")
     print(f"  {C.GREEN}exit{C.RESET}              - Thoát khỏi công cụ.")
     print(f"{C.CYAN}--- Kết thúc ---{C.RESET}")
 
@@ -141,10 +187,11 @@ def short_number(num: int) -> str:
         return f"{num/1_000:.1f}k".replace('.0k', 'k')
     return str(num)
 
-def display_character_status(account, compact=False):
+def display_character_status(account, compact=False, idx: int = None):
     """
     Hiển thị thông tin trạng thái của một tài khoản.
     :param compact: Nếu True, hiển thị dạng 1 dòng (dành cho multi-account).
+    :param idx: Nếu được cung cấp, in số thứ tự (ví dụ: [0]) bên cạnh tên tài khoản.
     """
     C = TerminalColors
     char = account.char
@@ -152,17 +199,18 @@ def display_character_status(account, compact=False):
     map_info = account.controller.map_info
 
     if compact:
-        # Format 1 dòng: [User] | Map | ID | Zone | X,Y | HP | MP | SM | Status
-        user_str = f"[{account.username}]"
+        # Format 1 dòng (gọn hơn): [User] [idx] | Map | ID | Zone | X,Y | HP | MP | SM | SĐ | Status
+        user_str = f"[{account.username}] {f'[{idx}]' if idx is not None else ''}"
         
         hp_str = short_number(char.c_hp)
         mp_str = short_number(char.c_mp)
         pow_str = short_number(char.c_power)
+        dam_str = short_number(getattr(char, 'c_dam_full', 0))
         
         map_name = map_info.get('name', 'N/A')
         # Cắt tên map nếu quá dài
-        if len(map_name) > 20:
-            map_name = map_name[:18] + ".."
+        if len(map_name) > 18:
+            map_name = map_name[:16] + ".."
             
         map_id = str(map_info.get('id', 'N/A'))
         zone_id = str(map_info.get('zone', 'N/A'))
@@ -173,15 +221,35 @@ def display_character_status(account, compact=False):
         apet_status = f"{C.GREEN}A.Pet{C.RESET}" if account.controller.auto_pet.is_running else f"{C.GREY}A.Pet{C.RESET}"
         funcs_str = f"{ap_status} {apet_status}"
         
-        print(f"{C.YELLOW}{user_str:<13}{C.RESET} | "
-              f"{C.CYAN}{map_name:<20}{C.RESET} | "
-              f"{C.PURPLE}{map_id:<3}{C.RESET} | "
-              f"{C.BLUE}{zone_id:<3}{C.RESET} | "
-              f"{C.GREY}{coords:<9}{C.RESET} | "
-              f"{C.RED}{hp_str:<7}{C.RESET} | "
-              f"{C.BLUE}{mp_str:<7}{C.RESET} | "
-              f"{C.YELLOW}{pow_str:<7}{C.RESET} | "
-              f"{funcs_str:<31}")
+        # Build padded plain columns first
+        user_plain = f"[{account.username}] {f'[{idx}]' if idx is not None else ''}"
+        user_padded = f"{user_plain:<19}"
+        user_col = f"{C.YELLOW}{user_padded}{C.RESET}"
+
+        map_col = f"{C.CYAN}{map_name:<18}{C.RESET}"
+        id_col = f"{C.PURPLE}{map_id:<3}{C.RESET}"
+        zone_col = f"{C.BLUE}{zone_id:<3}{C.RESET}"
+        coords_col = f"{C.GREY}{coords:<7}{C.RESET}"
+
+        hp_plain = f"{hp_str:>8}"
+        hp_col = f"{C.RED}{hp_plain}{C.RESET}"
+        mp_plain = f"{mp_str:>7}"
+        mp_col = f"{C.BLUE}{mp_plain}{C.RESET}"
+        pow_plain = f"{pow_str:>7}"
+        pow_col = f"{C.YELLOW}{pow_plain}{C.RESET}"
+        dam_plain = f"{dam_str:>7}"
+        dam_col = f"{C.PURPLE}{dam_plain}{C.RESET}"
+
+        line = f"{user_col} | {map_col} | {id_col} | {zone_col} | {coords_col} | {hp_col} | {mp_col} | {pow_col} | {dam_col} | {funcs_str}"
+
+        # Alternate row color: even -> GREEN, odd -> GREY
+        if idx is not None:
+            if (idx % 2) == 0:
+                print(f"{C.GREEN}{line}{C.RESET}")
+            else:
+                print(f"{C.GREY}{line}{C.RESET}")
+        else:
+            print(line)
     else:
         # Chế độ chi tiết cũ
         print(f"{C.BOLD_RED}--- Trạng thái: {C.YELLOW}{account.username}{C.BOLD_RED} ---{C.RESET}")
@@ -197,6 +265,7 @@ def display_character_status(account, compact=False):
         print(f"    - {C.GREEN}HP:{C.RESET} {C.RED}{char.c_hp:,} / {char.c_hp_full:,}{C.RESET}")
         print(f"    - {C.GREEN}MP:{C.RESET} {C.BLUE}{char.c_mp:,} / {char.c_mp_full:,}{C.RESET}")
         print(f"    - {C.GREEN}Sức mạnh:{C.RESET} {C.YELLOW}{char.c_power:,}{C.RESET}")
+        print(f"    - {C.GREEN}Sức đánh:{C.RESET} {C.PURPLE}{getattr(char, 'c_dam_full', 0):,}{C.RESET}")
         print(f"    - {C.GREEN}Tiềm năng:{C.RESET} {C.CYAN}{getattr(char, 'c_tiem_nang', 0):,}{C.RESET}")
         print(f"    - {C.GREEN}Vàng:{C.RESET} {C.YELLOW}{getattr(char, 'xu', 0):,}{C.RESET}")
         print(f"    - {C.GREEN}Ngọc:{C.RESET} {C.GREEN}{getattr(char, 'luong', 0):,}{C.RESET}")

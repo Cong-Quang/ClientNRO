@@ -197,8 +197,30 @@ async def command_loop(manager: AccountManager):
                 accounts_to_login = []
                 
                 if target == "all":
-                    accounts_to_login = manager.accounts
-                
+                    accounts_to_login = list(manager.accounts)
+
+                    # Lọc theo blacklist nếu có (áp dụng chỉ cho 'login all')
+                    if getattr(Config, 'LOGIN_BLACKLIST', None):
+                        skipped = []
+                        filtered = []
+                        for i, acc in enumerate(accounts_to_login):
+                            skip = False
+                            for b in Config.LOGIN_BLACKLIST:
+                                # Hỗ trợ cả username và index trong blacklist
+                                if isinstance(b, int) and b == i:
+                                    skip = True
+                                    break
+                                if isinstance(b, str) and b.lower() == acc.username.lower():
+                                    skip = True
+                                    break
+                            if skip:
+                                skipped.append(acc.username)
+                            else:
+                                filtered.append(acc)
+                        accounts_to_login = filtered
+                        if skipped:
+                            print(f"Bỏ qua (theo blacklist): {', '.join(skipped)}")
+
                 elif target == "default":
                     target_indices = Config.DEFAULT_LOGIN
                     for idx in target_indices:
@@ -545,14 +567,13 @@ async def command_loop(manager: AccountManager):
             # Xác định chế độ hiển thị gọn (compact) nếu gửi cho nhiều hơn 1 tài khoản
             is_compact = len(online_targets) > 1
             if is_compact and "pet info" in command:
-                 # User(18+1space) | Name(12+3) | Status(11+3) | HP(15+3) | MP(15+3) | SM(19)
-                 # Note: Headers don't have color codes so padding is direct
-                 print(f"{C.CYAN}{'Tài khoản':<18} {'Tên Đệ':<12} | {'TT':<11} | {'HP':<15} | {'MP':<15} | {'Sức Mạnh':<19}{C.RESET}")
+                 # Gọn hơn: Username | Id | Tên Đệ | Trạng thái | HP | MP | SM | SĐ
+                 print(f"{C.CYAN}{'Tài khoản':<15} {'ID':<4} {'Tên Đệ':<12} | {'TT':<6} | {'HP':>7} | {'MP':>7} | {'SM':>7} | {'SĐ':>7}{C.RESET}")
             elif is_compact and command.strip() == "show":
-                 # Header matching ui.py columns
-                 print(f"{C.CYAN}{'Tài khoản':<13} | {'Bản đồ':<20} | {'ID':<3} | {'Khu':<3} | {'Tọa độ':<9} | {'HP':<7} | {'MP':<7} | {'SM':<7} | {'Trạng thái'}{C.RESET}")
+                 # Header matching ui.py columns (tighter columns)
+                 print(f"{C.CYAN}{'Tài khoản':<19} | {'Bản đồ':<18} | {'ID':<3} | {'Khu':<3} | {'Tọa độ':<7} | {'HP':<8} | {'MP':<7} | {'SM':<7} | {'SĐ':<7} | {'Trạng thái'}{C.RESET}")
 
-            tasks = [handle_single_command(command, acc, compact_mode=is_compact) for acc in online_targets]
+            tasks = [handle_single_command(command, acc, compact_mode=is_compact, idx=i) for i, acc in enumerate(online_targets)]
             results = await asyncio.gather(*tasks)
             # Print per-account delivery status
             # Nếu là lệnh hiển thị thông tin (như pet info compact), ta không cần in trạng thái "Đã nhận" nữa vì nó sẽ làm rối
@@ -571,7 +592,7 @@ async def command_loop(manager: AccountManager):
         except Exception as e:
             logger.error(f"Lỗi trong vòng lặp lệnh chính: {e}")
 
-async def handle_single_command(command: str, account: Account, compact_mode: bool = False):
+async def handle_single_command(command: str, account: Account, compact_mode: bool = False, idx: int = None):
     """Processes a command for a single, specified account."""
     parts = command.strip().lower().split()
     cmd_base = parts[0]
@@ -585,8 +606,8 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                 if sub_cmd == "info":
                     await account.service.pet_info()
                     await asyncio.sleep(0.5)
-                    # This now needs the specific pet object and username
-                    display_pet_info(account.pet, account.username, compact=compact_mode)
+                    # This now needs the specific pet object and username (and optional idx for compact view)
+                    display_pet_info(account.pet, account.username, compact=compact_mode, idx=idx)
                 elif sub_cmd in {"follow", "protect", "attack", "home"}:
                     status_map = {"follow": 0, "protect": 1, "attack": 2, "home": 3}
                     await account.service.pet_status(status_map[sub_cmd])
@@ -616,21 +637,42 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                 print(f"[{C.YELLOW}{account.username}{C.RESET}] Đã {'BẬT' if status else 'TẮT'} autopet.")
             else:
                 print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: autopet <on|off>")
-        
-        elif cmd_base == "show":
-            display_character_status(account, compact=compact_mode)
 
-        elif cmd_base == "khu":
-            if len(parts) == 2 and parts[1].isdigit():
-                await account.service.request_change_zone(int(parts[1]))
-            else:
-                print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: khu <id>")
-
-        elif cmd_base == "gomap":
-            # gomap <map_id>  : Bắt đầu XMap
-            # gomap stop      : Dừng XMap hiện tại
-            if len(parts) == 2 and parts[1].isdigit():
-                map_id = int(parts[1])
+            elif cmd_base == "blacklist":
+                # Commands: blacklist list | add <name|id> | remove <name|id> | clear
+                if len(parts) == 1:
+                    print("Sử dụng: blacklist <list|add|remove|clear>")
+                else:
+                    sub = parts[1]
+                    if sub == "list":
+                        print(f"Blacklist: {Config.LOGIN_BLACKLIST}")
+                    elif sub == "add" and len(parts) == 3:
+                        val = parts[2]
+                        try:
+                            v = int(val)
+                        except ValueError:
+                            v = val
+                        if v in Config.LOGIN_BLACKLIST:
+                            print(f"Đã có trong blacklist: {v}")
+                        else:
+                            Config.LOGIN_BLACKLIST.append(v)
+                            print(f"Đã thêm vào blacklist: {v}")
+                    elif sub == "remove" and len(parts) == 3:
+                        val = parts[2]
+                        try:
+                            v = int(val)
+                        except ValueError:
+                            v = val
+                        if v in Config.LOGIN_BLACKLIST:
+                            Config.LOGIN_BLACKLIST.remove(v)
+                            print(f"Đã xóa khỏi blacklist: {v}")
+                        else:
+                            print(f"Không có trong blacklist: {v}")
+                    elif sub == "clear":
+                        Config.LOGIN_BLACKLIST.clear()
+                        print("Đã xóa toàn bộ blacklist.")
+                    else:
+                        print("Sử dụng: blacklist <list|add|remove|clear>")
                 print(f"[{C.YELLOW}{account.username}{C.RESET}] Bắt đầu XMap tới {map_id}...")
                 await account.controller.xmap.start(map_id)
             elif len(parts) == 2 and parts[1] == "stop":

@@ -1,22 +1,33 @@
 import random
 class Config:
-    # --- Server ---
+    
+   
+   
+   
+     
+    # HOST: địa chỉ server (IP hoặc domain)
     HOST = "103.245.255.222"
+    # PORT: cổng server (int)
     PORT = 12451
 
-    # --- Version ---
+     # VERSION: phiên bản công cụ (tự sinh, không cần sửa)
     VERSION = f"2.{random.randint(1, 100)}.{random.randint(1, 100)}"
 
-    # --- Account ---
-    # List of accounts to run
-    # You can add more accounts here
-    MAX_ACCOUNTS = 1000 # Giới hạn số lượng tài khoản chạy cùng lúc
-    AUTO_RECONNECT = True # Tự động đăng nhập lại khi mất kết nối
-    DEFAULT_LOGIN = [0, 2, 3, 4, 5] # Danh sách ID mặc định muốn login khi gõ 'login' hoặc 'login all'
+    #MAX_ACCOUNTS: số tối đa tài khoản chạy đồng thời (int)
+    MAX_ACCOUNTS = 1000
 
+    # AUTO_RECONNECT: True/False — tự động đăng nhập lại khi mất kết nối
+    AUTO_RECONNECT = True
+
+    # DEFAULT_LOGIN: list các index (int) trong ACCOUNTS được login khi 'login' không có tham số / 'login default'
+    DEFAULT_LOGIN = [0, 2, 3, 4, 5]  
+
+    # LOGIN_BLACKLIST: list username (str) hoặc index (int) sẽ bị bỏ qua khi dùng 'login all'
+    # Ví dụ mẫu: bỏ qua username 'poopooi07' và tài khoản index 9
+    #LOGIN_BLACKLIST: list = ["poopooi07", 9]
+    LOGIN_BLACKLIST: list = []
+    # ACCOUNTS: list dict tài khoản; mỗi dict cần 'username' và 'password', có thể thêm 'proxy' (tuỳ chọn)
     ACCOUNTS = [
-        # Example with proxy: "proxy": "http://user:pass@ip:port"
-        # If proxy is None or missing, it will use the machine's IP.
         {"username": "poopooi01", "password": "02082003"},
         {"username": "poopooi03", "password": "02082003"},
         {"username": "poopooi04", "password": "02082003"},
@@ -26,6 +37,7 @@ class Config:
         {"username": "poopooi08", "password": "02082003"},
         {"username": "poopooi09", "password": "02082003"},
         {"username": "poopooi10", "password": "02082003"},
+        {"username": "ordinary215", "password": "123456789"},
     ]
 
 
