@@ -638,7 +638,7 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
             else:
                 print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: autopet <on|off>")
 
-            elif cmd_base == "blacklist":
+        elif cmd_base == "blacklist":
                 # Commands: blacklist list | add <name|id> | remove <name|id> | clear
                 if len(parts) == 1:
                     print("Sử dụng: blacklist <list|add|remove|clear>")
@@ -673,11 +673,19 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                         print("Đã xóa toàn bộ blacklist.")
                     else:
                         print("Sử dụng: blacklist <list|add|remove|clear>")
-                print(f"[{C.YELLOW}{account.username}{C.RESET}] Bắt đầu XMap tới {map_id}...")
-                await account.controller.xmap.start(map_id)
-            elif len(parts) == 2 and parts[1] == "stop":
-                account.controller.xmap.finish()
-                print(f"[{C.YELLOW}{account.username}{C.RESET}] Đã dừng XMap.")
+
+        elif cmd_base == "gomap":
+            if len(parts) > 1:
+                if parts[1] == "stop":
+                    account.controller.xmap.finish()
+                    print(f"[{C.YELLOW}{account.username}{C.RESET}] Đã dừng XMap.")
+                else:
+                    try:
+                        map_id = int(parts[1])
+                        print(f"[{C.YELLOW}{account.username}{C.RESET}] Bắt đầu XMap tới {map_id}...")
+                        await account.controller.xmap.start(map_id)
+                    except ValueError:
+                        print(f"[{C.YELLOW}{account.username}{C.RESET}] Map ID không hợp lệ: {parts[1]}")
             else:
                 print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: gomap <map_id> | gomap stop")
         
