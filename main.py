@@ -6,6 +6,8 @@ from account import Account
 from logs.logger_config import logger, set_logger_status, TerminalColors
 from ui import display_help, display_pet_info, display_pet_help, display_character_status
 from autocomplete import get_input_with_autocomplete, COMMAND_TREE
+from combo import ComboEngine
+import time
 
 def clean_pycache():
     """Tìm và xóa tất cả thư mục __pycache__ trong thư mục hiện tại và thư mục con."""
@@ -137,6 +139,9 @@ async def command_loop(manager: AccountManager):
     C = TerminalColors
     # Tải danh sách proxy khi bắt đầu
     proxy_list = load_proxies()
+    combo_engine = ComboEngine()
+    combo_queue = []
+    combo_running = False
     
     while True:
         # Update autocomplete with current groups
@@ -146,6 +151,7 @@ async def command_loop(manager: AccountManager):
         COMMAND_TREE["login"] = login_suggestions
         COMMAND_TREE["logout"] = current_group_names
         COMMAND_TREE["target"] = current_group_names
+        COMMAND_TREE["combo"] = ["list", "reload"] + combo_engine.list()
 
         target_str = f"{C.RED}None{C.RESET}"
         if manager.command_target is not None:
@@ -157,19 +163,66 @@ async def command_loop(manager: AccountManager):
         prompt = f"[{target_str}]> "
 
         try:
-            # command = await asyncio.to_thread(input, prompt)
-            command = await asyncio.to_thread(get_input_with_autocomplete, prompt)
+            if combo_running:
+                if not combo_queue:
+                    combo_running = False
+                    print("Combo hoàn tất.")
+                    continue
+
+                command = combo_queue.pop(0)
+                print(f">>> {command}")
+            else:
+                command = await asyncio.to_thread(get_input_with_autocomplete, prompt)
+
             command = command.strip().lower()
+
             parts = command.split()
             if not command:
                 continue
 
             cmd_base = parts[0]
+            
+            if parts[0] == "sleep":
+                try:
+                    await asyncio.sleep(float(parts[1]))
+                except:
+                    print("sleep <seconds>")
+                continue
+
 
             if cmd_base == "exit":
                 manager.stop_all()
                 break
             
+            elif cmd_base == "combo":
+                if len(parts) == 1:
+                    print("combo list | combo <name> | combo reload")
+                    continue
+
+                sub = parts[1]
+
+                if sub == "list":
+                    print("Danh sách combo:")
+                    for c in combo_engine.list():
+                        print(f"- {c}")
+                    continue
+
+                if sub == "reload":
+                    combo_engine.load()
+                    print("Đã reload combo.txt")
+                    continue
+
+                if not combo_engine.exists(sub):
+                    print(f"Không có combo '{sub}'")
+                    continue
+
+                # Nạp combo vào queue
+                combo_queue = combo_engine.get(sub).copy()
+                combo_running = True
+                print(f"Bắt đầu chạy combo '{sub}'")
+                continue
+
+
             elif cmd_base in ("cls", "clear"):
                 os.system('cls' if os.name == 'nt' else 'clear')
                 continue

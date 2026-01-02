@@ -1,0 +1,31 @@
+[setup]
+cls
+py main.py
+login all
+group create upcs 0,9
+group create updt 1,2,3,4,5,6,7,8
+group create updtk1 1,2,3,4
+group create updtk2 5,6,7,8
+sleep 1
+target upcs
+autoplay on
+target updt
+autopet on
+target all
+cls
+list
+show
+
+
+[chia_khu]
+target updtk1
+khu 1
+target updtk2
+khu 2
+target upcs
+khu 1
+sleep 1
+target all
+cls
+list
+show
