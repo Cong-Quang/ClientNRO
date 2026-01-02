@@ -159,13 +159,17 @@ def display_help():
     print(f"  {C.GREEN}group remove{C.RESET} {C.YELLOW}<name> <ids>{C.RESET} - Xóa tài khoản khỏi nhóm.")
     print(f"\n{C.PURPLE}--- Lệnh cho Mục tiêu đã chọn ---{C.RESET}")
     print(f"  {C.GREEN}show{C.RESET}              - Hiển thị thông tin nhân vật, đệ tử và vị trí của mục tiêu.")
+    print(f"  {C.GREEN}show csgoc{C.RESET}        - Hiển thị chỉ số GỐC (chưa cộng đồ) của nhân vật.")
     print(f"  {C.GREEN}pet{C.RESET}               - Hiển thị các lệnh liên quan đến đệ tử.")
     print(f"  {C.GREEN}khu{C.RESET} {C.YELLOW}[id khu]{C.RESET}      - Chuyển nhanh đến khu vực có ID [id khu].")
+    print(f"  {C.GREEN}gomap{C.RESET} {C.YELLOW}<id|home>{C.RESET}     - Di chuyển đến bản đồ ID hoặc về nhà.")
+    print(f"  {C.GREEN}opennpc{C.RESET} {C.YELLOW}<id> [idx..]{C.RESET}- Mở NPC theo ID và chọn các menu nếu có.")
     print(f"  {C.GREEN}autoplay{C.RESET} {C.YELLOW}[on|off]{C.RESET} - Bật hoặc tắt tự động tấn công.")
     print(f"  {C.GREEN}autopet{C.RESET} {C.YELLOW}[on|off]{C.RESET}  - Bật hoặc tắt tự động nâng cấp đệ tử.")
     print(f"  {C.GREEN}findnpc{C.RESET}            - Liệt kê các NPC có trong bản đồ hiện tại.")
     print(f"  {C.GREEN}teleport{C.RESET} {C.YELLOW}<x> <y>{C.RESET}   - Dịch chuyển đến tọa độ (x, y).")
     print(f"  {C.GREEN}teleportnpc{C.RESET} {C.YELLOW}<id>{C.RESET} - Dịch chuyển đến NPC có ID là [id].")
+    print(f"  {C.GREEN}congcs{C.RESET} {C.YELLOW}<hp> <mp> <sd>{C.RESET} - Tự động cộng tiềm năng đến chỉ số gốc mong muốn.")
     print(f"  {C.GREEN}andau{C.RESET}               - Sử dụng đậu thần trong hành trang (hồi HP/MP/Thể lực).")
     print(f"  {C.GREEN}hit{C.RESET}                 - Tấn công quái vật gần nhất một lần.")
     print(f"\n{C.PURPLE}--- Lệnh chung ---{C.RESET}")
@@ -186,6 +190,22 @@ def short_number(num: int) -> str:
     if num >= 1_000:
         return f"{num/1_000:.1f}k".replace('.0k', 'k')
     return str(num)
+
+def display_character_base_stats(account):
+    """
+    Hiển thị thông tin chỉ số GỐC của nhân vật.
+    """
+    C = TerminalColors
+    char = account.char
+    
+    print(f"{C.BOLD_RED}--- Chỉ Số Gốc: {C.YELLOW}{account.username}{C.BOLD_RED} ---{C.RESET}")
+    print(f"  {C.GREEN}HP Gốc:{C.RESET} {C.RED}{char.c_hp_goc:,}{C.RESET}")
+    print(f"  {C.GREEN}MP Gốc:{C.RESET} {C.BLUE}{char.c_mp_goc:,}{C.RESET}")
+    print(f"  {C.GREEN}Sức đánh Gốc:{C.RESET} {C.PURPLE}{char.c_dam_goc:,}{C.RESET}")
+    print(f"  {C.GREEN}Giáp Gốc:{C.RESET} {getattr(char, 'c_def_goc', 0):,}")
+    print(f"  {C.GREEN}Chí mạng Gốc:{C.RESET} {getattr(char, 'c_critical_goc', 0)}%")
+    print(f"  {C.GREEN}Tiềm năng:{C.RESET} {C.CYAN}{getattr(char, 'c_tiem_nang', 0):,}{C.RESET}")
+    print(f"{C.BOLD_RED}--------------------------{C.RESET}\n")
 
 def display_character_status(account, compact=False, idx: int = None):
     """

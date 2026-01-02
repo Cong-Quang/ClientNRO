@@ -31,7 +31,7 @@ class XMap:
         self.target_map_id = -1
         self.path = []
         self.last_update = 0
-        self.update_interval =  0.1 # Khoảng thời gian giữa các hành động (1 giây)
+        self.update_interval =  0 # Tối ưu tốc độ
         self.processing_map_change = False
         self.expected_next_map_id = -1
         self.last_action_time = 0
@@ -165,16 +165,11 @@ class XMap:
         # --- Thêm liên kết cho Ngủ Hành Sơn (maps 123/124/122)
         # Từ map 0 vào Ngủ Hành Sơn 1 (map 123) thông qua NPC id=49, chọn ô trọn (index 1)
         self.add_npc_link(0, 123, 49, "Đồng ý", index_npc=0)
+        # Link quay về từ 123 -> 0 (Giả định NPC 49, index 0)
+        self.add_npc_link(123, 0, 49, index_npc=0)
+
         # Kết nối các map Ngủ Hành Sơn: 123 <-> 124 <-> 122
         # (Khi đang ở 124, bấm trái về 123, bấm phải qua 122)
-        self.add_link_maps(123, 124, 122)
-
-        # --- Liên kết Ngũ Hành Sơn ---
-        # Từ Map 0 sang Map 123 qua NPC 49, chọn dòng 1 (index_npc=0)
-        self.add_npc_link(0, 123, 49, index_npc=0) 
-
-        # Liên kết chuỗi các map Ngũ Hành Sơn (Đi bộ qua Waypoint)
-        # Thứ tự: 123 <-> 124 <-> 122
         self.add_link_maps(123, 124, 122)
 
 
@@ -247,11 +242,26 @@ class XMap:
             logger.info(f"Đường đi: {self.path}")
             asyncio.create_task(self.run_loop())
 
+    async def go_home(self):
+        """Tự động xác định map nhà dựa trên hành tinh (gender) và di chuyển về."""
+        gender = self.controller.account.char.gender
+        # Mapping theo yêu cầu: 0=Trái Đất(0), 1=Namek(22), 2=Xayda(44)
+        home_map_ids = {
+            0: 0,   # Trái Đất
+            1: 22,  # Namek
+            2: 44   # Xayda
+        }
+        
+        target_home = home_map_ids.get(gender, 21) # Mặc định 21 nếu lỗi
+        
+        logger.info(f"Phát hiện hành tinh: {['Trái Đất', 'Namek', 'Xayda'][gender] if 0 <= gender <= 2 else 'Unknown'}. Về nhà: {target_home}")
+        await self.start(target_home)
+
     async def run_loop(self):
         """Vòng lặp chính duy trì trạng thái XMap"""
         while self.is_xmapping:
             await self.update()
-            await asyncio.sleep(self.update_interval)
+            await asyncio.sleep(0.01)
 
     def finish(self):
         """Kết thúc XMap"""
@@ -259,10 +269,19 @@ class XMap:
         self.processing_map_change = False
         # nếu người dùng không bật logger, in dòng ra thông báo cho người dùng biết là đã tới
         username = getattr(self.controller.account, 'username', 'Unknown')
-        if logger.disabled:
-            print(f"\n[{C.YELLOW}{username}{C.RESET}] Đã đến bản đồ mục tiêu: {C.GREEN}{self.target_map_id}{C.RESET} {' ' * 20}")
+        
+        current_map = self.controller.tile_map.map_id
+        if current_map == self.target_map_id:
+            msg = f"Đã đến bản đồ mục tiêu: {C.GREEN}{self.target_map_id}{C.RESET}"
+            log_func = logger.info
         else:
-            logger.info(f"\n[{C.YELLOW}{username}{C.RESET}] Đã đến bản đồ mục tiêu: {C.GREEN}{self.target_map_id}{C.RESET} {' ' * 20}")
+            msg = f"XMap kết thúc. {C.RED}(Chưa đến đích: {current_map} -> {self.target_map_id}){C.RESET}"
+            log_func = logger.warning
+
+        if logger.disabled:
+            print(f"\n[{C.YELLOW}{username}{C.RESET}] {msg} {' ' * 20}")
+        else:
+            log_func(f"\n[{C.YELLOW}{username}{C.RESET}] {msg} {' ' * 20}")
       
 
     def find_path(self, start, end):
@@ -288,9 +307,6 @@ class XMap:
         """Cập nhật trạng thái nhân vật và thực hiện bước di chuyển tiếp theo"""
         if not self.is_xmapping: return
         
-        # Giới hạn tốc độ cập nhật
-        if time.time() - self.last_update < self.update_interval:
-            return
         self.last_update = time.time()
 
         current_map = self.controller.tile_map.map_id
@@ -416,14 +432,7 @@ class XMap:
             action_performed = True
 
         if action_performed:
-            # Đợi cho đến khi hệ thống ghi nhận việc đổi map thành công
-            start_wait = time.time()
-            while self.controller.tile_map.map_id == current_map_id:
-                if time.time() - start_wait > 5.0:
-                    logger.warning("Hết thời gian chờ đổi map trong process_next_map.")
-                    break
-                await asyncio.sleep(0.5)
-            
+            # Đánh dấu đang chờ đổi map (Non-blocking)
             self.processing_map_change = True
             self.expected_next_map_id = next_map.map_id
             self.last_action_time = time.time()
@@ -491,7 +500,7 @@ class XMap:
                 logger.info(f"Tìm thấy NPC {next_map.npc_id}. Đang tiến tới...")
                 await self.controller.movement.teleport_to(target_npc['x'], target_npc['y'] - 3)
                 break
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.01)
         else:
             logger.warning(f"Không tìm thấy NPC {next_map.npc_id} sau nhiều lần thử.")
             return False 

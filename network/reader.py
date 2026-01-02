@@ -69,3 +69,8 @@ class Reader:
 
     def available(self) -> int:
         return len(self.data) - self.pos
+
+    def read_remaining(self) -> bytes:
+        val = self.data[self.pos:]
+        self.pos = len(self.data)
+        return val

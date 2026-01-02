@@ -126,6 +126,8 @@ class Controller:
                 self.process_map_offline(msg)
             elif cmd == Cmd.PET_INFO:
                 self.process_pet_info(msg)
+            elif cmd == Cmd.POWER_INFO:
+                self.process_power_info(msg)
             elif cmd == Cmd.THACHDAU:
                 self.process_thach_dau(msg)
             elif cmd == Cmd.AUTOPLAY:
@@ -367,6 +369,11 @@ class Controller:
             if reader.available() >= 1:
                 char.c_critical_goc = reader.read_byte()
             
+            # Check for remaining data (Potential "Power Info Extra")
+            if reader.available() > 0:
+                remaining = reader.read_remaining()
+                logger.info(f"Dữ liệu còn lại trong ME_LOAD_POINT (Power Info Extra?): {remaining.hex()}")
+
             if char.c_hp == 0:
                 self.xmap.handle_death()
 
@@ -461,6 +468,11 @@ class Controller:
                                 reader.read_int()
                 except Exception as e:
                     logger.error(f"Lỗi khi phân tích Box Items: {e}")
+
+                # Check for remaining data (Potential "Other Info")
+                if reader.available() > 0:
+                    remaining_data = reader.read_remaining()
+                    logger.info(f"Dữ liệu còn lại trong ME_LOAD_ALL (Info khác?): {remaining_data.hex()}")
 
                 logger.info(f"Đã xử lý đầy đủ ME_LOAD_ALL: Tên={char.name}, SM={char.c_power}, Vàng={char.xu}")
 
@@ -962,6 +974,21 @@ class Controller:
         except Exception as e:
             logger.error(f"Lỗi khi phân tích THACHDAU: {e}")
 
+    def process_power_info(self, msg: Message):
+        """Xử lý thông tin sức mạnh (POWER_INFO -115)."""
+        try:
+            reader = msg.reader()
+            power = reader.read_long()
+            self.account.char.c_power = power
+            logger.info(f"Cập nhật Sức Mạnh (Cmd {msg.command}): {power}")
+            
+            # Nếu còn dữ liệu, có thể là các info khác
+            if reader.available() > 0:
+                 # Ví dụ: vàng,ngọc...
+                 pass
+        except Exception as e:
+            logger.error(f"Lỗi khi phân tích POWER_INFO: {e}")
+
     def process_autoplay(self, msg: Message):
         """Nhận trạng thái hoặc cấu hình chế độ tự động từ server (AUTOPLAY)."""
         try:
@@ -1050,6 +1077,54 @@ class Controller:
             await self.account.service.send_player_attack([closest_mob.mob_id], cdir)
         else:
             logger.warning(f"[{self.account.username}] Không tìm thấy quái vật nào còn sống.")
+
+    async def auto_upgrade_stats(self, target_hp: int, target_mp: int, target_sd: int):
+        """Tự động cộng chỉ số tiềm năng cho đến khi đạt mục tiêu."""
+        char = self.account.char
+        logger.info(f"[{self.account.username}] Bắt đầu cộng chỉ số. Mục tiêu -> HP: {target_hp}, MP: {target_mp}, SD: {target_sd}")
+        
+        while True:
+            acted = False
+            
+            # Kiểm tra HP gốc
+            if char.c_hp_goc <= target_hp - 2000:
+                await self.account.service.up_potential(0, 100)
+                acted = True
+            elif char.c_hp_goc <= target_hp - 200:
+                await self.account.service.up_potential(0, 10)
+                acted = True
+            elif char.c_hp_goc <= target_hp - 20:
+                await self.account.service.up_potential(0, 1)
+                acted = True
+                
+            # Kiểm tra MP gốc
+            if char.c_mp_goc <= target_mp - 2000:
+                await self.account.service.up_potential(1, 100)
+                acted = True
+            elif char.c_mp_goc <= target_mp - 200:
+                await self.account.service.up_potential(1, 10)
+                acted = True
+            elif char.c_mp_goc <= target_mp - 20:
+                await self.account.service.up_potential(1, 1)
+                acted = True
+
+            # Kiểm tra Sức đánh gốc
+            if char.c_dam_goc <= target_sd - 100:
+                await self.account.service.up_potential(2, 100)
+                acted = True
+            elif char.c_dam_goc <= target_sd - 10:
+                await self.account.service.up_potential(2, 10)
+                acted = True
+            elif char.c_dam_goc <= target_sd - 1:
+                await self.account.service.up_potential(2, 1)
+                acted = True
+            
+            if not acted:
+                logger.info(f"[{self.account.username}] Hoàn tất cộng chỉ số hoặc đã hết tiềm năng.")
+                break
+            
+            # Ngủ 1 chút để server kịp xử lý và tránh spam quá nhanh
+            await asyncio.sleep(0.05)
 
     def process_the_luc(self, msg: Message):
         """Xử lý thông tin thể lực (THELUC) nhận từ server."""

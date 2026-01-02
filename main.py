@@ -732,6 +732,9 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                 if parts[1] == "stop":
                     account.controller.xmap.finish()
                     print(f"[{C.YELLOW}{account.username}{C.RESET}] Đã dừng XMap.")
+                elif parts[1] == "home":
+                    print(f"[{C.YELLOW}{account.username}{C.RESET}] Đang về nhà...")
+                    await account.controller.xmap.go_home()
                 else:
                     try:
                         map_id = int(parts[1])
@@ -740,7 +743,7 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                     except ValueError:
                         print(f"[{C.YELLOW}{account.username}{C.RESET}] Map ID không hợp lệ: {parts[1]}")
             else:
-                print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: gomap <map_id> | gomap stop")
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: gomap <map_id> | gomap home | gomap stop")
         
         elif cmd_base == "findnpc":
             npcs = account.controller.npcs
@@ -783,7 +786,45 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
             await account.controller.attack_nearest_mob()
 
         elif cmd_base == "show":
-            display_character_status(account, compact=compact_mode)
+            # Gửi yêu cầu cập nhật thông tin mới nhất từ server trước khi hiển thị
+            await account.service.request_me_info()
+            # Chờ một chút để server phản hồi
+            await asyncio.sleep(0.2) 
+            
+            if len(parts) > 1 and parts[1] == "csgoc":
+                from ui import display_character_base_stats
+                display_character_base_stats(account)
+            else:
+                display_character_status(account, compact=compact_mode)
+        
+        elif cmd_base == "csgoc":
+             # Alias ngắn gọn
+             await account.service.request_me_info()
+             await asyncio.sleep(0.2)
+             from ui import display_character_base_stats
+             display_character_base_stats(account)
+
+        elif cmd_base == "opennpc":
+            # opennpc <npc_id> [index1] [index2] ...
+            if len(parts) >= 2:
+                try:
+                    npc_id = int(parts[1])
+                    menu_indices = [int(x) for x in parts[2:]]
+                    
+                    print(f"[{C.YELLOW}{account.username}{C.RESET}] Mở NPC {npc_id}...")
+                    await account.service.open_menu_npc(npc_id)
+                    
+                    if menu_indices:
+                        for idx in menu_indices:
+                            #print(f"[{C.YELLOW}{account.username}{C.RESET}] -> Chọn menu {idx}...")
+                            await asyncio.sleep(0.01) # Delay nhỏ giữa các lần chọn để server xử lý
+                            await account.service.confirm_menu_npc(npc_id, idx)
+                        print(f"[{C.YELLOW}{account.username}{C.RESET}] {C.GREEN}Done.{C.RESET}")
+                            
+                except ValueError:
+                    print(f"[{C.YELLOW}{account.username}{C.RESET}] Tham số không hợp lệ. ID và Index phải là số.")
+            else:
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: opennpc <npc_id> [index1] [index2] ...")
 
         elif cmd_base == "khu":
             if len(parts) > 1 and parts[1].isdigit():
@@ -793,6 +834,17 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                 await account.service.request_change_zone(zone_id)
             else:
                 print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: khu <số khu>")    
+
+        elif cmd_base == "congcs":
+            # congcs <hp> <mp> <sd>
+            if len(parts) == 4 and all(p.isdigit() for p in parts[1:]):
+                t_hp = int(parts[1])
+                t_mp = int(parts[2])
+                t_sd = int(parts[3])
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Bắt đầu cộng chỉ số tới: HP={t_hp}, MP={t_mp}, SD={t_sd}")
+                asyncio.create_task(account.controller.auto_upgrade_stats(t_hp, t_mp, t_sd))
+            else:
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: congcs <hp_goc> <mp_goc> <sd_goc>")
                 
         else:
             print(f"[{C.YELLOW}{account.username}{C.RESET}] Lệnh không xác định: '{command}'. Gõ 'help'.")

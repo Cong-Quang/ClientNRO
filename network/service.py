@@ -187,16 +187,38 @@ class Service:
             logger.error(f"Lỗi khi mở menu NPC (Cmd 33): {e}")
 
     async def confirm_menu_npc(self, npc_id: int, select: int):
-        """Xác nhận menu NPC (Cmd 32 - CONFIRM_MENU)"""
+        msg = Message(Cmd.OPEN_UI_CONFIRM)
+        msg.writer().write_short(npc_id)
+        msg.writer().write_byte(select)
+        await self.session.send_message(msg)
+
+    async def up_potential(self, type_potential: int, num: int):
+        """
+        Nâng chỉ số tiềm năng.
+        type_potential: 0=HP, 1=MP, 2=Sức đánh
+        num: Số lượng (1, 10, 100)
+        """
+        # Cmd.SUB_COMMAND = -30, POTENTIAL_UP = 16
         try:
-            msg = Message(32)
+            msg = Message(Cmd.SUB_COMMAND)
             writer = msg.writer()
-            writer.write_short(npc_id)
-            writer.write_byte(select)
+            writer.write_byte(16) # POTENTIAL_UP
+            writer.write_byte(type_potential)
+            writer.write_short(num)
             await self.session.send_message(msg)
-            logger.info(f"Gửi xác nhận menu NPC (Cmd 32) {npc_id} chọn {select}")
+            # logger.info(f"Đã gửi yêu cầu cộng tiềm năng: Loại={type_potential}, Số lượng={num}")
         except Exception as e:
-            logger.error(f"Lỗi khi xác nhận menu NPC (Cmd 32): {e}")
+            logger.error(f"Lỗi khi gửi yêu cầu cộng tiềm năng: {e}")
+
+    async def request_me_info(self):
+        """Gửi yêu cầu cập nhật thông tin nhân vật (Cmd -30, sub 0)."""
+        try:
+            msg = Message(Cmd.SUB_COMMAND)
+            msg.writer().write_byte(0) # ME_LOAD_ALL
+            await self.session.send_message(msg)
+            # logger.info("Đã gửi yêu cầu cập nhật thông tin nhân vật (ME_LOAD_ALL)")
+        except Exception as e:
+            logger.error(f"Lỗi khi gửi yêu cầu cập nhật thông tin: {e}")
 
     async def request_map_select(self, selected: int):
         """Yêu cầu chọn bản đồ (Cmd -91)"""
