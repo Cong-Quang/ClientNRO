@@ -693,7 +693,7 @@ class Controller:
         try:
             reader = msg.reader()
             exp_type = reader.read_byte()
-            amount = reader.read_long()
+            amount = reader.read_int()
             
             char = self.account.char
             if exp_type == 0:

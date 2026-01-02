@@ -731,7 +731,16 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
 
         elif cmd_base == "show":
             display_character_status(account, compact=compact_mode)
-            
+
+        elif cmd_base == "khu":
+            if len(parts) > 1 and parts[1].isdigit():
+                zone_id = int(parts[1])
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Đang chuyển sang khu {C.CYAN}{zone_id}{C.RESET}...")
+                # Gọi hàm gửi packet đổi khu (tên hàm có thể là request_change_zone hoặc change_zone tùy source của bạn)
+                await account.service.request_change_zone(zone_id)
+            else:
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: khu <số khu>")    
+                
         else:
             print(f"[{C.YELLOW}{account.username}{C.RESET}] Lệnh không xác định: '{command}'. Gõ 'help'.")
         return True, "OK"
