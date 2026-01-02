@@ -729,6 +729,9 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
         elif cmd_base == "hit":
             await account.controller.attack_nearest_mob()
 
+        elif cmd_base == "show":
+            display_character_status(account, compact=compact_mode)
+            
         else:
             print(f"[{C.YELLOW}{account.username}{C.RESET}] Lệnh không xác định: '{command}'. Gõ 'help'.")
         return True, "OK"
