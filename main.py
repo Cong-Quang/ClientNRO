@@ -9,6 +9,26 @@ from autocomplete import get_input_with_autocomplete, COMMAND_TREE
 from combo import ComboEngine
 import time
 
+MOB_NAMES = {}
+
+def load_mob_names():
+    global MOB_NAMES
+    try:
+        with open("mob_data.txt", "r", encoding="utf-8") as f:
+            for line in f:
+                parts = line.strip().split(",")
+                if len(parts) >= 2:
+                    try:
+                        mob_id = int(parts[0])
+                        mob_name = parts[1].strip()
+                        MOB_NAMES[mob_id] = mob_name
+                    except ValueError:
+                        continue
+    except FileNotFoundError:
+        logger.warning("File mob_data.txt not found.")
+    except Exception as e:
+        logger.error(f"Error loading mob_data.txt: {e}")
+
 def clean_pycache():
     """Tìm và xóa tất cả thư mục __pycache__ trong thư mục hiện tại và thư mục con."""
     root_dir = os.getcwd()
@@ -887,8 +907,8 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                 return
 
             print(f"[{C.YELLOW}{account.username}{C.RESET}] {C.CYAN}--- Danh sách quái vật trên bản đồ ---{C.RESET}")
-            print(f"{C.PURPLE}{'ID':<5} | {'HP':<15} | {'Trạng thái':<10} | {'Số lượng':<5}{C.RESET}")
-            print("-" * 50)
+            print(f"{C.PURPLE}{'ID':<5} | {'Tên':<15} | {'HP':<15} | {'Trạng thái':<10} | {'Số lượng':<5}{C.RESET}")
+            print("-" * 70)
 
             for data in aggregated_mobs.values():
                 status_map = {0: f"{C.RED}Đã chết{C.RESET}", 1: f"{C.YELLOW}Hấp hối{C.RESET}"}
@@ -896,7 +916,13 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                 
                 hp_text = f"{data['hp']}/{data['max_hp']}"
                 
-                print(f"{data['template_id']:<5} | {hp_text:<15} | {status_text:<18} | {data['count']:<5}")
+                # Lấy tên từ Mob object (đại diện bằng mob_id đầu tiên tìm được)
+                mob_name = MOB_NAMES.get(data['template_id'])
+                if not mob_name:
+                    mob_obj = account.controller.mobs.get(data['mob_id'])
+                    mob_name = mob_obj.name if mob_obj and mob_obj.name else f"{data['template_id']}"
+                
+                print(f"{data['template_id']:<5} | {mob_name:<15} | {hp_text:<15} | {status_text:<18} | {data['count']:<5}")
 
         elif cmd_base == "teleport":
             if len(parts) == 3 and parts[1].isdigit() and parts[2].isdigit():
@@ -1022,6 +1048,13 @@ async def main():
     await command_loop(manager)
 
 if __name__ == "__main__":
+    # Clean pycache first
+    clean_pycache()
+    load_mob_names()
+    
+    # Setup logger
+    # logger is already imported and configured in logger_config
+    
     try:
         asyncio.run(main())
     except KeyboardInterrupt:

@@ -30,6 +30,18 @@ class Skill:
         self.last_time_use_this_skill = 0
         self.paint_can_not_use_skill = False
 
+MOB_TEMPLATES = {}
+
+@dataclass
+class MobTemplate:
+    mob_template_id: int = 0
+    type: int = 0
+    name: str = ""
+    hp: int = 0
+    range_move: int = 0
+    speed: int = 0
+    dart_type: int = 0
+
 @dataclass
 class Mob:
     mob_id: int = 0
@@ -53,6 +65,12 @@ class Mob:
     level_boss: int = 0
     is_boss: bool = False
     is_mob_me: bool = False # Is this a player's pet mob?
+
+    @property
+    def name(self) -> str:
+        if self.template_id in MOB_TEMPLATES:
+            return MOB_TEMPLATES[self.template_id].name
+        return f"Quái {self.template_id}"
 
         
 @dataclass

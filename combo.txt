@@ -78,3 +78,28 @@ khu 10
 cls
 show
 list
+
+[gr1_8]
+target 1
+khu 1
+
+target 2
+khu 2
+
+target 3
+khu 3
+
+target 4
+khu 4
+
+target 5
+khu 5
+
+target 6
+khu 6
+
+target 7
+khu 7
+
+target 8
+khu 8

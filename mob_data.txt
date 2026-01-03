@@ -1,0 +1,97 @@
+0,Mộc nhân
+1,Khủng long
+2,Lợn lòi
+3,Quỷ đất
+4,Khủng long mẹ
+5,Lợn lòi mẹ
+6,Quỷ đất mẹ
+7,Thằn lằn bay
+8,Phi long
+9,Quỷ bay
+10,Thằn lằn mẹ
+11,Phi long mẹ
+12,Quỷ bay mẹ
+13,Ốc mượn hồn
+14,Ốc sên
+15,Heo Xayda mẹ
+16,Heo rừng
+17,Heo da xanh
+18,Heo Xayda
+19,Heo rừng mẹ
+20,Heo xanh mẹ
+21,Alien
+22,Bulon
+23,Ukulele
+24,Quỷ mập
+25,Tambourine
+26,Drum
+27,Akkuman
+28,Thằn lằn bay 2
+29,Phi long 2
+30,Quỷ bay 2
+31,Không tặc
+32,Quỷ đầu to
+33,Quỷ địa ngục
+34,Lính độc nhãn
+35,Lính độc nhãn
+36,Sói xám
+37,Robot bay
+38,Robot thép
+39,Nappa
+40,Soldier
+41,Appule
+42,Raspberry
+43,Thằn lằn xanh
+44,Quỷ đầu nhọn
+45,Quỷ đầu vàng
+46,Quỷ da tím
+47,Quỷ già
+48,Cá sấu
+49,Dơi da xanh
+50,Quỷ chim
+51,Lính đầu trọc
+52,Lính tai dài
+53,Lính vũ trụ
+54,Khỉ lông đen
+55,Khỉ giáp sắt
+56,Khỉ lông đỏ
+57,Khỉ lông vàng
+58,Xên con cấp 1
+59,Xên con cấp 2
+60,Xên con cấp 3
+61,Xên con cấp  4
+62,Xên con cấp  5
+63,Xên con cấp  6
+64,Xên con cấp  7
+65,Xên con cấp  8
+66,Tai tím
+67,Abo
+68,Kado
+69,Da xanh
+70,Hirudegarn
+71,Vua Bạch Tuộc
+72,Rôbốt bảo vệ
+73,Kawazu
+74,Kinkarn
+75,Arbee
+76,Cỗ máy hủy diệt
+77,Gấu tướng cướp
+78,Khỉ lông xanh
+79,Taburine Đỏ
+80,Cabira
+81,Tobi
+82,Voi Chín Ngà
+83,Gà Chín Cựa
+84,Ngựa Chín Lmao
+85,Piano
+86,Ếch mặt đỏ
+87,Jinai
+88,Quỷ đỏ
+89,Quỷ xanh
+90,Quỷ xanh lá
+91,Quỷ vàng
+92,Godzilla
+93,Kong
+94,Máy đo sức mạnh
+95,Cađíc M
+96,Quái mới

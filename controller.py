@@ -140,6 +140,10 @@ class Controller:
                 self.process_the_luc(msg)
             elif cmd == Cmd.MAP_CLEAR:
                 logger.info(f"Received MAP_CLEAR (Cmd {cmd}).")
+            elif cmd == Cmd.UPDATE_DATA:
+                self.process_update_data(msg)
+            elif cmd == Cmd.UPDATE_MAP:
+                self.process_update_map(msg)
             else:
                 logger.info(f"Unhandled command: {cmd}, len={len(msg.get_data())}, hex={msg.get_data().hex()}")
         except Exception as e:
@@ -205,6 +209,7 @@ class Controller:
                 vsItem = reader.read_byte()
                 logger.info(f"Server versions: data={vsData}, map={vsMap}, skill={vsSkill}, item={vsItem}")
                 asyncio.create_task(self.account.service.client_ok())
+                
             else:
                 logger.info(f"Unhandled NOT_MAP subcmd: {sub_cmd}, payload={msg.get_data().hex()}")
         except Exception as e:
@@ -1079,6 +1084,87 @@ class Controller:
             logger.error(f"Lỗi khi phân tích AUTOPLAY: {e}")
 
     def process_mabu(self, msg: Message):
+        """Xử lý gói tin liên quan đến Mabu và ghi lại trạng thái (MABU)."""
+        try:
+            reader = msg.reader()
+            mabu_state = reader.read_byte()
+            logger.info(f"Mabu (Cmd {msg.command}): Trạng thái={mabu_state}, Payload Hex: {msg.get_data().hex()}")
+        except Exception as e:
+            logger.error(f"Lỗi khi phân tích MABU: {e}")
+
+    def process_update_data(self, msg: Message):
+        """Xử lý gói tin UPDATE_DATA (-87)."""
+        try:
+            reader = msg.reader()
+            vc_data = reader.read_byte()
+            logger.info(f"UPDATE_DATA: vcData={vc_data}")
+            
+            def read_byte_array(r):
+                length = r.read_int()
+                return r.read_bytes(length)
+
+            # Đọc các chunk dữ liệu (Dart, Arrow, Effect, Image, Part, Skill)
+            # Trong C#, createData chỉ đọc đến NR_skill
+            read_byte_array(reader) # dart
+            read_byte_array(reader) # arrow
+            read_byte_array(reader) # effect
+            read_byte_array(reader) # image
+            read_byte_array(reader) # part
+            read_byte_array(reader) # skill
+            
+            # Không đọc map_data ở đây nữa vì nó nằm trong gói UPDATE_MAP (6)
+            
+        except Exception as e:
+            logger.error(f"Lỗi khi xử lý UPDATE_DATA: {e}")
+
+    def process_update_map(self, msg: Message):
+        """Xử lý gói tin UPDATE_MAP (6) để cập nhật MobTemplate."""
+        try:
+            reader = msg.reader()
+            vc_map = reader.read_byte()
+            logger.info(f"UPDATE_MAP: vcMap={vc_map}")
+            
+            # Map Names
+            num_maps = reader.read_ubyte()
+            for _ in range(num_maps):
+                reader.read_utf()
+                
+            # Npc Templates
+            num_npcs = reader.read_byte()
+            for _ in range(num_npcs):
+                reader.read_utf() # name
+                reader.read_short() # head
+                reader.read_short() # body
+                reader.read_short() # leg
+                num_menu = reader.read_byte()
+                for _ in range(num_menu):
+                    num_str = reader.read_byte()
+                    for _ in range(num_str):
+                        reader.read_utf()
+            
+            # Mob Templates
+            from model.game_objects import MOB_TEMPLATES, MobTemplate
+            num_mobs = reader.read_byte()
+            count = 0
+            for i in range(num_mobs):
+                t = MobTemplate()
+                t.mob_template_id = i
+                t.type = reader.read_byte()
+                t.name = reader.read_utf()
+                t.hp = reader.read_int()
+                t.range_move = reader.read_byte()
+                t.speed = reader.read_byte()
+                t.dart_type = reader.read_byte()
+                
+                MOB_TEMPLATES[i] = t
+                count += 1
+            
+            logger.info(f"Đã cập nhật {count} Mob Templates từ gói UPDATE_MAP.")
+            
+        except Exception as e:
+            logger.error(f"Lỗi khi xử lý UPDATE_MAP: {e}")
+            import traceback
+            traceback.print_exc()
         """Xử lý gói tin liên quan đến Mabu và ghi lại trạng thái (MABU)."""
         try:
             reader = msg.reader()
