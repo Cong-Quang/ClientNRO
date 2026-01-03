@@ -6,7 +6,7 @@ COMMAND_TREE = {
     "group": ["list", "create", "delete", "add", "remove"],
     "pet": ["info", "follow", "protect", "attack", "home"],
     "logger": ["on", "off"],
-    "autoplay": ["on", "off"],
+    "autoplay": ["on", "off", "add", "remove", "list"],
     "autopet": ["on", "off"],
     "autoLogin": ["on", "off"],
     "exit": [],

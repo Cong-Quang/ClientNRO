@@ -736,12 +736,44 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                 print("Sử dụng: logger <on|off>")
 
         elif cmd_base == "autoplay":
-            if len(parts) > 1 and parts[1] in ["on", "off"]:
-                status = parts[1] == "on"
-                account.controller.toggle_autoplay(status)
-                print(f"[{C.YELLOW}{account.username}{C.RESET}] Đã {'BẬT' if status else 'TẮT'} autoplay.")
+            if len(parts) > 1:
+                sub = parts[1]
+                if sub in ["on", "off"]:
+                    status = sub == "on"
+                    account.controller.toggle_autoplay(status)
+                    print(f"[{C.YELLOW}{account.username}{C.RESET}] Đã {'BẬT' if status else 'TẮT'} autoplay.")
+                elif sub == "add":
+                    # autoplay add id1 id2 ...
+                    ids = []
+                    for x in parts[2:]:
+                        if x.isdigit():
+                            ids.append(int(x))
+                    if ids:
+                        account.controller.auto_play.target_mobs.update(ids)
+                        print(f"[{C.YELLOW}{account.username}{C.RESET}] Đã thêm ID quái: {ids}")
+                    else:
+                        print(f"[{C.YELLOW}{account.username}{C.RESET}] Vui lòng cung cấp ID quái (số).")
+                elif sub == "remove":
+                     # autoplay remove id1 id2 ...
+                    ids = []
+                    for x in parts[2:]:
+                        if x.isdigit():
+                            ids.append(int(x))
+                    if ids:
+                        account.controller.auto_play.target_mobs.difference_update(ids)
+                        print(f"[{C.YELLOW}{account.username}{C.RESET}] Đã xóa ID quái: {ids}")
+                    else:
+                        print(f"[{C.YELLOW}{account.username}{C.RESET}] Vui lòng cung cấp ID quái (số).")
+                elif sub == "list":
+                    current = account.controller.auto_play.target_mobs
+                    if current:
+                        print(f"[{C.YELLOW}{account.username}{C.RESET}] Danh sách quái mục tiêu: {current}")
+                    else:
+                        print(f"[{C.YELLOW}{account.username}{C.RESET}] Danh sách trống (Đánh tất cả).")
+                else:
+                     print(f"[{C.YELLOW}{account.username}{C.RESET}] Lệnh con không hợp lệ: {sub}")
             else:
-                print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: autoplay <on|off>")
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: autoplay <on|off|add|remove|list>")
 
         elif cmd_base == "autopet":
             if len(parts) > 1 and parts[1] in ["on", "off"]:

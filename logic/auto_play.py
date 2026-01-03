@@ -11,6 +11,7 @@ class AutoPlay:
         self.controller = controller
         self.interval = False # Trạng thái hoạt động
         self.task: asyncio.Task = None
+        self.target_mobs = set() # Set chứa các template_id của quái cần đánh
 
     def start(self):
         if not self.interval:
@@ -53,10 +54,15 @@ class AutoPlay:
             if (current_mob_data and 
                 current_mob_data.status > 1 and 
                 current_mob_data.hp > 0):
-                target_valid = True
-                if current_mob_data != mob_focus:
-                    my_char.mob_focus = current_mob_data
-                    mob_focus = current_mob_data
+                
+                # Kiểm tra lại xem mục tiêu hiện tại có còn nằm trong danh sách target (nếu có lọc)
+                if not self.target_mobs or current_mob_data.template_id in self.target_mobs:
+                    target_valid = True
+                    if current_mob_data != mob_focus:
+                        my_char.mob_focus = current_mob_data
+                        mob_focus = current_mob_data
+                else:
+                    target_valid = False
             else:
                 my_char.mob_focus = None
                 mob_focus = None
@@ -70,6 +76,10 @@ class AutoPlay:
                 if mob.status <= 1 or mob.hp <= 0 or mob.is_mob_me:
                     continue
                 
+                # Lọc theo danh sách ID nếu có
+                if self.target_mobs and mob.template_id not in self.target_mobs:
+                    continue
+
                 dist = math.sqrt((mob.x - my_char.cx)**2 + (mob.y - my_char.cy)**2)
                 if dist < min_dist:
                     min_dist = dist
@@ -78,7 +88,7 @@ class AutoPlay:
             if best_mob:
                 my_char.mob_focus = best_mob
                 mob_focus = best_mob
-                logger.info(f"Auto: Tìm thấy mục tiêu {best_mob.mob_id}")
+                # logger.info(f"Auto: Tìm thấy mục tiêu {best_mob.mob_id}")
             else:
                 return
 
