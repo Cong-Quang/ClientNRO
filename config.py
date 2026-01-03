@@ -12,8 +12,8 @@ class Config:
     #MAX_ACCOUNTS: số tối đa tài khoản chạy đồng thời (int)
     MAX_ACCOUNTS = 1000
 
-    # AUTO_RECONNECT: True/False — tự động đăng nhập lại khi mất kết nối
-    AUTO_RECONNECT = True
+    # AUTO_LOGIN: True/False — tự động đăng nhập lại khi mất kết nối
+    AUTO_LOGIN = False
 
     # DEFAULT_LOGIN: list các index (int) trong ACCOUNTS được login khi 'login' không có tham số / 'login default'
     DEFAULT_LOGIN = [0, 2, 3, 4, 5]  

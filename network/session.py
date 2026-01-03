@@ -204,8 +204,13 @@ class Session:
                 acc_name = "Unknown"
                 if self.controller and hasattr(self.controller, 'account') and hasattr(self.controller.account, 'username'):
                     acc_name = self.controller.account.username
-                logger.error(f"[{acc_name}] Kết nối đã bị đóng bởi máy chủ (IncompleteReadError).")
+                logger.error(f"\n[{acc_name}] Kết nối đã bị đóng bởi máy chủ (IncompleteReadError).")
                 self.connected = False
+                
+                # Trigger the auto-reconnect logic
+                if self.controller and self.controller.account:
+                    asyncio.create_task(self.controller.account.handle_disconnect())
+                
                 break
             except Exception as e:
                 logger.error(f"Lỗi trong vòng lặp lắng nghe: {e}")

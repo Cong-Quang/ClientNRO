@@ -230,6 +230,17 @@ async def command_loop(manager: AccountManager):
             elif cmd_base == "help":
                 display_help()
                 continue
+
+            elif cmd_base == "autologin":
+                if len(parts) > 1 and parts[1] in ["on", "off"]:
+                    status = parts[1] == "on"
+                    Config.AUTO_LOGIN = status
+                    status_text = f"{C.GREEN}BẬT{C.RESET}" if status else f"{C.RED}TẮT{C.RESET}"
+                    print(f"Đã {status_text} tính năng tự động đăng nhập lại.")
+                else:
+                    current_status = f"{C.GREEN}BẬT{C.RESET}" if Config.AUTO_LOGIN else f"{C.RED}TẮT{C.RESET}"
+                    print(f"Tự động đăng nhập lại hiện đang {current_status}. Dùng: autoLogin <on|off>")
+                continue
             
             elif cmd_base == "login":
                 # login [target]
@@ -495,7 +506,16 @@ async def command_loop(manager: AccountManager):
             elif cmd_base == "list":
                 print(f"{C.CYAN}--- Danh sách tài khoản ---{C.RESET}")
                 for i, acc in enumerate(manager.accounts):
-                    status = f"{C.GREEN}Logged In{C.RESET}" if acc.is_logged_in else f"{C.RED}Offline{C.RESET}"
+                    status_text = acc.status
+                    if acc.status == "Logged In":
+                        status_color = C.GREEN
+                    elif acc.status == "Reconnecting":
+                        status_color = C.YELLOW
+                    else:
+                        status_color = C.RED
+                    
+                    status = f"{status_color}{status_text}{C.RESET}"
+
                     target_marker = ""
                     if isinstance(manager.command_target, int) and i == manager.command_target:
                         target_marker = f"{C.PURPLE}(*){C.RESET}"
@@ -511,7 +531,7 @@ async def command_loop(manager: AccountManager):
                         except:
                              proxy_info = "Proxy"
 
-                    print(f"[{C.YELLOW}{i}{C.RESET}] {acc.username:<15} {status} [{C.CYAN}{proxy_info}{C.RESET}] {target_marker}")
+                    print(f"[{C.YELLOW}{i}{C.RESET}] {acc.username:<15} {status:<20} [{C.CYAN}{proxy_info}{C.RESET}] {target_marker}")
                 continue
             
             # --- Group Management ---
@@ -602,6 +622,18 @@ async def command_loop(manager: AccountManager):
                     print(f"Không tìm thấy tài khoản hoặc nhóm với tên/chỉ số '{new_target}'.")
                 continue
 
+            # --- Pre-validation for Targetted Commands ---
+            # Define commands that are valid to be sent to accounts.
+            # If the command is not in this list, it's an unknown command for a single account.
+            valid_target_commands = [
+                "pet", "logger", "autoplay", "autopet", "blacklist", "gomap", 
+                "findnpc", "teleport", "teleportnpc", "andau", "hit", "show", 
+                "csgoc", "opennpc", "khu", "congcs"
+            ]
+            if cmd_base not in valid_target_commands:
+                print(f"{C.RED}Lệnh không xác định: '{command}'. Gõ 'help'.{C.RESET}")
+                continue
+
             # --- Command Execution ---
             target_accounts = manager.get_target_accounts()
             # Lọc chỉ gửi lệnh cho acc online, trừ lệnh 'login' (nhưng login đã xử lý riêng ở trên)
@@ -626,19 +658,21 @@ async def command_loop(manager: AccountManager):
                 # Header for base stats compact view
                 print(f"{C.CYAN}{'Tài khoản':<19} | {'HP Gốc':>8} | {'MP Gốc':>7} | {'SĐ Gốc':>7} | {'Giáp Gốc':>7} | {'CM Gốc':>5} | {'Tiềm năng':>7}{C.RESET}")
             elif is_compact and command.strip() == "show":
-                 # Header matching ui.py columns (tighter columns)
-                 print(f"{C.CYAN}{'Tài khoản':<19} | {'Bản đồ':<18} | {'ID':<3} | {'Khu':<3} | {'Tọa độ':<7} | {'HP':<8} | {'MP':<7} | {'SM':<7} | {'SĐ':<7} | {'Trạng thái'}{C.RESET}")
+                 # Header matching ui.py columns (right-aligned numbers)
+                 print(f"{C.CYAN}{'Tài khoản':<19} | {'Bản đồ':<18} | {'ID':<3} | {'Khu':<3} | {'Tọa độ':<8} | {'HP':>8} | {'MP':>7} | {'SM':>7} | {'SĐ':>7} | {'Chức năng':<14}{C.RESET}")
 
             tasks = [handle_single_command(command, acc, compact_mode=is_compact, idx=i) for i, acc in enumerate(online_targets)]
             results = await asyncio.gather(*tasks)
+
+            
             # Print per-account delivery status
             # Nếu là lệnh hiển thị thông tin (như pet info compact), ta không cần in trạng thái "Đã nhận" nữa vì nó sẽ làm rối
-            if not (is_compact and ("pet info" in command or command.strip() == "show" or "csgoc" in command)):
-                for acc, (success, msg) in zip(online_targets, results):
-                    if success:
-                        print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.GREEN}Đã nhận{C.RESET}")
-                    else:
-                        print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.RED}Không nhận{C.RESET} - {msg}")
+            # if not (is_compact and ("pet info" in command or command.strip() == "show" or "csgoc" in command)):
+            #     for acc, (success, msg) in zip(online_targets, results):
+            #         if success:
+            #             print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.GREEN}Đã nhận{C.RESET}")
+            #         else:
+            #             print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.RED}Không nhận{C.RESET} - {msg}")
 
 
         except (EOFError, KeyboardInterrupt):

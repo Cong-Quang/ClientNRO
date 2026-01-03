@@ -303,6 +303,10 @@ class Controller:
                     self.npcs[i] = {'id': i, 'status': status, 'x': nx, 'y': ny, 'template_id': t_id, 'avatar': avatar}
                     logger.info(f"Loaded NPC: id={i}, template={t_id} at ({nx},{ny})")
 
+            # Signal that the login is complete as we are now in a map
+            if not self.account.login_event.is_set():
+                self.account.login_event.set()
+
             asyncio.create_task(self.account.service.pet_info())
 
         except Exception as e:
@@ -475,6 +479,10 @@ class Controller:
                     logger.info(f"Dữ liệu còn lại trong ME_LOAD_ALL (Info khác?): {remaining_data.hex()}")
 
                 logger.info(f"Đã xử lý đầy đủ ME_LOAD_ALL: Tên={char.name}, SM={char.c_power}, Vàng={char.xu}")
+                
+                # Signal that login is fully complete
+                if not self.account.login_event.is_set():
+                    self.account.login_event.set()
 
             elif sub_cmd == 4:
                 char.xu = reader.read_long()

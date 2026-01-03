@@ -1,11 +1,11 @@
-# account.py
 import asyncio
+import sys
 from network.session import Session
 from network.service import Service
 from controller import Controller
 from model.game_objects import Char, Pet
 from config import Config
-from logs.logger_config import logger
+from logs.logger_config import logger, TerminalColors
 from cmd import Cmd
 from network.message import Message
 
@@ -22,6 +22,9 @@ class Account:
         self.proxy = proxy
         self.is_logged_in = False
         self.tasks = []
+        self.status = "Offline"
+        self._should_auto_reconnect = False
+        self.login_event = asyncio.Event()
 
         # Each account has its own instance of major components
         self.char = Char()
@@ -72,7 +75,8 @@ class Account:
         await asyncio.sleep(0.5)
 
         # 3. Send login credentials (Cmd -29, SubCmd 0)
-        logger.info(f"[{self.username}] Sending login packet...")
+        logger.info(f"[{self.username}] Sending login packet, waiting for confirmation...")
+        self.login_event.clear() # Clear event before login attempt
         msg_login = Message(Cmd.NOT_LOGIN)
         writer = msg_login.writer()
         writer.write_byte(0)              # sub-command LOGIN
@@ -82,69 +86,80 @@ class Account:
         writer.write_byte(1)              # Type (1 for isLogin2/Standard)
         await self.session.send_message(msg_login)
         
-        # A short wait to see if the login is successful
-        await asyncio.sleep(2) 
-        
-        if self.session.connected:
-            self.is_logged_in = True
-            logger.info(f"[{self.username}] Login successful! Account is running.")
-            
-            # Start connection monitor
-            if Config.AUTO_RECONNECT:
-                self.tasks.append(asyncio.create_task(self.monitor_connection()))
-                
-            return True
-        else:
-            logger.error(f"[{self.username}] Login failed. Disconnected.")
+        try:
+            await asyncio.wait_for(self.login_event.wait(), timeout=10.0)
+        except asyncio.TimeoutError:
+            logger.error(f"[{self.username}] Login failed: No response from server (Timeout).")
+            # Don't call self.stop() as it disables auto-reconnect.
+            # Just clean up the current session attempt.
+            if self.session:
+                self.session.disconnect()
+            self.stop_tasks()
             return False
 
-    async def monitor_connection(self):
-        """Monitors the connection and reconnects if dropped."""
-        logger.info(f"[{self.username}] Auto-reconnect monitoring started.")
-        while True:
-            await asyncio.sleep(5)
-            # If we think we are logged in (or should be), but session is closed
-            if self.is_logged_in and not self.session.connected:
-                logger.warning(f"[{self.username}] Connection lost! Attempting to reconnect in 5 seconds...")
-                self.is_logged_in = False 
-                
-                await asyncio.sleep(5)
-                
-                # Re-login logic
-                # We need to recreate session components cleanly
-                self.stop() # Cleanup old tasks/session
-                
-                # Re-init essential components if needed, or just call login
-                # Account object reuses existing Char/Pet/Controller
-                # But Session needs a fresh start usually.
-                self.session = Session(self.controller)
-                self.service = Service(self.session, self.char)
-                # Controller needs to point to new stuff? 
-                # Controller holds 'account' reference, account holds 'service/session'.
-                # We just updated account.session/service, so controller.account.service should be fine.
-                
-                logger.info(f"[{self.username}] Reconnecting...")
-                await self.login()
-                
-            elif not self.is_logged_in:
-                 # If manually stopped or not logged in, stop monitoring
-                 # But wait, if login failed, is_logged_in is False.
-                 # If we want to persist, we should keep checking?
-                 # For now, let's assume if is_logged_in becomes False via stop(), we break.
-                 # But here we set is_logged_in=False above.
-                 # So we need a flag 'should_be_online'.
-                 pass
+        # If event was set, login is successful
+        self.is_logged_in = True
+        self.status = "Logged In"
+        self._should_auto_reconnect = True
+        logger.info(f"[{self.username}] Login successful! Account is running.")
+        
+        # Proactive notification to user
+        sys.stdout.flush()
+        sys.stderr.write(f"\r\033[K{TerminalColors.GREEN}[{self.username}] Đã đăng nhập thành công.{TerminalColors.RESET}\n")
+
+        return True
+
+    async def handle_disconnect(self):
+        """Handles the disconnection event, triggering auto-reconnect if configured."""
+        if not Config.AUTO_LOGIN or not self._should_auto_reconnect:
+            # If auto-login is off, or this was a manual logout, just set status and exit
+            self.status = "Offline"
+            self.is_logged_in = False
+            return
+
+        logger.warning(f"[{self.username}] Connection lost! Starting auto-reconnect process...")
+        self.status = "Reconnecting"
+        self.is_logged_in = False
+
+        while Config.AUTO_LOGIN and self._should_auto_reconnect:
+            logger.info(f"[{self.username}] Attempting to reconnect in 0.5 seconds...")
+            await asyncio.sleep(0.5)
+
+            # Cleanup and re-initialize session components before trying to log in again
+            self.stop_tasks() # Stop only tasks, not the whole account state
+            self.session = Session(self.controller, proxy=self.proxy)
+            self.service = Service(self.session, self.char)
+
+            # Try to login again
+            try:
+                login_success = await self.login()
+                if login_success:
+                    logger.info(f"[{self.username}] Reconnect successful!")
+                    # Proactive notification to user
+                    sys.stdout.flush()
+                    sys.stderr.write(f"\r\033[K{TerminalColors.GREEN}[{self.username}] Đã kết nối lại thành công.{TerminalColors.RESET}\n")
+                    break # Exit the while loop on success
+            except Exception as e:
+                logger.error(f"[{self.username}] Error during reconnect attempt: {e}")
             
-            # If the task is cancelled (by stop()), this loop breaks naturally (await sleep throws CancelledError)
+            # If login fails, the loop continues
+
+    def stop_tasks(self):
+        """Stops all running asyncio tasks for this account without a full logout."""
+        for task in self.tasks:
+            if not task.done():
+                task.cancel()
+        self.tasks = []
 
     def stop(self):
         """
         Stops all running tasks and disconnects the session for this account.
+        This is considered a manual stop, so auto-reconnect is disabled.
         """
         logger.info(f"[{self.username}] Stopping account...")
-        for task in self.tasks:
-            if not task.done():
-                task.cancel()
+        self._should_auto_reconnect = False # Disable auto-reconnect on manual stop
+        self.stop_tasks()
         if self.session and self.session.connected:
             self.session.disconnect()
         self.is_logged_in = False
+        self.status = "Offline"

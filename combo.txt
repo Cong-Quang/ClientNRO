@@ -1,6 +1,4 @@
 [setup]
-cls
-py main.py
 login all
 group create upcs 0,9
 group create updt 1,2,3,4,5,6,7,8
@@ -34,7 +32,49 @@ show
 cls
 target all
 login all
+autoLogin on
+list
+
+[up_su]
+target all
+login
+gomap 123
+sleep 10
+autoLogin on
 autoplay on
+target 0
+khu 11
+
+target 1
+khu 1
+
+target 2
+khu 2
+
+target 3
+khu 3
+
+target 4
+khu 4
+
+target 5
+khu 5
+
+target 6
+khu 6
+
+target 7
+khu 7
+
+target 8
+khu 8
+
+target 9
+khu 9
+
+target 10
+khu 10
+
+cls
 show
-sleep 5
-show
+list

@@ -173,6 +173,7 @@ def display_help():
     print(f"  {C.GREEN}andau{C.RESET}               - Sử dụng đậu thần trong hành trang (hồi HP/MP/Thể lực).")
     print(f"  {C.GREEN}hit{C.RESET}                 - Tấn công quái vật gần nhất một lần.")
     print(f"\n{C.PURPLE}--- Lệnh chung ---{C.RESET}")
+    print(f"  {C.GREEN}autoLogin{C.RESET} {C.YELLOW}[on|off]{C.RESET}  - Tự động đăng nhập lại khi mất kết nối.")
     print(f"  {C.GREEN}logger{C.RESET} {C.YELLOW}[on|off]{C.RESET}   - Bật hoặc tắt logger chi tiết.")
     print(f"  {C.GREEN}clear{C.RESET}             - Xóa nội dung hiện tại trong console.")
     print(f"  {C.GREEN}show{C.RESET}              - Hiển thị thông tin nhân vật.")
@@ -249,98 +250,155 @@ def display_character_status(account, compact=False, idx: int = None):
     """
     C = TerminalColors
     char = account.char
-    pet = account.pet
     map_info = account.controller.map_info
 
+    # Nếu nhân vật chưa được load, hiển thị trạng thái cơ bản và thoát
+    if not char.name:
+        if compact:
+            user_plain = f"[{account.username}] {f'[{idx}]' if idx is not None else ''}"
+            user_padded = f"{user_plain:<19}"
+            user_col = f"{C.YELLOW}{user_padded}{C.RESET}"
+            
+            status_text = account.status
+            if account.status == "Logged In":
+                status_color = C.GREEN
+                status_text = "Loading..." # Trạng thái khi đã login nhưng chưa có data char
+            elif account.status == "Reconnecting":
+                status_color = C.YELLOW
+            else:
+                status_color = C.RED
+
+            status_padded = f"{status_text:<18}" # Căn lề cho trạng thái loading
+            status_col = f"{status_color}{status_padded}{C.RESET}"
+
+            line = f"{user_col} | {status_col}"
+            print(line)
+        else:
+            display_character_base_info(account)
+        return
+
     if compact:
-        # Format 1 dòng (gọn hơn): [User] [idx] | Map | ID | Zone | X,Y | HP | MP | SM | SĐ | Status
-        user_str = f"[{account.username}] {f'[{idx}]' if idx is not None else ''}"
-        
+        # --- 1. Build PLAIN strings for all columns ---
         hp_str = short_number(char.c_hp)
         mp_str = short_number(char.c_mp)
         pow_str = short_number(char.c_power)
         dam_str = short_number(getattr(char, 'c_dam_full', 0))
         
         map_name = map_info.get('name', 'N/A')
-        # Cắt tên map nếu quá dài
         if len(map_name) > 18:
             map_name = map_name[:16] + ".."
             
-        map_id = str(map_info.get('id', 'N/A'))
-        zone_id = str(map_info.get('zone', 'N/A'))
-        coords = f"{char.cx},{char.cy}"
+        map_id_str = str(map_info.get('id', 'N/A'))
+        zone_id_str = str(map_info.get('zone', 'N/A'))
+        coords_str = f"{char.cx},{char.cy}"
         
-        # Thêm trạng thái chức năng
-        ap_status = f"{C.GREEN}A.Play{C.RESET}" if account.controller.auto_play.interval else f"{C.GREY}A.Play{C.RESET}"
-        apet_status = f"{C.GREEN}A.Pet{C.RESET}" if account.controller.auto_pet.is_running else f"{C.GREY}A.Pet{C.RESET}"
-        funcs_str = f"{ap_status} {apet_status}"
+        ap_plain = "A.Play" if account.controller.auto_play.interval else ""
+        apet_plain = "A.Pet" if account.controller.auto_pet.is_running else ""
+        funcs_plain = f"{ap_plain} {apet_plain}".strip()
+
+        # --- 2. Colorize content strings (before padding) ---
+        user_colored = f"[{C.YELLOW}{account.username}{C.RESET}] {f'[{C.PURPLE}{idx}{C.RESET}]' if idx is not None else ''}"
+        map_colored = f"{C.CYAN}{map_name}{C.RESET}"
+        id_colored = f"{C.PURPLE}{map_id_str}{C.RESET}"
+        zone_colored = f"{C.BLUE}{zone_id_str}{C.RESET}"
+        coords_colored = f"{C.GREY}{coords_str}{C.RESET}"
+        hp_colored = f"{C.RED}{hp_str}{C.RESET}"
+        mp_colored = f"{C.BLUE}{mp_str}{C.RESET}"
+        pow_colored = f"{C.YELLOW}{pow_str}{C.RESET}"
+        dam_colored = f"{C.PURPLE}{dam_str}{C.RESET}"
+
+        ap_status_colored = f"{C.GREEN}A.Play{C.RESET}" if account.controller.auto_play.interval else ""
+        apet_status_colored = f"{C.GREEN}A.Pet{C.RESET}" if account.controller.auto_pet.is_running else ""
+        funcs_colored = f"{ap_status_colored} {apet_status_colored}".strip()
         
-        # Build padded plain columns first
-        user_plain = f"[{account.username}] {f'[{idx}]' if idx is not None else ''}"
-        user_padded = f"{user_plain:<19}"
-        user_col = f"{C.YELLOW}{user_padded}{C.RESET}"
+        # --- 3. Pad the colored strings manually ---
+        # This is the tricky part. We calculate padding based on plain string length.
+        user_padding = 19 - len(f"[{account.username}] {f'[{idx}]' if idx is not None else ''}")
+        map_padding = 18 - len(map_name)
+        id_padding = 3 - len(map_id_str)
+        zone_padding = 3 - len(zone_id_str)
+        coords_padding = 10 - len(coords_str) # Increased width
+        hp_padding = 8 - len(hp_str)
+        mp_padding = 7 - len(mp_str)
+        pow_padding = 7 - len(pow_str)
+        dam_padding = 7 - len(dam_str)
+        funcs_padding = 14 - len(funcs_plain) # Re-added width
 
-        map_col = f"{C.CYAN}{map_name:<18}{C.RESET}"
-        id_col = f"{C.PURPLE}{map_id:<3}{C.RESET}"
-        zone_col = f"{C.BLUE}{zone_id:<3}{C.RESET}"
-        coords_col = f"{C.GREY}{coords:<7}{C.RESET}"
+        user_final = user_colored + " " * user_padding
+        map_final = map_colored + " " * map_padding
+        id_final = id_colored + " " * id_padding
+        zone_final = zone_colored + " " * zone_padding
+        coords_final = coords_colored + " " * coords_padding
+        hp_final = " " * hp_padding + hp_colored
+        mp_final = " " * mp_padding + mp_colored
+        pow_final = " " * pow_padding + pow_colored
+        dam_final = " " * dam_padding + dam_colored
+        funcs_final = funcs_colored + " " * funcs_padding # Re-added final column
 
-        hp_plain = f"{hp_str:>8}"
-        hp_col = f"{C.RED}{hp_plain}{C.RESET}"
-        mp_plain = f"{mp_str:>7}"
-        mp_col = f"{C.BLUE}{mp_plain}{C.RESET}"
-        pow_plain = f"{pow_str:>7}"
-        pow_col = f"{C.YELLOW}{pow_plain}{C.RESET}"
-        dam_plain = f"{dam_str:>7}"
-        dam_col = f"{C.PURPLE}{dam_plain}{C.RESET}"
+        line = f"{user_final} | {map_final} | {id_final} | {zone_final} | {coords_final} | {hp_final} | {mp_final} | {pow_final} | {dam_final} | {funcs_final}"
+        
+        print(line)
 
-        line = f"{user_col} | {map_col} | {id_col} | {zone_col} | {coords_col} | {hp_col} | {mp_col} | {pow_col} | {dam_col} | {funcs_str}"
-
-        # Alternate row color: even -> GREEN, odd -> GREY
-        if idx is not None:
-            if (idx % 2) == 0:
-                print(f"{C.GREEN}{line}{C.RESET}")
-            else:
-                print(f"{C.GREY}{line}{C.RESET}")
-        else:
-            print(line)
     else:
-        # Chế độ chi tiết cũ
-        print(f"{C.BOLD_RED}--- Trạng thái: {C.YELLOW}{account.username}{C.BOLD_RED} ---{C.RESET}")
+        # Chế độ chi tiết (cải tiến)
+        display_character_base_info(account)
         
-        # Hiển thị thông tin Proxy
-        proxy_info = account.proxy if account.proxy else "Local IP"
-        print(f"  {C.CYAN}Kết nối:{C.RESET} {C.PURPLE}{proxy_info}{C.RESET}")
-
-        # Thông tin nhân vật
-        print(f"  {C.CYAN}Nhân vật:{C.RESET}")
-        print(f"    - {C.GREEN}Tên:{C.RESET} {char.name} ({C.YELLOW}ID: {char.char_id}{C.RESET})")
-        print(f"    - {C.GREEN}Vị trí:{C.RESET} {map_info.get('name', 'N/A')} [{C.YELLOW}{map_info.get('id', 'N/A')}{C.RESET}] / Khu {C.YELLOW}{map_info.get('zone', 'N/A')}{C.RESET} / Tọa độ ({C.YELLOW}{char.cx}{C.RESET}, {C.YELLOW}{char.cy}{C.RESET})")
-        print(f"    - {C.GREEN}HP:{C.RESET} {C.RED}{char.c_hp:,} / {char.c_hp_full:,}{C.RESET}")
-        print(f"    - {C.GREEN}MP:{C.RESET} {C.BLUE}{char.c_mp:,} / {char.c_mp_full:,}{C.RESET}")
+        print(f"  {C.CYAN}--- Vị trí & Chỉ số ---{C.RESET}")
+        print(f"    - {C.GREEN}Vị trí:{C.RESET} {map_info.get('name', 'N/A')} [{C.YELLOW}{map_info.get('id', 'N/A')}{C.RESET}] / Khu {C.CYAN}{map_info.get('zone', 'N/A')}{C.RESET} / Tọa độ ({C.GREY}{char.cx}{C.RESET}, {C.GREY}{char.cy}{C.RESET})")
+        print(f"    - {C.GREEN}HP:{C.RESET} {C.RED}{char.c_hp:,}{C.RESET} / {char.c_hp_full:,}")
+        print(f"    - {C.GREEN}MP:{C.RESET} {C.BLUE}{char.c_mp:,}{C.RESET} / {char.c_mp_full:,}")
         print(f"    - {C.GREEN}Sức mạnh:{C.RESET} {C.YELLOW}{char.c_power:,}{C.RESET}")
         print(f"    - {C.GREEN}Sức đánh:{C.RESET} {C.PURPLE}{getattr(char, 'c_dam_full', 0):,}{C.RESET}")
         print(f"    - {C.GREEN}Tiềm năng:{C.RESET} {C.CYAN}{getattr(char, 'c_tiem_nang', 0):,}{C.RESET}")
+
+        print(f"  {C.CYAN}--- Tài sản ---{C.RESET}")
         print(f"    - {C.GREEN}Vàng:{C.RESET} {C.YELLOW}{getattr(char, 'xu', 0):,}{C.RESET}")
         print(f"    - {C.GREEN}Ngọc:{C.RESET} {C.GREEN}{getattr(char, 'luong', 0):,}{C.RESET}")
         print(f"    - {C.GREEN}Ngọc khóa:{C.RESET} {C.PURPLE}{getattr(char, 'luong_khoa', 0):,}{C.RESET}")
-
-        # Hiển thị trạng thái chức năng
-        print(f"  {C.CYAN}Chức năng:{C.RESET}")
+        
+        print(f"  {C.CYAN}--- Chức năng ---{C.RESET}")
         autoplay_status = f"{C.GREEN}Bật{C.RESET}" if account.controller.auto_play.interval else f"{C.RED}Tắt{C.RESET}"
         autopet_status = f"{C.GREEN}Bật{C.RESET}" if account.controller.auto_pet.is_running else f"{C.RED}Tắt{C.RESET}"
         print(f"    - Tự động đánh: {autoplay_status}")
         print(f"    - Tự động đệ tử: {autopet_status}")
 
-        # Thông tin đệ tử
-        print(f"  {C.CYAN}Đệ tử:{C.RESET}")
+        pet = account.pet
         if pet and pet.have_pet:
-            print(f"    - {C.GREEN}Tên:{C.RESET} {pet.name}")
-            print(f"    - {C.GREEN}HP:{C.RESET} {C.RED}{pet.c_hp:,} / {pet.c_hp_full:,}{C.RESET}")
-            print(f"    - {C.GREEN}MP:{C.RESET} {C.BLUE}{pet.c_mp:,} / {pet.c_mp_full:,}{C.RESET}")
+            print(f"  {C.CYAN}--- Đệ tử: {pet.name} ---{C.RESET}")
+            print(f"    - {C.GREEN}HP:{C.RESET} {C.RED}{pet.c_hp:,}{C.RESET} / {pet.c_hp_full:,} | {C.GREEN}MP:{C.RESET} {C.BLUE}{pet.c_mp:,}{C.RESET} / {pet.c_mp_full:,}")
             print(f"    - {C.GREEN}Sức mạnh:{C.RESET} {C.YELLOW}{pet.c_power:,}{C.RESET}")
-        else:
-            print(f"    - {C.GREY}Không có đệ tử.{C.RESET}")
-        print(f"{C.BOLD_RED}---" + "-" * (len(account.username) + 12) + f"---{C.RESET}\n")
+        
+        print(f"{C.BOLD_RED}" + "-" * (len(account.username) + 20) + f"{C.RESET}\n")
 
+def display_character_base_info(account):
+    """Hiển thị thông tin cơ bản, dùng cho cả 'show' và khi acc chưa load xong."""
+    C = TerminalColors
+    char = account.char
+    
+    print(f"{C.BOLD_RED}--- Trạng thái: {C.YELLOW}{account.username}{C.BOLD_RED} ---{C.RESET}")
+    
+    # Status
+    status_text = account.status
+    if account.status == "Logged In":
+        status_color = C.GREEN
+        if not char.name: # Phân biệt giữa Login và Loading
+             status_text = "Loading..."
+    elif account.status == "Reconnecting":
+        status_color = C.YELLOW
+    else:
+        status_color = C.RED
+    print(f"  {C.CYAN}Trạng thái:{C.RESET} {status_color}{status_text}{C.RESET}")
+    
+    # Proxy
+    proxy_info = "Local IP"
+    if account.proxy:
+        try:
+            ip_part = account.proxy.split('@')[-1]
+            proxy_info = f"Proxy @ {ip_part}"
+        except:
+            proxy_info = "Proxy"
+    print(f"  {C.CYAN}Kết nối:{C.RESET} {C.PURPLE}{proxy_info}{C.RESET}")
+    
+    if char.name:
+        print(f"  {C.CYAN}Nhân vật:{C.RESET} {char.name} ({C.YELLOW}ID: {char.char_id}{C.RESET})")
 
