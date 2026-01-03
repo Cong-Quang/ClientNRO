@@ -70,6 +70,8 @@ class Controller:
                 self.process_me_load_point(msg)
             elif cmd == Cmd.TASK_GET:
                 self.process_task_get(msg)
+            elif cmd == Cmd.TASK_UPDATE:
+                self.process_task_update(msg)
             elif cmd == Cmd.GAME_INFO:
                 self.process_game_info(msg)
             elif cmd == Cmd.MAP_INFO:
@@ -211,15 +213,79 @@ class Controller:
             traceback.print_exc()
 
     def process_task_get(self, msg: Message):
-        """Phân tích gói TASK_GET và ghi log thông tin nhiệm vụ (id, tên, chi tiết)."""
+        """Phân tích gói TASK_GET và lưu thông tin nhiệm vụ vào nhân vật."""
         try:
             reader = msg.reader()
             task_id = reader.read_short()
+            index = reader.read_byte()
             task_name = reader.read_utf()
-            task_details = reader.read_utf()
-            logger.info(f"Nhiệm vụ đã nhận (Lệnh {msg.command}): ID={task_id}, Tên='{task_name}', Chi tiết='{task_details}'")
+            task_detail = reader.read_utf()
+            
+            # Cấu trúc task:
+            # - byte len
+            # - loop len:
+            #   + utf subName
+            #   + byte npcId
+            #   + short mapId
+            #   + utf desc
+            # - short count (current)
+            # - loop len:
+            #   + short maxCount
+            
+            sub_names = []
+            len_sub = reader.read_ubyte()
+            
+            # Đọc loop sub-tasks info
+            for _ in range(len_sub):
+                sub_names.append(reader.read_utf())
+                reader.read_byte()  # npcId
+                reader.read_short() # mapId
+                reader.read_utf()   # desc
+            
+            # Đọc tiến độ hiện tại
+            current_count = reader.read_short()
+            
+            # Đọc max count cho từng bước
+            counts = []
+            for _ in range(len_sub):
+                counts.append(reader.read_short())
+
+            # Update Char task
+            char = self.account.char
+            char.task.task_id = task_id
+            char.task.index = index
+            char.task.name = task_name
+            char.task.detail = task_detail
+            char.task.sub_names = sub_names
+            char.task.counts = counts # Mảng chứa max count của từng bước
+            char.task.count = current_count # Giá trị đã làm được
+            
+            logger.info(f"Nhiệm vụ (Cmd {msg.command}): [{task_id}] {task_name} - Bước {index} - Progress: {current_count}")
         except Exception as e:
-            logger.error(f"Lỗi khi phân tích cú pháp TASK_GET: {e}")
+            logger.error(f"Lỗi khi phân tích TASK_GET: {e}")
+
+    def process_task_update(self, msg: Message):
+        """Cập nhật tiến độ nhiệm vụ (TASK_UPDATE)."""
+        try:
+            reader = msg.reader()
+            task_id = reader.read_short()
+            index = reader.read_byte()
+            count = reader.read_short()
+            
+            char = self.account.char
+            # Verify if it matches current task
+            if char.task.task_id == task_id and char.task.index == index:
+                char.task.count = count
+                logger.info(f"Cập nhật nhiệm vụ (Cmd {msg.command}): [{task_id}] Bước {index} -> {count}")
+            else:
+                # If ID matches but index diff, maybe task changed step?
+                # Usually TASK_GET is sent on step change, but TASK_UPDATE is for count.
+                if char.task.task_id == task_id:
+                     char.task.index = index
+                     char.task.count = count
+                     logger.info(f"Cập nhật nhiệm vụ (Cmd {msg.command}): [{task_id}] Bước {index} -> {count}")
+        except Exception as e:
+            logger.error(f"Lỗi khi phân tích TASK_UPDATE: {e}")
 
     def process_game_info(self, msg: Message):
         """Đọc và ghi log chuỗi thông tin do server gửi (GAME_INFO)."""

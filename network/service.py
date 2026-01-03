@@ -249,4 +249,14 @@ class Service:
         except Exception as e:
             logger.error(f"Lỗi khi gửi gói tin clientOk: {e}")
 
+    async def chat(self, text: str):
+        """Chat thông thường (Cmd 44 - CHAT_MAP)"""
+        try:
+            msg = Message(Cmd.CHAT_MAP)
+            msg.writer().write_utf(text)
+            await self.session.send_message(msg)
+            logger.info(f"Đã gửi tin nhắn chat: {text}")
+        except Exception as e:
+            logger.error(f"Lỗi khi gửi tin nhắn chat: {e}")
+
     

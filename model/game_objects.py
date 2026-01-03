@@ -70,6 +70,17 @@ class Item:
         self.item_option = [] # List[ItemOption]
         self.index_ui = 0
 
+class Task:
+    def __init__(self):
+        self.task_id = 0
+        self.index = 0
+        self.name = ""
+        self.detail = ""
+        self.sub_names = []
+        self.counts = []
+        self.content_info = []
+        self.count = 0 
+
 class Char:
     def __init__(self):
         self.char_id = 0
@@ -113,6 +124,8 @@ class Char:
         self.c_max_stamina = 0
         self.arr_pet_skill = [] # List[Skill]
         self.map_id = 0
+        
+        self.task = Task() # Current task info
         
     def set_default_part(self):
         # Placeholder for setDefaultPart logic in C#

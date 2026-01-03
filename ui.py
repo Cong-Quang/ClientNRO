@@ -172,15 +172,75 @@ def display_help():
     print(f"  {C.GREEN}congcs{C.RESET} {C.YELLOW}<hp> <mp> <sd>{C.RESET} - Tự động cộng tiềm năng đến chỉ số gốc mong muốn.")
     print(f"  {C.GREEN}andau{C.RESET}               - Sử dụng đậu thần trong hành trang (hồi HP/MP/Thể lực).")
     print(f"  {C.GREEN}hit{C.RESET}                 - Tấn công quái vật gần nhất một lần.")
+    print(f"  {C.GREEN}show nhiemvu{C.RESET}        - Hiển thị thông tin nhiệm vụ chi tiết/danh sách.")
     print(f"\n{C.PURPLE}--- Lệnh chung ---{C.RESET}")
-    print(f"  {C.GREEN}autoLogin{C.RESET} {C.YELLOW}[on|off]{C.RESET}  - Tự động đăng nhập lại khi mất kết nối.")
-    print(f"  {C.GREEN}logger{C.RESET} {C.YELLOW}[on|off]{C.RESET}   - Bật hoặc tắt logger chi tiết.")
-    print(f"  {C.GREEN}clear{C.RESET}             - Xóa nội dung hiện tại trong console.")
-    print(f"  {C.GREEN}show{C.RESET}              - Hiển thị thông tin nhân vật.")
-    print(f"  {C.GREEN}help{C.RESET}              - Hiển thị bảng trợ giúp này.")
-    print(f"  {C.GREEN}blacklist{C.RESET} <list|add|remove|clear> - Quản lý blacklist (bỏ qua khi 'login all').")
-    print(f"  {C.GREEN}exit{C.RESET}              - Thoát khỏi công cụ.")
-    print(f"{C.CYAN}--- Kết thúc ---{C.RESET}")
+
+def display_task_info(account, compact=False, idx: int = None):
+    """
+    Hiển thị thông tin nhiệm vụ.
+    - Compact: Dạng bảng.
+    - Detailed: Dạng khối chuẩn theo yêu cầu.
+    """
+    C = TerminalColors
+    task = account.char.task
+    
+    # Header cho chế độ Compact (chỉ in khi idx == 0)
+    if compact and idx == 0:
+        h_idx = "Idx"
+        h_user = "User"
+        h_id = "ID"
+        h_name = "Tên NV"
+        h_step = "Bước"
+        h_prog = "Tiến độ"
+        print(f"{C.PURPLE}{h_idx:<3}{C.RESET} | {C.RED}{h_user:<13}{C.RESET} | {C.CYAN}{h_id:<3}{C.RESET} | {C.GREEN}{h_name:<30}{C.RESET} | {C.YELLOW}{h_step:<25}{C.RESET} | {C.PURPLE}{h_prog}{C.RESET}")
+        print(f"{C.GREY}{'-'*105}{C.RESET}")
+
+    # Xử lý khi chưa có dữ liệu
+    if not task or not task.name:
+        if compact:
+            idx_str = f"[{idx}]" if idx is not None else ""
+            user_str = f"[{account.username}]"
+            print(f"{C.PURPLE}{idx_str:<3}{C.RESET} | {C.YELLOW}{user_str:<13}{C.RESET} | {C.GREY}No Data{C.RESET}")
+        else:
+            print(f"{C.YELLOW}[{account.username}] Chưa có thông tin nhiệm vụ.{C.RESET}")
+        return
+
+    # Chuẩn bị dữ liệu
+    task_id = task.task_id
+    task_name = task.name.strip()
+    # Lấy tên bước hiện tại
+    sub_name = ""
+    if task.sub_names and 0 <= task.index < len(task.sub_names):
+        sub_name = task.sub_names[task.index].strip()
+    else:
+        sub_name = "..."
+
+    # Lấy tiến độ
+    current = task.count
+    required = 0
+    if task.counts and 0 <= task.index < len(task.counts):
+        required = task.counts[task.index]
+    
+    prog_str = f"{current}/{required}"
+    
+    if compact:
+        # --- COMPACT MODE ---
+        idx_str = f"[{idx}]" if idx is not None else ""
+        user_str = f"[{account.username}]"
+        name_short = task_name if len(task_name) < 30 else task_name[:28] + ".."
+        step_short = sub_name if len(sub_name) < 25 else sub_name[:23] + ".."
+        prog_full = f"{prog_str} [{task.index}]"
+
+        line = f"{C.PURPLE}{idx_str:<3}{C.RESET} | {C.YELLOW}{user_str:<13}{C.RESET} | {C.CYAN}{str(task_id):<3}{C.RESET} | {C.GREEN}{name_short:<30}{C.RESET} | {C.YELLOW}{step_short:<25}{C.RESET} | {C.PURPLE}{prog_full}{C.RESET}"
+        print(line)
+
+    else:
+        # --- DETAILED MODE (Formatted exactly as requested) ---
+        print(f"{C.BOLD_RED}--- Nhiệm Vụ: {C.YELLOW}{account.username}{C.BOLD_RED} ---{C.RESET}")
+        print(f"  {C.GREEN}Tên NV  :{C.RESET} {task_name}{C.RESET} {C.GREY} [id:{task_id}] ")
+        print(f"  {C.GREEN}Bước    :{C.RESET} {sub_name} {C.GREY}(Index: {task.index}){C.RESET}")
+        print(f"  {C.GREEN}Tiến độ :{C.RESET} {C.PURPLE}{prog_str}{C.RESET}")
+        print(f"{C.BOLD_RED}--------------------------{C.RESET}\n")
 
 def short_number(num: int) -> str:
     """Định dạng số ngắn gọn (VD: 1.2tr, 5.5tỷ)."""

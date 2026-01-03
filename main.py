@@ -651,7 +651,7 @@ async def command_loop(manager: AccountManager):
             valid_target_commands = [
                 "pet", "logger", "autoplay", "autopet", "blacklist", "gomap", 
                 "findnpc", "findmob", "teleport", "teleportnpc", "andau", "hit", "show", 
-                "csgoc", "opennpc", "khu", "congcs"
+                "csgoc", "opennpc", "khu", "congcs", "task"
             ]
             if cmd_base not in valid_target_commands:
                 print(f"{C.RED}Lệnh không xác định: '{command}'. Gõ 'help'.{C.RESET}")
@@ -889,24 +889,25 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
             await account.controller.attack_nearest_mob()
 
         elif cmd_base == "show":
-            # Gửi yêu cầu cập nhật thông tin mới nhất từ server trước khi hiển thị
-            await account.service.request_me_info()
-            # Chờ một chút để server phản hồi
-            await asyncio.sleep(0.2) 
-            
-            if len(parts) > 1 and parts[1] == "csgoc":
-                from ui import display_character_base_stats
-                display_character_base_stats(account, compact=compact_mode, idx=idx)
+            # show [csgoc|nhiemvu]
+            if len(parts) > 1:
+                sub = parts[1].lower()
+                if sub == "csgoc":
+                     await account.service.request_me_info()
+                     await asyncio.sleep(0.2)
+                     from ui import display_character_base_stats
+                     display_character_base_stats(account, compact=compact_mode, idx=idx)
+                
+                elif sub == "nhiemvu":
+                     from ui import display_task_info
+                     display_task_info(account, compact=compact_mode, idx=idx)
+                
+                else:
+                    print(f"[{C.YELLOW}{account.username}{C.RESET}] Lệnh show con không xác định: {sub}")
             else:
+                # Default show status
                 display_character_status(account, compact=compact_mode, idx=idx)
         
-        elif cmd_base == "csgoc":
-             # Alias ngắn gọn
-             await account.service.request_me_info()
-             await asyncio.sleep(0.2)
-             from ui import display_character_base_stats
-             display_character_base_stats(account, compact=compact_mode, idx=idx)
-
         elif cmd_base == "opennpc":
             # opennpc <npc_id> [index1] [index2] ...
             if len(parts) >= 2:
@@ -937,6 +938,9 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                 await account.service.request_change_zone(zone_id)
             else:
                 print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: khu <số khu>")    
+
+                
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] {C.GREEN}{info}{C.RESET}")
 
         elif cmd_base == "congcs":
             # congcs <hp> <mp> <sd>
