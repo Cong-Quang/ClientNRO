@@ -191,21 +191,55 @@ def short_number(num: int) -> str:
         return f"{num/1_000:.1f}k".replace('.0k', 'k')
     return str(num)
 
-def display_character_base_stats(account):
+def display_character_base_stats(account, compact=False, idx: int = None):
     """
     Hiển thị thông tin chỉ số GỐC của nhân vật.
+    :param compact: Nếu True, hiển thị dạng 1 dòng (dành cho multi-account).
+    :param idx: Nếu được cung cấp, in số thứ tự (ví dụ: [0]) bên cạnh tên tài khoản.
     """
     C = TerminalColors
     char = account.char
     
-    print(f"{C.BOLD_RED}--- Chỉ Số Gốc: {C.YELLOW}{account.username}{C.BOLD_RED} ---{C.RESET}")
-    print(f"  {C.GREEN}HP Gốc:{C.RESET} {C.RED}{char.c_hp_goc:,}{C.RESET}")
-    print(f"  {C.GREEN}MP Gốc:{C.RESET} {C.BLUE}{char.c_mp_goc:,}{C.RESET}")
-    print(f"  {C.GREEN}Sức đánh Gốc:{C.RESET} {C.PURPLE}{char.c_dam_goc:,}{C.RESET}")
-    print(f"  {C.GREEN}Giáp Gốc:{C.RESET} {getattr(char, 'c_def_goc', 0):,}")
-    print(f"  {C.GREEN}Chí mạng Gốc:{C.RESET} {getattr(char, 'c_critical_goc', 0)}%")
-    print(f"  {C.GREEN}Tiềm năng:{C.RESET} {C.CYAN}{getattr(char, 'c_tiem_nang', 0):,}{C.RESET}")
-    print(f"{C.BOLD_RED}--------------------------{C.RESET}\n")
+    if compact:
+        # Chế độ hiển thị 1 dòng ngắn gọn
+        user_plain = f"[{account.username}] {f'[{idx}]' if idx is not None else ''}"
+        user_padded = f"{user_plain:<19}"
+        user_col = f"{C.YELLOW}{user_padded}{C.RESET}"
+
+        hp_str = short_number(char.c_hp_goc)
+        mp_str = short_number(char.c_mp_goc)
+        dam_str = short_number(char.c_dam_goc)
+        def_str = short_number(getattr(char, 'c_def_goc', 0))
+        crit_str = f"{getattr(char, 'c_critical_goc', 0)}%"
+        tn_str = short_number(getattr(char, 'c_tiem_nang', 0))
+
+        hp_col = f"{C.RED}{hp_str:>8}{C.RESET}"
+        mp_col = f"{C.BLUE}{mp_str:>7}{C.RESET}"
+        dam_col = f"{C.PURPLE}{dam_str:>7}{C.RESET}"
+        def_col = f"{C.GREY}{def_str:>7}{C.RESET}"
+        crit_col = f"{C.CYAN}{crit_str:>5}{C.RESET}"
+        tn_col = f"{C.YELLOW}{tn_str:>7}{C.RESET}"
+
+        line = f"{user_col} | {hp_col} | {mp_col} | {dam_col} | {def_col} | {crit_col} | {tn_col}"
+        
+        # Xen kẽ màu cho dễ đọc
+        if idx is not None:
+            if (idx % 2) == 0:
+                print(f"{C.GREEN}{line}{C.RESET}")
+            else:
+                print(f"{C.GREY}{line}{C.RESET}")
+        else:
+            print(line)
+    else:
+        # Chế độ chi tiết
+        print(f"{C.BOLD_RED}--- Chỉ Số Gốc: {C.YELLOW}{account.username}{C.BOLD_RED} ---{C.RESET}")
+        print(f"  {C.GREEN}HP Gốc:{C.RESET} {C.RED}{char.c_hp_goc:,}{C.RESET}")
+        print(f"  {C.GREEN}MP Gốc:{C.RESET} {C.BLUE}{char.c_mp_goc:,}{C.RESET}")
+        print(f"  {C.GREEN}Sức đánh Gốc:{C.RESET} {C.PURPLE}{char.c_dam_goc:,}{C.RESET}")
+        print(f"  {C.GREEN}Giáp Gốc:{C.RESET} {getattr(char, 'c_def_goc', 0):,}")
+        print(f"  {C.GREEN}Chí mạng Gốc:{C.RESET} {getattr(char, 'c_critical_goc', 0)}%")
+        print(f"  {C.GREEN}Tiềm năng:{C.RESET} {C.CYAN}{getattr(char, 'c_tiem_nang', 0):,}{C.RESET}")
+        print(f"{C.BOLD_RED}--------------------------{C.RESET}\n")
 
 def display_character_status(account, compact=False, idx: int = None):
     """

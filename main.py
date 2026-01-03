@@ -622,6 +622,9 @@ async def command_loop(manager: AccountManager):
             if is_compact and "pet info" in command:
                  # Gọn hơn: Username | Id | Tên Đệ | Trạng thái | HP | MP | SM | SĐ
                  print(f"{C.CYAN}{'Tài khoản':<15} {'ID':<4} {'Tên Đệ':<12} | {'TT':<6} | {'HP':>7} | {'MP':>7} | {'SM':>7} | {'SĐ':>7}{C.RESET}")
+            elif is_compact and "csgoc" in command:
+                # Header for base stats compact view
+                print(f"{C.CYAN}{'Tài khoản':<19} | {'HP Gốc':>8} | {'MP Gốc':>7} | {'SĐ Gốc':>7} | {'Giáp Gốc':>7} | {'CM Gốc':>5} | {'Tiềm năng':>7}{C.RESET}")
             elif is_compact and command.strip() == "show":
                  # Header matching ui.py columns (tighter columns)
                  print(f"{C.CYAN}{'Tài khoản':<19} | {'Bản đồ':<18} | {'ID':<3} | {'Khu':<3} | {'Tọa độ':<7} | {'HP':<8} | {'MP':<7} | {'SM':<7} | {'SĐ':<7} | {'Trạng thái'}{C.RESET}")
@@ -630,7 +633,7 @@ async def command_loop(manager: AccountManager):
             results = await asyncio.gather(*tasks)
             # Print per-account delivery status
             # Nếu là lệnh hiển thị thông tin (như pet info compact), ta không cần in trạng thái "Đã nhận" nữa vì nó sẽ làm rối
-            if not (is_compact and ("pet info" in command or command.strip() == "show")):
+            if not (is_compact and ("pet info" in command or command.strip() == "show" or "csgoc" in command)):
                 for acc, (success, msg) in zip(online_targets, results):
                     if success:
                         print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.GREEN}Đã nhận{C.RESET}")
@@ -793,16 +796,16 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
             
             if len(parts) > 1 and parts[1] == "csgoc":
                 from ui import display_character_base_stats
-                display_character_base_stats(account)
+                display_character_base_stats(account, compact=compact_mode, idx=idx)
             else:
-                display_character_status(account, compact=compact_mode)
+                display_character_status(account, compact=compact_mode, idx=idx)
         
         elif cmd_base == "csgoc":
              # Alias ngắn gọn
              await account.service.request_me_info()
              await asyncio.sleep(0.2)
              from ui import display_character_base_stats
-             display_character_base_stats(account)
+             display_character_base_stats(account, compact=compact_mode, idx=idx)
 
         elif cmd_base == "opennpc":
             # opennpc <npc_id> [index1] [index2] ...
@@ -815,10 +818,10 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                     await account.service.open_menu_npc(npc_id)
                     
                     if menu_indices:
-                        for idx in menu_indices:
+                        for menu_index in menu_indices:
                             #print(f"[{C.YELLOW}{account.username}{C.RESET}] -> Chọn menu {idx}...")
                             await asyncio.sleep(0.01) # Delay nhỏ giữa các lần chọn để server xử lý
-                            await account.service.confirm_menu_npc(npc_id, idx)
+                            await account.service.confirm_menu_npc(npc_id, menu_index)
                         print(f"[{C.YELLOW}{account.username}{C.RESET}] {C.GREEN}Done.{C.RESET}")
                             
                 except ValueError:
