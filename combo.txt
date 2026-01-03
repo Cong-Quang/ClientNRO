@@ -29,3 +29,12 @@ target all
 cls
 list
 show
+
+[debug]
+cls
+target all
+login all
+autoplay on
+show
+sleep 5
+show

@@ -216,7 +216,7 @@ class Service:
             msg = Message(Cmd.SUB_COMMAND)
             msg.writer().write_byte(0) # ME_LOAD_ALL
             await self.session.send_message(msg)
-            # logger.info("Đã gửi yêu cầu cập nhật thông tin nhân vật (ME_LOAD_ALL)")
+            logger.info("Đã gửi yêu cầu cập nhật thông tin nhân vật (ME_LOAD_ALL)")
         except Exception as e:
             logger.error(f"Lỗi khi gửi yêu cầu cập nhật thông tin: {e}")
 

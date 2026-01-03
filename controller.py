@@ -708,12 +708,15 @@ class Controller:
             amount = reader.read_int()
             
             char = self.account.char
-            if exp_type == 0:
-                char.c_tiem_nang += amount
-            elif exp_type == 1:
+            if exp_type == 0: # 0 is cPower
                 char.c_power += amount
+            elif exp_type == 1: # 1 is cTiemNang
+                char.c_tiem_nang += amount
+            elif exp_type == 2: # 2 is both
+                char.c_power += amount
+                char.c_tiem_nang += amount
             
-            logger.info(f"Người chơi tăng EXP (Cmd {msg.command}): Loại={exp_type}, Số lượng={amount}. SM Hiện tại: {char.c_power}")
+            logger.info(f"Người chơi tăng EXP (Cmd {msg.command}): Loại={exp_type}, Số lượng={amount}. SM Hiện tại: {char.c_power}, TN: {char.c_tiem_nang}")
         except Exception as e:
             logger.error(f"Lỗi khi phân tích PLAYER_UP_EXP: {e}")
 
