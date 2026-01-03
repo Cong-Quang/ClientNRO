@@ -34,7 +34,7 @@ class AutoPlay:
         while self.interval:
             try:
                 await self.tansat()
-                await asyncio.sleep(0.05) # Vòng lặp nhanh để tăng độ phản hồi
+                await asyncio.sleep(0.01) # Vòng lặp nhanh để tăng độ phản hồi
             except asyncio.CancelledError:
                 break
             except Exception as e:
@@ -96,7 +96,8 @@ class AutoPlay:
         if mob_focus:
             # Tính khoảng cách hiện tại
             dist = math.sqrt((mob_focus.x - my_char.cx)**2 + (mob_focus.y - my_char.cy)**2)
-            
+            if mob_focus.status <= 1 or mob_focus.hp <= 0:
+                return
             # Nếu ở quá xa (ví dụ > 60px), thực hiện dịch chuyển tức thời
             if dist > 60:
                 logger.info(f"Auto: Dịch chuyển tới Quái {mob_focus.mob_id}")
@@ -108,7 +109,7 @@ class AutoPlay:
                 # Gửi gói tin di chuyển tới server
                 await service.char_move()
                 # Nghỉ một chút siêu ngắn để server cập nhật vị trí trước khi tấn công
-                await asyncio.sleep(0.05)
+                await asyncio.sleep(0.01)
 
             # Thực hiện tấn công
             skill = self.find_best_skill()
@@ -122,7 +123,7 @@ class AutoPlay:
                         # logger.info(f"Auto: Tấn công phát {i+1} vào Mob {mob_focus.mob_id}")
                         
                         # Nghỉ rất ngắn để tránh bị server drop packet (hủy gói tin)
-                        await asyncio.sleep(0.05)
+                        await asyncio.sleep(0.02)
 
     def find_best_skill(self) -> Skill:
         my_char = self.controller.account.char

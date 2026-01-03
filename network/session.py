@@ -136,7 +136,7 @@ class Session:
                 cmd_unsigned = cmd_raw[0]
 
                 # Gỡ lỗi dữ liệu thô (RAW)
-                logger.debug(f"NHẬN BYTE (CMD): {cmd_raw.hex()}")
+                # logger.debug(f"NHẬN BYTE (CMD): {cmd_raw.hex()}")
 
                 if self.get_key_complete:
                     cmd_unsigned = self.read_key(cmd_unsigned)
@@ -144,32 +144,32 @@ class Session:
                 # Chuyển đổi byte không dấu cuối cùng thành ID lệnh có dấu
                 cmd = cmd_unsigned - 256 if cmd_unsigned > 127 else cmd_unsigned
 
-                logger.debug(f"Lệnh sau khi giải mã (Decrypted CMD): {cmd}")
+                # logger.debug(f"Lệnh sau khi giải mã (Decrypted CMD): {cmd}")
 
                 # Đọc độ dài (Length)
                 length = 0
                 if cmd in [-32, -66, 11, -67, -74, -87, 66]:
-                    logger.debug("Đang đọc độ dài gói tin lớn (Big Packet)...")
+                    # logger.debug("Đang đọc độ dài gói tin lớn (Big Packet)...")
                     if self.get_key_complete:
                         b1_raw = await self.reader.readexactly(1)
                         b1_u = self.read_key(struct.unpack('B', b1_raw)[0])
                         b1 = (b1_u - 256 if b1_u > 127 else b1_u) + 128
-                        logger.debug(f"Độ dài Byte 1: {b1_u} -> {b1}")
+                        # logger.debug(f"Độ dài Byte 1: {b1_u} -> {b1}")
                         
                         b2_raw = await self.reader.readexactly(1)
                         b2_u = self.read_key(struct.unpack('B', b2_raw)[0])
                         b2 = (b2_u - 256 if b2_u > 127 else b2_u) + 128
-                        logger.debug(f"Độ dài Byte 2: {b2_u} -> {b2}")
+                        # logger.debug(f"Độ dài Byte 2: {b2_u} -> {b2}")
                         
                         b3_raw = await self.reader.readexactly(1)
                         b3_u = self.read_key(struct.unpack('B', b3_raw)[0])
                         b3 = (b3_u - 256 if b3_u > 127 else b3_u) + 128
-                        logger.debug(f"Độ dài Byte 3: {b3_u} -> {b3}")
+                        # logger.debug(f"Độ dài Byte 3: {b3_u} -> {b3}")
                         
                         length = (b3 * 65536) + (b2 * 256) + b1
                     else:
                         pass 
-                    logger.debug(f"Độ dài gói tin lớn: {length}")
+                    # logger.debug(f"Độ dài gói tin lớn: {length}")
                 elif self.get_key_complete:
                     b1_raw = await self.reader.readexactly(1)
                     b2_raw = await self.reader.readexactly(1)
@@ -182,9 +182,9 @@ class Session:
 
                 # Đọc dữ liệu tải (Payload)
                 if length > 0:
-                    logger.debug(f"Đang đọc Payload kích thước {length}...")
+                    # logger.debug(f"Đang đọc Payload kích thước {length}...")
                     payload_raw = await self.reader.readexactly(length)
-                    logger.debug("Đã đọc xong Payload.")
+                    # logger.debug("Đã đọc xong Payload.")
                     if self.get_key_complete:
                         decrypted = bytearray()
                         for b in payload_raw:
@@ -195,7 +195,7 @@ class Session:
                 else:
                     payload = b""
 
-                logger.debug(f"NHẬN MSG (Thô): {cmd}, Dài: {length}, Payload: {payload_raw.hex()}")
+                # logger.debug(f"NHẬN MSG (Thô): {cmd}, Dài: {length}, Payload: {payload_raw.hex()}")
                 
                 msg = Message(cmd, payload)
                 await self.on_message(msg)
