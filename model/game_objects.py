@@ -34,6 +34,9 @@ class Skill:
 class Mob:
     mob_id: int = 0
     template_id: int = 0
+    # Ghi chú: Thuộc tính 'name' đã bị xóa vì không có dữ liệu tên mob được gửi trực tiếp từ server
+    # trong các gói tin hiện tại mà client xử lý để tạo/cập nhật đối tượng Mob.
+    # Để có tên mob, cần phải có cơ chế tải/tra cứu riêng (ví dụ: từ MobTemplate data).
     x: int = 0
     y: int = 0
     x_first: int = 0

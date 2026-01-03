@@ -650,7 +650,7 @@ async def command_loop(manager: AccountManager):
             # If the command is not in this list, it's an unknown command for a single account.
             valid_target_commands = [
                 "pet", "logger", "autoplay", "autopet", "blacklist", "gomap", 
-                "findnpc", "teleport", "teleportnpc", "andau", "hit", "show", 
+                "findnpc", "findmob", "teleport", "teleportnpc", "andau", "hit", "show", 
                 "csgoc", "opennpc", "khu", "congcs"
             ]
             if cmd_base not in valid_target_commands:
@@ -822,6 +822,49 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                     x = npc_data.get('x', 'N/A')
                     y = npc_data.get('y', 'N/A')
                     print(f" - ID: {C.CYAN}{npc_id + 1}{C.RESET}, Tên: {C.GREEN}{name}{C.RESET}, Vị trí: ({x}, {y})")
+
+        elif cmd_base == "findmob":
+            mobs = account.controller.mobs.values()
+            if not mobs:
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Không có quái vật nào trên bản đồ.")
+                return
+
+            aggregated_mobs = {}
+            for mob in mobs:
+                # Bỏ qua pet của người chơi khác hoặc của chính mình
+                if mob.is_mob_me:
+                    continue
+
+                template_id = mob.template_id
+                if template_id not in aggregated_mobs:
+                    aggregated_mobs[template_id] = {
+                        # Lưu ý: 'mob_id' là index cục bộ của mob trong list của client.
+                        # 'template_id' là ID mẫu của loại mob.
+                        # Theo yêu cầu, cột 'ID' trong output sẽ hiển thị 'template_id'.
+                        'mob_id': mob.mob_id, 
+                        'template_id': template_id,
+                        'hp': mob.hp,
+                        'max_hp': mob.max_hp,
+                        'status': mob.status,
+                        'count': 0
+                    }
+                aggregated_mobs[template_id]['count'] += 1
+
+            if not aggregated_mobs:
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Không có quái vật nào (chỉ có pet) trên bản đồ.")
+                return
+
+            print(f"[{C.YELLOW}{account.username}{C.RESET}] {C.CYAN}--- Danh sách quái vật trên bản đồ ---{C.RESET}")
+            print(f"{C.PURPLE}{'ID':<5} | {'HP':<15} | {'Trạng thái':<10} | {'Số lượng':<5}{C.RESET}")
+            print("-" * 50)
+
+            for data in aggregated_mobs.values():
+                status_map = {0: f"{C.RED}Đã chết{C.RESET}", 1: f"{C.YELLOW}Hấp hối{C.RESET}"}
+                status_text = status_map.get(data['status'], f"{C.GREEN}Sống{C.RESET}")
+                
+                hp_text = f"{data['hp']}/{data['max_hp']}"
+                
+                print(f"{data['template_id']:<5} | {hp_text:<15} | {status_text:<18} | {data['count']:<5}")
 
         elif cmd_base == "teleport":
             if len(parts) == 3 and parts[1].isdigit() and parts[2].isdigit():

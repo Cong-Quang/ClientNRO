@@ -281,6 +281,8 @@ class Controller:
                 status = reader.read_byte()
                 level_boss = reader.read_byte()
                 is_boss = reader.read_bool()
+                # Ghi chú: Tên mob không được server gửi trực tiếp trong gói MAP_INFO này.
+                # Thuộc tính `name` trong class Mob sẽ không được điền.
                 mob = Mob(mob_id=i, template_id=t_id, x=mx, y=my, hp=hp, max_hp=max_hp)
                 mob.x_first, mob.y_first = mx, my
                 mob.status = status
@@ -328,7 +330,8 @@ class Controller:
             mob.sys = reader.read_byte()
             mob.level_boss = reader.read_byte()
             mob.hp = reader.read_int()
-
+            # Ghi chú: Tên mob không được server gửi trực tiếp trong gói NPC_LIVE này.
+            # Thuộc tính `name` trong class Mob sẽ không được điền ngay cả khi hồi sinh.
             mob.status = 5
             mob.max_hp = mob.hp
             mob.x = mob.x_first

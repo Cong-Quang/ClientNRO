@@ -23,6 +23,7 @@ COMMAND_TREE = {
     "gomap": ["stop", "home"],
     "opennpc": [],
     "findnpc": [],
+    "findmob": [],
     "teleport": [],
     "teleportnpc": [],
     "congcs": [],
