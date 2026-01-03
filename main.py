@@ -361,33 +361,56 @@ async def command_loop(manager: AccountManager):
                     
                     # Logic gán proxy
                     assigned_proxy = None
-                    
-                    # 1. Ưu tiên dùng IP máy (max 5)
-                    if local_ip_usage < 5:
-                        assigned_proxy = None
-                        local_ip_usage += 1
-                        print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.GREEN}Gán IP máy{C.RESET} (Slot {C.CYAN}{local_ip_usage}/5{C.RESET})")
+
+                    if Config.USE_LOCAL_IP_FIRST:
+                        # Chế độ cũ: Ưu tiên IP máy
+                        if local_ip_usage < 5:
+                            assigned_proxy = None
+                            local_ip_usage += 1
+                            print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.GREEN}Gán IP máy{C.RESET} (Slot {C.CYAN}{local_ip_usage}/5{C.RESET})")
+                        else:
+                            # Tìm proxy còn slot
+                            found_proxy = False
+                            for p in proxy_list:
+                                if proxy_usage[p] < 5:
+                                    assigned_proxy = p
+                                    proxy_usage[p] += 1
+                                    found_proxy = True
+                                    try:
+                                        display_p = p.split('@')[-1]
+                                    except:
+                                        display_p = p
+                                    print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.PURPLE}Gán Proxy{C.RESET} {C.GREY}...{display_p[-15:]}{C.RESET} (Slot {C.CYAN}{proxy_usage[p]}/5{C.RESET})")
+                                    break
+                            if not found_proxy:
+                                print(f"{C.RED}Hết tài nguyên mạng (IP máy & Proxy đều full 5 acc).{C.RESET}")
+                                stop_login_sequence = True
                     else:
-                        # 2. Tìm proxy còn slot (max 5)
+                        # Chế độ mới: Chỉ dùng proxy
                         found_proxy = False
-                        for p in proxy_list:
-                            if proxy_usage[p] < 5:
-                                assigned_proxy = p
-                                proxy_usage[p] += 1
-                                found_proxy = True
-                                try:
-                                    display_p = p.split('@')[-1]
-                                except:
-                                    display_p = p
-                                print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.PURPLE}Gán Proxy{C.RESET} {C.GREY}...{display_p[-15:]}{C.RESET} (Slot {C.CYAN}{proxy_usage[p]}/5{C.RESET})")
-                                break
-                        
-                        if not found_proxy:
-                            print(f"{C.RED}Hết tài nguyên mạng (IP máy & Proxy đều full 5 acc).{C.RESET}")
-                            print(f"{C.RED}Dừng đăng nhập từ tài khoản: {acc.username}{C.RESET}")
+                        if not proxy_list:
+                            print(f"{C.RED}Không có proxy nào trong danh sách để gán.{C.RESET}")
                             stop_login_sequence = True
-                            break # Thoát khỏi vòng lặp accounts_to_login
-                    
+                        else:
+                            for p in proxy_list:
+                                if proxy_usage[p] < 5:
+                                    assigned_proxy = p
+                                    proxy_usage[p] += 1
+                                    found_proxy = True
+                                    try:
+                                        display_p = p.split('@')[-1]
+                                    except:
+                                        display_p = p
+                                    print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.PURPLE}Gán Proxy (Bỏ qua IP Local){C.RESET} {C.GREY}...{display_p[-15:]}{C.RESET} (Slot {C.CYAN}{proxy_usage[p]}/5{C.RESET})")
+                                    break
+                        if not found_proxy and proxy_list:
+                            print(f"{C.RED}Tất cả các proxy đều đã full (5 acc/proxy).{C.RESET}")
+                            stop_login_sequence = True
+
+                    if stop_login_sequence:
+                        print(f"{C.RED}Dừng đăng nhập từ tài khoản: {acc.username}{C.RESET}")
+                        break # Thoát khỏi vòng lặp accounts_to_login
+
                     # Cập nhật proxy cho account và login
                     acc.proxy = assigned_proxy
                     # Cần cập nhật lại session proxy vì session được tạo khi init Account
