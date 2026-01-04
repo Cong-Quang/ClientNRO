@@ -1006,11 +1006,12 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                     menu_indices = [int(x) for x in parts[2:]]
                     
                     print(f"[{C.YELLOW}{account.username}{C.RESET}] Mở NPC {npc_id}...")
+                    account.last_opennpc_compact = compact_mode
                     await account.service.open_menu_npc(npc_id)
                     
                     if menu_indices:
                         for menu_index in menu_indices:
-                            #print(f"[{C.YELLOW}{account.username}{C.RESET}] -> Chọn menu {idx}...")
+                            print(f"[{C.YELLOW}{account.username}{C.RESET}] -> Chọn menu {C.GREEN}[{menu_index}]{C.RESET}...")
                             await asyncio.sleep(0.01) # Delay nhỏ giữa các lần chọn để server xử lý
                             await account.service.confirm_menu_npc(npc_id, menu_index)
                         print(f"[{C.YELLOW}{account.username}{C.RESET}] {C.GREEN}Done.{C.RESET}")

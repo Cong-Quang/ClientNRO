@@ -25,6 +25,7 @@ class Account:
         self.status = "Offline"
         self._should_auto_reconnect = False
         self.login_event = asyncio.Event()
+        self.last_opennpc_compact = False
 
         # Each account has its own instance of major components
         self.char = Char()

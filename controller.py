@@ -893,6 +893,8 @@ class Controller:
     def process_open_ui_confirm(self, msg: Message):
         """Xử lý menu NPC (OPEN_UI_CONFIRM): đọc template id, nội dung menu và các lựa chọn."""
         try:
+            import re
+            from logs.logger_config import TerminalColors as C
             reader = msg.reader()
             npc_template_id = reader.read_short()
             menu_chat = reader.read_utf()
@@ -900,11 +902,32 @@ class Controller:
             options = []
             for _ in range(num_options):
                 options.append(reader.read_utf())
-            
-            logger.info(f"NPC Menu (Template ID {npc_template_id}): '{menu_chat}'")
-            for i, opt in enumerate(options):
-                logger.info(f"  [{i}] {opt}")
-            
+
+            # Common formatting for the chat content
+            formatted_chat = re.sub(r'\|\d+\|', '\n- ', menu_chat)
+
+            if self.account.last_opennpc_compact:
+                # Compact mode for multi-account view
+                summary = formatted_chat.replace('\n', ' ').strip()
+                if summary.startswith('- '):
+                    summary = summary[2:]
+                if len(summary) > 50:
+                    summary = summary[:47] + "..."
+                
+                # Create a single-line summary for options, replacing newlines
+                options_summary = ", ".join([f"[{i}]{opt.replace('\n', ' ').strip()}" for i, opt in enumerate(options)])
+                if len(options_summary) > 60:
+                     options_summary = options_summary[:57] + "..."
+
+                print(f"[{C.YELLOW}{self.account.username:<10}{C.RESET}] {C.CYAN}NPC {npc_template_id:<3}{C.RESET} | {C.WHITE}{summary:<50}{C.RESET} | {C.GREEN}Options: {options_summary}{C.RESET}")
+                self.account.last_opennpc_compact = False # Reset flag
+            else:
+                # Detailed mode for single account
+                print(f"[{C.YELLOW}{self.account.username}{C.RESET}] {C.CYAN}NPC Menu (Template: {npc_template_id}){C.RESET}:\n{formatted_chat}")
+                for i, opt in enumerate(options):
+                    single_line_opt = opt.replace('\n', ' ').strip()
+                    print(f"  {C.GREEN}[{i}]{C.RESET} {single_line_opt}")
+
             # Pass Bo Mong NPC messages to the auto module
             if npc_template_id == 17:
                 self.auto_bo_mong.handle_npc_message(menu_chat, options)
@@ -930,11 +953,10 @@ class Controller:
     def process_npc_chat(self, msg: Message):
         """Ghi log nội dung chat của NPC (NPC_CHAT)."""
         try:
+            from logs.logger_config import TerminalColors as C
             reader = msg.reader()
             npc_id = reader.read_short()
             message = reader.read_utf()
-            logger.info(f"NPC Chat (Cmd {msg.command}): NPC_ID={npc_id}, Nội dung='{message}'")
-
             # Check if this NPC is Bo Mong and pass the message
             # We need to check against the template_id stored in self.npcs
             bo_mong_template_id = 17
