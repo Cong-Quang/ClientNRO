@@ -3,6 +3,7 @@ import re
 import asyncio
 from enum import Enum
 import time
+import math
 
 MOB_LOCATION_DATA = {
     "mộc nhân": (14, 0), "khủng long": (1, 1), "lợn lòi": (8, 2), "quỷ đất": (15, 3),
@@ -13,6 +14,7 @@ MOB_LOCATION_DATA = {
     "heo da xanh": (32, 17), "heo xayda": (36, 18), "heo rừng mẹ": (6, 19),
     "heo xanh mẹ": (10, 20), "alien": (19, 21), "bulon": (30, 22), "ukulele": (34, 23),
     "quỷ mập": (38, 24), "tambourine": (6, 25), "drum": (10, 26), "akkuman": (19, 27),
+    "không tặc": (29, 31), "quỷ đầu to": (33, 32), "quỷ địa ngục": (37, 33),
     "không tặc": (29, 31), "quỷ đầu to": (33, 32), "quỷ địa ngục": (37, 33),
     "nappa": (68, 39), "soldier": (70, 40), "appule": (71, 41), "raspberry": (71, 42),
     "thằn lằn xanh": (72, 43), "quỷ đầu nhọn": (64, 44), "quỷ đầu vàng": (63, 45),
@@ -44,7 +46,9 @@ class QuestInfo:
         self.map_name = ""
         self.target_count = 0
         self.initial_count = 0 
-        self.kill_count = 0    
+        self.kill_count = 0
+        self.quests_remaining = 0  # Số NV còn lại trong ngày
+        self.quests_total = 0      # Tổng số NV trong ngày
 
     @property
     def current_progress(self):
@@ -119,8 +123,83 @@ class AutoQuest:
             "quests_completed": self.quests_completed,
             "total_kills": self.total_kills,
             "elapsed_time": elapsed,
-            "time_str": time_str
+            "time_str": time_str,
+            "quests_remaining": self.quest_info.quests_remaining,
+            "quests_total": self.quest_info.quests_total
         }
+    async def _interact_with_npc_menu(self, npc_template_id: int, menu_options: list[int] = None) -> bool:
+        """
+        Hàm helper chung để tương tác với NPC:
+        1. Kiểm tra vị trí & khoảng cách (tự động teleport nếu > 60px).
+        2. Mở menu NPC.
+        3. Lần lượt chọn các option trong menu_options (nếu có).
+        """
+        try:
+            # 1. Logic khoảng cách và Teleport
+            should_teleport = True
+            
+            # Tìm NPC để check khoảng cách
+            target_npc = None
+            for _, npc_data in self.controller.npcs.items():
+                if npc_data.get('template_id') == npc_template_id:
+                    target_npc = npc_data
+                    break
+            
+            if target_npc:
+                dist = math.sqrt((target_npc['x'] - self.account.char.cx)**2 + 
+                                 (target_npc['y'] - self.account.char.cy)**2)
+                if dist <= 60:
+                    should_teleport = False
+            
+            if should_teleport:
+                await self.controller.movement.teleport_to_npc(npc_template_id)
+                await asyncio.sleep(1.0) # Wait for teleport
+                
+                # Re-check distance after teleport
+                if target_npc:
+                   # Update target_npc position just in case
+                   for _, npc_data in self.controller.npcs.items():
+                        if npc_data.get('template_id') == npc_template_id:
+                            target_npc = npc_data
+                            break
+                   
+                   dist = math.sqrt((target_npc['x'] - self.account.char.cx)**2 + 
+                                     (target_npc['y'] - self.account.char.cy)**2)
+                   if dist > 60:
+                       logger.warning(f"[{self.account.username}] Khoảng cách tới NPC {npc_template_id} vẫn quá xa ({dist:.1f}). Không thể tương tác.")
+                       return False
+
+            # 2. Mở Menu
+            await self.controller.account.service.open_menu_npc(npc_template_id)
+            await asyncio.sleep(0.5)
+
+            # 3. Chọn Options
+            if menu_options:
+                for opt_idx in menu_options:
+                    await self.controller.account.service.confirm_menu_npc(npc_template_id, opt_idx)
+                    await asyncio.sleep(0.5)
+            
+            return True
+        except Exception as e:
+            logger.error(f"[{self.account.username}] Lỗi tương tác NPC {npc_template_id}: {e}")
+            return False
+
+    async def refresh_quest_info(self) -> bool:
+        """
+        Query NPC Bố Mộng để lấy thông tin quest hiện tại.
+        Sử dụng helper _interact_with_npc_menu.
+        """
+        if self.account.char.map_id != BO_MONG_MAP_ID:
+            logger.info(f"[{self.account.username}] Đang di chuyển về Bò Mộng để refresh quest...")
+            await self.go_to_map(BO_MONG_MAP_ID)
+            if self.account.char.map_id != BO_MONG_MAP_ID:
+                return False
+
+        # Option 1: Nhiệm vụ Hàng ngày
+        success = await self._interact_with_npc_menu(BO_MONG_NPC_TEMPLATE_ID, [1])
+        if success:
+            logger.info(f"[{self.account.username}] Đã query NPC refresh quest info.")
+        return success
 
     async def transition_to(self, new_state: AutoState):
         self.current_state = new_state
@@ -138,7 +217,7 @@ class AutoQuest:
                 logger.error(f"[{self.account.username}] Lỗi trong vòng lặp AutoQuest: {e}", exc_info=True)
                 self.stop()
                 break
-            await asyncio.sleep(1.5)
+            await asyncio.sleep(0.5)
         logger.info(f"[{self.account.username}] Vòng lặp AutoQuest đã kết thúc.")
 
     async def update(self):
@@ -154,7 +233,7 @@ class AutoQuest:
             await state_handler()
 
     async def handle_idle(self):
-        await asyncio.sleep(2)
+        await asyncio.sleep(0.5)
     
     async def handle_get_quest(self):
         self.quest_info = QuestInfo()
@@ -163,13 +242,8 @@ class AutoQuest:
             return
 
         logger.info(f"[{self.account.username}] Nhận nhiệm vụ hàng ngày (Siêu khó)...")
-        await self.controller.movement.teleport_to_npc(BO_MONG_NPC_TEMPLATE_ID)
-        await asyncio.sleep(1)
-        await self.controller.account.service.open_menu_npc(BO_MONG_NPC_TEMPLATE_ID)
-        await asyncio.sleep(0.5)
-        await self.controller.account.service.confirm_menu_npc(BO_MONG_NPC_TEMPLATE_ID, 1)
-        await asyncio.sleep(0.5)
-        await self.controller.account.service.confirm_menu_npc(BO_MONG_NPC_TEMPLATE_ID, 4)
+        # Sử dụng helper: Chọn Option 1 (Nhiệm vụ hàng ngày) -> Option 4 (Siêu khó)
+        await self._interact_with_npc_menu(BO_MONG_NPC_TEMPLATE_ID, [1, 4])
         
         await asyncio.sleep(2)
 
@@ -188,6 +262,12 @@ class AutoQuest:
         if map_id == -1:
             logger.warning(f"[{self.account.username}] Không tìm thấy map cho NV '{self.quest_info.mob_name}'. Dừng.")
             self.stop()
+            return
+        
+        # Kiểm tra xem có thể đi đến map đích không (Tương Lai, Cold, Ngục Tù...)
+        if not self._can_access_map(map_id):
+            logger.warning(f"[{self.account.username}] Không thể vào map {map_id} (chưa đủ điều kiện). Huỷ NV và nhận NV mới.")
+            await self._cancel_and_get_new_quest()
             return
         
         if self.account.char.map_id != map_id:
@@ -219,46 +299,33 @@ class AutoQuest:
 
         logger.info(f"[{self.account.username}] Tiến hành trả nhiệm vụ (Tiến độ local: {self.quest_info.current_progress}/{self.quest_info.target_count}).")
         
-        # Lưu thông tin nhiệm vụ hiện tại để so sánh
         old_mob_name = self.quest_info.mob_name
         
-        await self.controller.movement.teleport_to_npc(BO_MONG_NPC_TEMPLATE_ID)
-        await asyncio.sleep(1)
-        
-        # Mở menu NPC và chọn trả nhiệm vụ (option 0)
-        await self.controller.account.service.open_menu_npc(BO_MONG_NPC_TEMPLATE_ID)
-        await asyncio.sleep(1)
-        await self.controller.account.service.confirm_menu_npc(BO_MONG_NPC_TEMPLATE_ID, 0)
+        # 1. Trả nhiệm vụ (Option 0)
+        await self._interact_with_npc_menu(BO_MONG_NPC_TEMPLATE_ID, [0])
         await asyncio.sleep(2)
         
-        # Sau khi trả NV, mở lại menu chính và chọn "Nhiệm vụ Hàng ngày" để nhận NV mới
-        await self.controller.account.service.open_menu_npc(BO_MONG_NPC_TEMPLATE_ID)
-        await asyncio.sleep(1)
-        await self.controller.account.service.confirm_menu_npc(BO_MONG_NPC_TEMPLATE_ID, 1)  # Nhiệm vụ Hàng ngày
+        # 2. Mở lại menu để nhận NV mới (Option 1)
+        await self._interact_with_npc_menu(BO_MONG_NPC_TEMPLATE_ID, [1])
         await asyncio.sleep(1)
         
-        # Kiểm tra xem còn NV trong ngày không (parse_quest_info sẽ được gọi)
-        # Nếu còn NV, chọn độ khó Siêu khó
         if self.quest_info.is_valid:
-            # Đã có NV mới từ menu trước đó
             if self.quest_info.mob_name != old_mob_name:
-                self.quests_completed += 1  # Tăng số NV hoàn thành
-                logger.info(f"[{self.account.username}] Đã nhận NV mới: {self.quest_info.mob_name} (Tổng NV hoàn thành: {self.quests_completed})")
+                self.quests_completed += 1
+                logger.info(f"[{self.account.username}] Đã nhận NV mới: {self.quest_info.mob_name} (Tổng hoàn thành: {self.quests_completed})")
                 await self.transition_to(AutoState.NAVIGATE_TO_MAP)
             elif self.quest_info.initial_count >= self.quest_info.target_count:
-                # Server xác nhận đủ, thử trả lại
+                # Server xác nhận đủ, trả lại lần nữa
                 logger.info(f"[{self.account.username}] Server xác nhận đủ. Chọn trả NV...")
-                await self.controller.account.service.confirm_menu_npc(BO_MONG_NPC_TEMPLATE_ID, 0)
+                await self._interact_with_npc_menu(BO_MONG_NPC_TEMPLATE_ID, [0])
                 await asyncio.sleep(2)
-                # Đi nhận NV mới
                 await self.transition_to(AutoState.GET_QUEST)
             else:
-                # Server bảo chưa đủ - tiếp tục farm
+                 # Server bảo chưa đủ
                 logger.info(f"[{self.account.username}] Server: chưa đủ ({self.quest_info.initial_count}/{self.quest_info.target_count}). Tiếp tục farm!")
                 await self.transition_to(AutoState.NAVIGATE_TO_MAP)
         else:
-            # Không có thông tin NV, có thể đã hết NV trong ngày hoặc cần chọn độ khó
-            # Thử chọn độ khó Siêu khó (option 4)
+             # Option 4: Siêu khó
             logger.info(f"[{self.account.username}] Chọn độ khó Siêu khó...")
             await self.controller.account.service.confirm_menu_npc(BO_MONG_NPC_TEMPLATE_ID, 4)
             await asyncio.sleep(2)
@@ -267,7 +334,6 @@ class AutoQuest:
                 logger.info(f"[{self.account.username}] Đã nhận NV mới: {self.quest_info.mob_name}")
                 await self.transition_to(AutoState.NAVIGATE_TO_MAP)
             else:
-                # parse_quest_info sẽ tự dừng nếu hết NV trong ngày
                 logger.info(f"[{self.account.username}] Không có NV mới. Kiểm tra lại...")
 
     def parse_quest_info(self, menu_text: str):
@@ -288,6 +354,9 @@ class AutoQuest:
             remaining = int(match_remaining.group(1))
             total = int(match_remaining.group(2))
             logger.info(f"[{self.account.username}] Nhiệm vụ còn lại: {remaining}/{total}")
+            # Lưu thông tin NV còn lại
+            self.quest_info.quests_remaining = remaining
+            self.quest_info.quests_total = total
             if remaining <= 0:
                 logger.info(f"[{self.account.username}] Đã hết nhiệm vụ trong ngày ({remaining}/{total}). Dừng auto.")
                 self.stop()
@@ -356,6 +425,29 @@ class AutoQuest:
         logger.warning(f"[{self.account.username}] Không tìm thấy dữ liệu cho quái: '{self.quest_info.mob_name}'")
         return -1, -1
 
+    def _can_access_map(self, map_id: int) -> bool:
+        """Kiểm tra xem nhân vật có thể vào map đích không dựa trên điều kiện."""
+        char = self.account.char
+        xmap = self.controller.xmap
+        
+        # Sử dụng logic kiểm tra từ XMap
+        return xmap._is_map_accessible(map_id, char)
+
+    async def _cancel_and_get_new_quest(self):
+        """Huỷ nhiệm vụ hiện tại và nhận nhiệm vụ mới."""
+        logger.info(f"[{self.account.username}] Huỷ nhiệm vụ không thể hoàn thành...")
+        
+        if self.account.char.map_id != BO_MONG_MAP_ID:
+            await self.go_to_map(BO_MONG_MAP_ID)
+            return
+        
+        # Helper: Option 2 (Bỏ nhiệm vụ)
+        await self._interact_with_npc_menu(BO_MONG_NPC_TEMPLATE_ID, [2])
+        await asyncio.sleep(1)
+        
+        self.quest_info = QuestInfo()
+        await self.transition_to(AutoState.GET_QUEST)
+
     async def go_to_map(self, map_id: int):
         if self.account.char.map_id == map_id:
             return
@@ -365,10 +457,15 @@ class AutoQuest:
             if not self.is_running:
                 self.controller.xmap.finish()
                 return
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.5)
         
         if self.account.char.map_id != map_id:
-            logger.error(f"[{self.account.username}] Di chuyển đến map {map_id} thất bại. Dừng AutoQuest.")
-            self.stop()
+            # Thử lại 1 lần nếu thất bại
+            logger.warning(f"[{self.account.username}] Di chuyển đến map {map_id} thất bại. Thử lại...")
+            await self.controller.xmap.start(map_id)
+            # Wait check loop again or simple check? let's just return and let main loop handle retry
+            if self.account.char.map_id != map_id:
+                 logger.error(f"[{self.account.username}] Di chuyển vẫn thất bại. Dừng AutoQuest.")
+                 self.stop()
         else:
             logger.info(f"[{self.account.username}] Di chuyển đến map {map_id} thành công.")

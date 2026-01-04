@@ -69,6 +69,7 @@ class XMap:
         # Các map có cổng nằm dọc (Trên/Dưới)
         self.direction_overrides[(73, 74)] = "Up"   # Thung lũng chết -> Đồi cây Fide (Cổng trên)
         self.direction_overrides[(74, 73)] = "Left" # Đồi cây Fide -> Thung lũng chết (Cổng trái - Fix theo yêu cầu)
+        self.direction_overrides[(47, 1)] = "Left"
 
         # Danh sách các map đi ngược (Cổng bên Trái thay vì Phải như mặc định)
         # 71->72, 72->64, 64->65...
@@ -95,7 +96,17 @@ class XMap:
 
         # Đăng ký các liên kết bản đồ cơ bản (đi bộ/cổng chào)
         self.add_link_maps(0, 21)
-        self.add_link_maps(1, 47)
+        # self.add_link_maps(1, 47) # Disable auto-link, manual override below
+        self.add_link_maps(47, 111)
+
+        # ... (keep other lines)
+
+        # Manual link 47 <-> 1
+        # 47 -> 1: Waypoint bên trái (Override direction = Left)
+        self.add_link_maps(47, 1)
+ 
+
+
         self.add_link_maps(47, 111)
         self.add_link_maps(2, 24)
         self.add_link_maps(5, 29)
@@ -121,6 +132,8 @@ class XMap:
         self.add_link_maps(17, 35, 36, 37, 38)
         self.add_link_maps(109, 108, 107, 110, 106)
         self.add_link_maps(47, 46, 45, 48)
+        # Fix lỗi kẹt ở 45/46/47 không về được 0 (Làng Aru)
+        self.add_link_maps(0, 45) # Link ảo/logic để thoát nhánh cụt
         self.add_link_maps(131, 132, 133)
         self.add_link_maps(160, 161, 162, 163)
 
@@ -415,26 +428,52 @@ class XMap:
             log_func(f"\n[{C.YELLOW}{username}{C.RESET}] {msg} {' ' * 20}")
       
 
+    def _has_item(self, item_id: int) -> bool:
+        """Kiểm tra nhân vật có vật phẩm cụ thể không."""
+        char = self.controller.account.char
+        if not char.arr_item_bag:
+            return False
+        for item in char.arr_item_bag:
+            if item and item.item_id == item_id:
+                return True
+        return False
+
     def _is_map_accessible(self, map_id: int, char) -> bool:
         """Kiểm tra xem một bản đồ có thể truy cập được không dựa trên các yêu cầu."""
         try:
-            # Yêu cầu sức mạnh
+            # 1. Yêu cầu Sức mạnh
+            # Map 155, 166: >= 60 Tỷ
             if map_id in self.power_60b_maps and char.c_power < 60_000_000_000:
                 return False
+            # Map 153-159 (trừ 155): >= 40 Tỷ
             if map_id in self.power_40b_maps and char.c_power < 40_000_000_000:
                 return False
 
-            # Yêu cầu nhiệm vụ
+            # 2. Yêu cầu Nhiệm vụ
             task_id = char.task_main.id if hasattr(char, 'task_main') else 0
-            if map_id in self.cold_maps and task_id < 30: # Giả định cần xong nv 30
-                return False
+            
+            # Map Tương Lai: Task ID > 24
             if map_id in self.future_maps and task_id <= 24:
                 return False
-
-            # Yêu cầu bang hội
-            has_clan = hasattr(char, 'clan') and char.clan is not None
-            if map_id in self.clan_maps and not has_clan:
+            
+            # Map Cold (105-110): Xong Task 30 (tức là Task ID > 30)
+            if map_id in self.cold_maps and task_id <= 30:
                 return False
+
+            # 3. Yêu cầu Bang hội: Map 53-62
+            # Lưu ý: self.clan_maps hiện tại có thể chứa nhiều map hơn, 
+            # nhưng yêu cầu user chỉ định rõ 53-62. 
+            # Ta sẽ check cứng dải map 53-62 để đảm bảo đúng yêu cầu.
+            if 53 <= map_id <= 62:
+                has_clan = hasattr(char, 'clan') and char.clan is not None and char.clan.id != -1
+                if not has_clan:
+                    return False
+            
+            # 4. Yêu cầu Vật phẩm
+            # Map 160: Có item 992 (Nhẫn thời không)
+            if map_id == 160:
+                if not self._has_item(992):
+                    return False
                 
         except Exception as e:
             logger.error(f"Lỗi khi kiểm tra map {map_id}: {e}")
@@ -484,8 +523,9 @@ class XMap:
                         heapq.heappush(pq, (new_cost, neighbor_node))
 
             # 2. Khám phá các đường đi bằng Capsule (nếu có)
+            # Chi phí = 5.0 để chỉ dùng khi đường đi bộ dài hơn 5 bước
             if has_capsule:
-                CAPSULE_COST = 3.5
+                CAPSULE_COST = 5.0
                 for dest_map in capsule_dests:
                     if dest_map == current_node:
                         continue
@@ -541,38 +581,8 @@ class XMap:
                     self.finish()
                     return
         
-        # --- Xử lý logic đặc biệt cho map Tương Lai ---
-        is_target_future = self.target_map_id in self.future_maps
-        char = self.controller.account.char
-        task_id = char.task_main.id if hasattr(char, 'task_main') else 0
-
-        if is_target_future and task_id > 24:
-            npc_38_present = any(npc['template_id'] == 38 for npc in self.controller.npcs.values())
-            
-            # Nếu đang ở trong khu vực tìm kiếm (27, 28, 29) và chưa thấy NPC
-            if not npc_38_present and current_map in {27, 28, 29}:
-                path_overridden = False
-                if current_map == 27:
-                    # Đi từ 27 -> 28
-                    if not self.path or (len(self.path) > 1 and self.path[1] != 28):
-                        self.path = [27, 28]
-                        self.find_npc_in_future = False
-                        path_overridden = True
-                elif current_map == 28:
-                    # Đi từ 28 -> 29 (nếu đang đi tới) hoặc 28 -> 27 (nếu đang đi về)
-                    next_map = 27 if self.find_npc_in_future else 29
-                    if not self.path or (len(self.path) > 1 and self.path[1] != next_map):
-                        self.path = [28, next_map]
-                        path_overridden = True
-                elif current_map == 29:
-                     # Đi từ 29 -> 28, và đánh dấu là đang đi về
-                    if not self.path or (len(self.path) > 1 and self.path[1] != 28):
-                        self.path = [29, 28]
-                        self.find_npc_in_future = True
-                        path_overridden = True
-                
-                if path_overridden:
-                    logger.info(f"Logic Tương Lai: Ghi đè đường đi -> {' -> '.join(map(str, self.path))}")
+        # Logic Tương Lai: _is_map_accessible đã block future_maps nếu task_id <= 24
+        # Không cần logic đặc biệt thêm như code C# gốc
 
         self.last_update = time.time()
         
@@ -610,10 +620,15 @@ class XMap:
             if current_map == self.expected_next_map_id:
                  self.processing_map_change = False
                  self.last_action_time = 0
-            elif time.time() - self.last_action_time > 5.0: 
-                 logger.error(f"XMap thất bại: Quá thời gian chờ đổi sang map {self.expected_next_map_id}.")
-                 self.finish()
-                 return
+            elif time.time() - self.last_action_time > 5.0:
+                 # Thử tính toán lại đường đi thay vì dừng ngay
+                 logger.warning(f"XMap timeout: Thử tính toán lại đường đi từ {current_map}")
+                 self.processing_map_change = False
+                 self.path = self.find_path(current_map, self.target_map_id)
+                 if not self.path:
+                     logger.error(f"XMap thất bại: Không thể tìm đường từ {current_map} đến {self.target_map_id}")
+                     self.finish()
+                     return
             else:
                  return 
         
@@ -693,10 +708,12 @@ class XMap:
              return
 
         action_performed = False
-        if logger.disabled:
-            username = getattr(self.controller.account, 'username', 'Unknown')
-            logger.info(f"[{C.YELLOW}{username}{C.RESET}] Đang di chuyển: {C.CYAN}{current_map_id}{C.RESET} -> {C.GREEN}{next_map.map_id}{C.RESET}...", end="\r")
+        username = getattr(self.controller.account, 'username', 'Unknown')
         
+        # Verbose Log
+        if not logger.disabled:
+             logger.info(f"[{C.YELLOW}{username}{C.RESET}] [XMAP] Moving: {C.CYAN}{current_map_id}{C.RESET} -> {C.GREEN}{next_map.map_id}{C.RESET} (Type: {'NPC' if next_map.npc_id != -1 else 'Walk' if next_map.walk else 'Item' if next_map.item_id != -1 else 'Waypoint'})")
+
         if next_map.npc_id != -1:
             action_performed = await self.handle_npc_move(next_map)
         elif next_map.walk:
@@ -713,6 +730,8 @@ class XMap:
             self.processing_map_change = True
             self.expected_next_map_id = next_map.map_id
             self.last_action_time = time.time()
+            if not logger.disabled:
+                logger.info(f"[{C.YELLOW}{username}{C.RESET}] [XMAP] Action performed. Waiting for map {next_map.map_id}...")
 
     async def handle_capsule_move(self, next_map: NextMap):
         """Thực hiện quy trình sử dụng Capsule"""
@@ -779,30 +798,20 @@ class XMap:
     async def handle_npc_move(self, next_map: NextMap) -> bool:
         """Xử lý tương tác với NPC để chuyển map (Tối ưu)"""
         
-        def find_target_npc():
-            for npc in self.controller.npcs.values():
-                if npc['template_id'] == next_map.npc_id:
-                    return npc
-            return None
-
-        # 1. Kiểm tra ngay lập tức xem NPC đã có chưa
-        target_npc = find_target_npc()
-
-        # 2. Nếu chưa có (mới vào map), đợi tối đa 0.1s
-        if not target_npc:
-            for _ in range(10): # 10 lần * 0.01s = 0.1s
-                await asyncio.sleep(0.01)
-                target_npc = find_target_npc()
-                if target_npc:
-                    break
+        # 1. Đợi NPC load (nếu mới vào map)
+        for _ in range(10):  # 10 lần * 0.01s = 0.1s
+            await asyncio.sleep(0.01)
+            found = any(npc['template_id'] == next_map.npc_id for npc in self.controller.npcs.values())
+            if found:
+                break
         
-        if not target_npc:
-            logger.warning(f"Không tìm thấy NPC {next_map.npc_id} sau khi đợi.")
-            return False 
+        # 2. Teleport đến NPC (dùng teleport_to_npc để đảm bảo mở được menu)
+        success = await self.controller.movement.teleport_to_npc(next_map.npc_id)
+        if not success:
+            logger.warning(f"Không tìm thấy NPC {next_map.npc_id} để teleport.")
+            return False
         
-        # 3. Thực hiện hành động
-        await self.controller.movement.teleport_to(target_npc['x'], target_npc['y'] - 3)
-        
+        # 3. Mở menu NPC
         await self.controller.account.service.open_menu_npc(next_map.npc_id)
         
         if next_map.index_npc != -1:
@@ -817,3 +826,7 @@ class XMap:
         char.cx = next_map.x
         char.cy = next_map.y
         await self.controller.account.service.char_move()
+        
+        # Thử gửi request change map sau khi đi bộ đến tọa độ (phòng trường hợp là cổng)
+        await asyncio.sleep(0.2)
+        await self.controller.account.service.request_change_map()

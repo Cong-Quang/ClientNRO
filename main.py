@@ -860,7 +860,10 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                         # Mode gọn cho nhiều account
                         quest_short = aq.quest_info.mob_name[:15] if aq.quest_info.is_valid else "-"
                         progress = f"{aq.quest_info.current_progress}/{aq.quest_info.target_count}" if aq.quest_info.is_valid else "-"
-                        print(f"[{C.YELLOW}{account.username:<12}{C.RESET}] {status:<18} | NV: {C.CYAN}{stats['quests_completed']}{C.RESET} | Quái: {C.GREEN}{stats['total_kills']}{C.RESET} | {quest_short:<15} {progress}")
+                        rem = stats.get('quests_remaining', 0)
+                        tot = stats.get('quests_total', 0)
+                        nv_str = f"{rem}/{tot}" if tot > 0 else f"{stats['quests_completed']}"
+                        print(f"[{C.YELLOW}{account.username:<12}{C.RESET}] {status:<18} | NV: {C.CYAN}{nv_str:<5}{C.RESET} | Quái: {C.GREEN}{stats['total_kills']}{C.RESET} | {quest_short:<15} {progress}")
                     else:
                         # Mode chi tiết cho 1 account
                         running_str = f"{C.GREEN}Đang chạy{C.RESET}" if is_running else f"{C.RED}Đã dừng{C.RESET}"
