@@ -43,6 +43,21 @@ class XMap:
 
     def init_map_data(self):
         """Khởi tạo dữ liệu kết nối giữa các bản đồ"""
+        # Định nghĩa các trường hợp ngoại lệ về hướng đi (Tuple: (From, To) -> Direction)
+        self.direction_overrides = {}
+        
+        # Các map có cổng nằm dọc (Trên/Dưới)
+        self.direction_overrides[(73, 74)] = "Up"   # Thung lũng chết -> Đồi cây Fide (Cổng trên)
+        self.direction_overrides[(74, 73)] = "Down" # Đồi cây Fide -> Thung lũng chết (Cổng dưới)
+
+        # Danh sách các map đi ngược (Cổng bên Trái thay vì Phải như mặc định)
+        # 71->72, 72->64, 64->65...
+        left_sequence = [71, 72, 64, 65, 63, 66, 67, 73]
+        for i in range(len(left_sequence) - 1):
+            u, v = left_sequence[i], left_sequence[i+1]
+            self.direction_overrides[(u, v)] = "Left"
+            self.direction_overrides[(v, u)] = "Right" # Chiều về thì đi bên Phải
+
         # Phân nhóm bản đồ để xác định hướng di chuyển (Trái/Phải/Giữa)
         self.map_groups = [
             [42, 21, 0, 1, 2, 3, 4, 5, 6, 27, 28, 29, 30, 47, 42, 24, 53, 58, 59, 60, 61, 62, 55, 56, 54, 57], # Trái Đất
@@ -307,6 +322,12 @@ class XMap:
         """Cập nhật trạng thái nhân vật và thực hiện bước di chuyển tiếp theo"""
         if not self.is_xmapping: return
         
+        # Kiểm tra kết nối
+        if not self.controller.account.session.connected:
+            logger.warning("XMap: Mất kết nối máy chủ. Dừng XMap ngay lập tức.")
+            self.finish()
+            return
+
         self.last_update = time.time()
 
         current_map = self.controller.tile_map.map_id
@@ -444,9 +465,18 @@ class XMap:
             logger.warning("Không tìm thấy điểm chuyển map nào.")
             return
 
+        # Debug Waypoints
+        for i, wp in enumerate(waypoints):
+            logger.info(f"WP[{i}]: {wp.name} (MinX={wp.min_x}, MaxX={wp.max_x}, MinY={wp.min_y}, MaxY={wp.max_y})")
+
         current_map_id = self.controller.tile_map.map_id
         next_map_id = next_map.map_id
         direction = self.get_map_direction(current_map_id, next_map_id)
+        
+        # Kiểm tra override hướng đi nếu có
+        if (current_map_id, next_map_id) in self.direction_overrides:
+            direction = self.direction_overrides[(current_map_id, next_map_id)]
+            logger.info(f"XMap Override: {current_map_id}->{next_map_id} ép hướng {direction}")
         
         # Sắp xếp các điểm chuyển map theo trục X
         sorted_wps = sorted(waypoints, key=lambda w: w.center_x)
@@ -466,12 +496,22 @@ class XMap:
                          target_wp = wp
                          break
             
-            # Logic chọn waypoint theo hướng Left/Right/Center
+            # Logic chọn waypoint theo hướng Left/Right/Up/Down/Center
             if target_wp is None:
                 if direction == "Left":
                     target_wp = sorted_wps[0] 
                 elif direction == "Right":
                     target_wp = sorted_wps[-1] 
+                elif direction == "Up":
+                    # Tìm cổng cao nhất (Y nhỏ nhất)
+                    sorted_y = sorted(waypoints, key=lambda w: w.center_y)
+                    target_wp = sorted_y[0]
+                    logger.info(f"Direction Up: Selected WP {target_wp.name} at Y={target_wp.center_y}")
+                elif direction == "Down":
+                    # Tìm cổng thấp nhất (Y lớn nhất)
+                    sorted_y = sorted(waypoints, key=lambda w: w.center_y)
+                    target_wp = sorted_y[-1]
+                    logger.info(f"Direction Down: Selected WP {target_wp.name} at Y={target_wp.center_y}")
                 elif direction == "Center":
                     if len(sorted_wps) > 1:
                         target_wp = sorted_wps[len(sorted_wps) // 2]
