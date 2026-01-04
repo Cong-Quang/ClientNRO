@@ -731,6 +731,12 @@ async def command_loop(manager: AccountManager):
             tasks = [handle_single_command(command, acc, compact_mode=is_compact, idx=real_idx) for real_idx, acc in online_targets_with_idx]
             results = await asyncio.gather(*tasks)
 
+            # Nếu là lệnh show nhiemvu, in kết quả đã thu thập để tránh bị loạn dòng
+            if "show nhiemvu" in command:
+                for success, msg in results:
+                    if success and msg and msg != "OK":
+                        print(msg)
+
             
             # Print per-account delivery status
             # Nếu là lệnh hiển thị thông tin (như pet info compact), ta không cần in trạng thái "Đã nhận" nữa vì nó sẽ làm rối
@@ -984,7 +990,7 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                      await account.service.request_task_info()
                      await asyncio.sleep(0.5)
                      from ui import display_task_info
-                     display_task_info(account, compact=compact_mode, idx=idx)
+                     return True, display_task_info(account, compact=compact_mode, idx=idx, print_output=False)
                 
                 else:
                     print(f"[{C.YELLOW}{account.username}{C.RESET}] Lệnh show con không xác định: {sub}")

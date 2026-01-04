@@ -178,7 +178,7 @@ def display_help():
     print(f"  {C.GREEN}show nhiemvu{C.RESET}        - Hiển thị thông tin nhiệm vụ chi tiết/danh sách.")
     print(f"\n{C.PURPLE}--- Lệnh chung ---{C.RESET}")
 
-def display_task_info(account, compact=False, idx: int = None):
+def display_task_info(account, compact=False, idx: int = None, print_output=True):
     """
     Hiển thị thông tin nhiệm vụ.
     - Compact: Dạng bảng.
@@ -187,18 +187,20 @@ def display_task_info(account, compact=False, idx: int = None):
     C = TerminalColors
     task = account.char.task
     
-    # Chuẩn bị dữ liệu
-    task_id = task.task_id
-    # Check for desync with raw ctask_id from ME_LOAD_ALL
-    raw_task_id = getattr(account.char, 'ctask_id', -1)    # Xử lý khi chưa có dữ liệu
+    # ... (header logic removed previously) ...
+
+    # Xử lý khi chưa có dữ liệu
     if not task or not task.name:
         if compact:
             idx_str = f"[{idx}]" if idx is not None else ""
             user_str = f"[{account.username}]"
-            print(f"{C.PURPLE}{idx_str:<3}{C.RESET} | {C.YELLOW}{user_str:<13}{C.RESET} | {C.GREY}No Data{C.RESET}")
+            line = f"{C.PURPLE}{idx_str:<3}{C.RESET} | {C.YELLOW}{user_str:<13}{C.RESET} | {C.GREY}No Data{C.RESET}"
+            if print_output: print(line)
+            return line
         else:
-            print(f"{C.YELLOW}[{account.username}] Chưa có thông tin nhiệm vụ.{C.RESET}")
-        return
+            msg = f"{C.YELLOW}[{account.username}] Chưa có thông tin nhiệm vụ.{C.RESET}"
+            if print_output: print(msg)
+            return msg
 
     # Chuẩn bị dữ liệu
     task_id = task.task_id
@@ -235,20 +237,25 @@ def display_task_info(account, compact=False, idx: int = None):
              prog_full = f"{prog_str} [{task.index}]"
 
         line = f"{C.PURPLE}{idx_str:<3}{C.RESET} | {C.YELLOW}{user_str:<13}{C.RESET} | {C.CYAN}{str(task_id):<3}{C.RESET} | {C.GREEN}{name_short:<30}{C.RESET} | {C.YELLOW}{step_short:<25}{C.RESET} | {C.PURPLE}{prog_full}{C.RESET}"
-        print(line)
+        if print_output: print(line)
+        return line
 
     else:
         # --- DETAILED MODE (Formatted exactly as requested) ---
-        print(f"{C.BOLD_RED}--- Nhiệm Vụ: {C.YELLOW}{account.username}{C.BOLD_RED} ---{C.RESET}")
-        
         id_display = f"{task_id}"
         if raw_task_id != -1 and raw_task_id != task_id:
              id_display = f"{task_id} {C.RED}(Server ID: {raw_task_id} - Mismatch!){C.RESET}"
              
-        print(f"  {C.GREEN}Tên NV  :{C.RESET} {task_name}{C.RESET} {C.GREY} [id:{id_display}] ")
-        print(f"  {C.GREEN}Bước    :{C.RESET} {sub_name} {C.GREY}(Index: {task.index}){C.RESET}")
-        print(f"  {C.GREEN}Tiến độ :{C.RESET} {C.PURPLE}{prog_str}{C.RESET}")
-        print(f"{C.BOLD_RED}--------------------------{C.RESET}\n")
+        lines = []
+        lines.append(f"{C.BOLD_RED}--- Nhiệm Vụ: {C.YELLOW}{account.username}{C.BOLD_RED} ---{C.RESET}")
+        lines.append(f"  {C.GREEN}Tên NV  :{C.RESET} {task_name}{C.RESET} {C.GREY} [id:{id_display}] ")
+        lines.append(f"  {C.GREEN}Bước    :{C.RESET} {sub_name} {C.GREY}(Index: {task.index}){C.RESET}")
+        lines.append(f"  {C.GREEN}Tiến độ :{C.RESET} {C.PURPLE}{prog_str}{C.RESET}")
+        lines.append(f"{C.BOLD_RED}--------------------------{C.RESET}\n")
+        
+        output = "\n".join(lines)
+        if print_output: print(output)
+        return output
 
 def short_number(num: int) -> str:
     """Định dạng số ngắn gọn (VD: 1.2tr, 5.5tỷ)."""

@@ -68,15 +68,24 @@ class Service:
     async def request_task_info(self):
         """Gửi yêu cầu cập nhật thông tin nhiệm vụ."""
         try:
-            # 1. Gửi TASK_GET (40)
+            # 1. Gửi TASK_GET (40) với byte 0
             msg = Message(Cmd.TASK_GET)
             msg.writer().write_byte(0)
             await self.session.send_message(msg)
             
-            # 2. Gửi ME_LOAD_ALL (-30, 0) để cập nhật ID nhiệm vụ gốc (để check desync)
+            # 2. Gửi TASK_GET (40) với byte 1 (đề phòng server khác)
+            msg2 = Message(Cmd.TASK_GET)
+            msg2.writer().write_byte(1)
+            await self.session.send_message(msg2)
+
+            # 3. Gửi GET_TASK_ORDER (96)
+            msg3 = Message(96) # Cmd.GET_TASK_ORDER
+            await self.session.send_message(msg3)
+
+            # 4. Gửi ME_LOAD_ALL (-30, 0) để cập nhật ID nhiệm vụ gốc
             await self.request_me_info()
             
-            logger.info("Đã gửi yêu cầu cập nhật nhiệm vụ (Cmd 40) & ME_LOAD_ALL")
+            logger.info("Đã gửi loạt yêu cầu cập nhật nhiệm vụ (Cmd 40 b=0/1, Cmd 96, Cmd -30)")
         except Exception as e:
             logger.error(f"Lỗi khi gửi yêu cầu cập nhật nhiệm vụ: {e}")
 

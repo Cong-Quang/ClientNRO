@@ -73,6 +73,8 @@ class Controller:
                 self.process_task_get(msg)
             elif cmd == Cmd.TASK_UPDATE:
                 self.process_task_update(msg)
+            elif cmd == Cmd.TASK_NEXT:
+                self.process_task_next(msg)
             elif cmd == Cmd.GAME_INFO:
                 self.process_game_info(msg)
             elif cmd == Cmd.MAP_INFO:
@@ -309,6 +311,32 @@ class Controller:
 
         except Exception as e:
             logger.error(f"Lỗi khi phân tích TASK_UPDATE: {e}")
+
+    def process_task_next(self, msg: Message):
+        """Xử lý chuyển bước nhiệm vụ (TASK_NEXT - 41)."""
+        try:
+            # Cmd 41 thường rỗng (len=0) nghĩa là next step.
+            char = self.account.char
+            
+            # Check if there is data
+            data = msg.get_data()
+            if data and len(data) > 0:
+                reader = msg.reader()
+                if reader.available() > 0:
+                    next_index = reader.read_byte()
+                    char.task.index = next_index
+                    logger.info(f"Chuyển bước nhiệm vụ (Cmd 41): Index -> {next_index}")
+                else:
+                    char.task.index += 1
+                    logger.info(f"Chuyển bước nhiệm vụ (Cmd 41): Index +1 -> {char.task.index} (Empty Reader)")
+            else:
+                # Empty packet = Increment index
+                char.task.index += 1
+                logger.info(f"Chuyển bước nhiệm vụ (Cmd 41): Index +1 -> {char.task.index} (No Data)")
+            
+            char.task.count = 0
+        except Exception as e:
+            logger.error(f"Lỗi khi xử lý TASK_NEXT: {e}")
 
     def process_game_info(self, msg: Message):
         """Đọc và ghi log chuỗi thông tin do server gửi (GAME_INFO)."""
