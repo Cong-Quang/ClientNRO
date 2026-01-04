@@ -477,3 +477,24 @@ def display_character_base_info(account):
     if char.name:
         print(f"  {C.CYAN}Nhân vật:{C.RESET} {char.name} ({C.YELLOW}ID: {char.char_id}{C.RESET})")
 
+def display_found_items(items, username, template_id):
+    """Hiển thị kết quả tìm kiếm item."""
+    C = TerminalColors
+    print(f"{C.CYAN}--- Kết quả tìm item ID {template_id} [{C.YELLOW}{username}{C.CYAN}] ---{C.RESET}")
+    if not items:
+        print(f"{C.RED}Không tìm thấy item nào với ID {template_id} trong hành trang.{C.RESET}")
+    else:
+        total_quantity = 0
+        print(f"{C.GREEN}{'STT':<4} | {'Tên (Info)':<30} | {'Số lượng':<10} | {'Index':<5} | {'Option'}{C.RESET}")
+        for i, item in enumerate(items):
+            info_str = item.info if item.info else f"Item {item.item_id}"
+            # Check options
+            opt_str = ""
+            if item.item_option:
+                opt_str = ", ".join([f"[{o.option_template_id}:{o.param}]" for o in item.item_option])
+            
+            print(f"{i+1:<4} | {info_str:<30} | {item.quantity:<10} | {item.index_ui:<5} | {opt_str}")
+            total_quantity += item.quantity
+        print(f"{C.CYAN}Tổng số lượng tìm thấy: {C.YELLOW}{total_quantity}{C.RESET}")
+    print(f"{C.CYAN}--------------------------------------------------{C.RESET}")
+

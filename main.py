@@ -679,7 +679,7 @@ async def command_loop(manager: AccountManager):
             valid_target_commands = [
                 "pet", "logger", "autoplay", "autopet", "blacklist", "gomap", 
                 "findnpc", "findmob", "teleport", "teleportnpc", "andau", "hit", "show", 
-                "csgoc", "opennpc", "khu", "congcs", "task"
+                "csgoc", "opennpc", "khu", "congcs", "task", "finditem", "useitem"
             ]
             if cmd_base not in valid_target_commands:
                 print(f"{C.RED}Lệnh không xác định: '{command}'. Gõ 'help'.{C.RESET}")
@@ -1040,6 +1040,33 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                 asyncio.create_task(account.controller.auto_upgrade_stats(t_hp, t_mp, t_sd))
             else:
                 print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: congcs <hp_goc> <mp_goc> <sd_goc>")
+        
+        elif cmd_base == "finditem":
+            if len(parts) == 2 and parts[1].isdigit():
+                item_id = int(parts[1])
+                items = account.controller.find_item_in_bag(item_id)
+                from ui import display_found_items
+                display_found_items(items, account.username, item_id)
+            else:
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: findItem <id>")
+
+        elif cmd_base == "useitem":
+            # useitem <id> [select] (default select=0)
+            if len(parts) >= 2 and parts[1].isdigit():
+                item_id = int(parts[1])
+                select = 0
+                if len(parts) > 2 and parts[2].isdigit():
+                    select = int(parts[2])
+                
+                if select not in [0, 1]:
+                    print(f"[{C.YELLOW}{account.username}{C.RESET}] Select phải là 0 (Sử dụng) hoặc 1 (Bán).")
+                    return True, "Invalid Select"
+
+                action_str = "Sử dụng" if select == 0 else "Bán"
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Đang {action_str} item ID {item_id}...")
+                asyncio.create_task(account.controller.use_item_by_id(item_id, select))
+            else:
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: useItem <id> [0=Use|1=Sell]")
                 
         else:
             print(f"[{C.YELLOW}{account.username}{C.RESET}] Lệnh không xác định: '{command}'. Gõ 'help'.")

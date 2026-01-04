@@ -1267,6 +1267,56 @@ class Controller:
         else:
             logger.warning(f"[{self.account.username}] Cần ăn đậu nhưng không tìm thấy trong hành trang.")
 
+    def find_item_in_bag(self, item_id: int):
+        """Tìm item trong hành trang và trả về danh sách kết quả."""
+        results = []
+        char = self.account.char
+        if not char.arr_item_bag:
+            return results
+            
+        for i, item in enumerate(char.arr_item_bag):
+            if item and item.item_id == item_id:
+                results.append(item)
+        return results
+
+    async def use_item_by_id(self, item_id: int, action_type: int):
+        """
+        Tìm và thực hiện hành động với item theo ID (sử dụng hoặc bán).
+        Mô phỏng lại logic C#: Duyệt qua bag, nếu gặp ID thì thực hiện action.
+        :param item_id: ID template của item.
+        :param action_type: 0 = Sử dụng, 1 = Bán.
+        """
+        char = self.account.char
+        if not char.arr_item_bag:
+            logger.warning(f"[{self.account.username}] Hành trang chưa tải hoặc rỗng.")
+            return
+
+        found = False
+        count_action = 0
+        for i, item in enumerate(char.arr_item_bag):
+            if item and item.item_id == item_id:
+                found = True
+                try:
+                    if action_type == 0:
+                        # Use: type=0 (bag), where=1 (me), index=i, template=-1
+                        await self.account.service.use_item(0, 1, i, -1)
+                        count_action += 1
+                        # Delay một chút để tránh spam quá nhanh nếu có nhiều item
+                        await asyncio.sleep(0.1)
+                    elif action_type == 1:
+                        # Sale: action=1, type=1, index=i
+                        await self.account.service.sale_item(1, 1, i)
+                        count_action += 1
+                        await asyncio.sleep(0.1)
+                except Exception as e:
+                    logger.error(f"[{self.account.username}] Lỗi khi xử lý item {item_id} tại index {i}: {e}")
+        
+        if not found:
+            logger.warning(f"[{self.account.username}] Không tìm thấy item ID {item_id} trong hành trang.")
+        else:
+            action_str = "Sử dụng" if action_type == 0 else "Bán"
+            logger.info(f"[{self.account.username}] Đã gửi yêu cầu {action_str} {count_action} item ID {item_id}.")
+
     async def attack_nearest_mob(self):
         """Tấn công quái vật gần nhất một lần."""
         char = self.account.char

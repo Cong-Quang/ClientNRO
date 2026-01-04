@@ -162,6 +162,24 @@ class Service:
         except Exception as e:
             logger.error(f"Lỗi khi gửi yêu cầu sử dụng vật phẩm: {e}")
 
+    async def sale_item(self, action: int, type: int, index: int):
+        """
+        Bán vật phẩm (Cmd 7).
+        :param action: 1 = bán
+        :param type: 1 = bán từ hành trang
+        :param index: vị trí ô đồ cần bán
+        """
+        try:
+            msg = Message(Cmd.ITEM_SALE) # Cmd 7
+            writer = msg.writer()
+            writer.write_byte(action)
+            writer.write_byte(type)
+            writer.write_short(index)
+            await self.session.send_message(msg)
+            logger.info(f"Đã gửi yêu cầu bán vật phẩm: action={action}, type={type}, index={index}")
+        except Exception as e:
+            logger.error(f"Lỗi khi gửi yêu cầu bán vật phẩm: {e}")
+
     async def get_item(self, type: int, index: int):
         """
         Lấy hoặc sử dụng một vật phẩm trên đối tượng khác (VD: đệ tử). (Cmd -40)

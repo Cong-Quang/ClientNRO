@@ -29,7 +29,9 @@ COMMAND_TREE = {
     "congcs": [],
     "andau": [],
     "hit": [],
-    "proxy": ["list"]
+    "proxy": ["list"],
+    "finditem": [],
+    "useitem": []
 }
 
 COMMAND_HISTORY = []
