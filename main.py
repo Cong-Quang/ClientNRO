@@ -677,7 +677,7 @@ async def command_loop(manager: AccountManager):
             # Define commands that are valid to be sent to accounts.
             # If the command is not in this list, it's an unknown command for a single account.
             valid_target_commands = [
-                "pet", "logger", "autoplay", "autopet", "blacklist", "gomap", 
+                "pet", "logger", "autoplay", "autopet", "autoquest", "blacklist", "gomap", 
                 "findnpc", "findmob", "teleport", "teleportnpc", "andau", "hit", "show", 
                 "csgoc", "opennpc", "khu", "congcs", "task", "finditem", "useitem"
             ]
@@ -727,6 +727,10 @@ async def command_loop(manager: AccountManager):
                  h_prog = "Tiến độ"
                  print(f"{C.PURPLE}{h_idx:<3}{C.RESET} | {C.RED}{h_user:<13}{C.RESET} | {C.CYAN}{h_id:<3}{C.RESET} | {C.GREEN}{h_name:<30}{C.RESET} | {C.YELLOW}{h_step:<25}{C.RESET} | {C.PURPLE}{h_prog}{C.RESET}")
                  print(f"{C.GREY}{'-'*105}{C.RESET}")
+            elif is_compact and "autoquest status" in command:
+                 # Header for autoquest status compact view
+                 print(f"{C.CYAN}{'Tài khoản':<14} | {'TT':<3} | {'Trạng thái':<18} | {'NV':<3} | {'Quái':<6} | {'Nhiệm vụ hiện tại':<15} {'Tiến độ'}{C.RESET}")
+                 print(f"{C.GREY}{'-'*90}{C.RESET}")
 
             tasks = [handle_single_command(command, acc, compact_mode=is_compact, idx=real_idx) for real_idx, acc in online_targets_with_idx]
             results = await asyncio.gather(*tasks)
@@ -832,6 +836,45 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                 print(f"[{C.YELLOW}{account.username}{C.RESET}] Đã {'BẬT' if status else 'TẮT'} autopet.")
             else:
                 print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: autopet <on|off>")
+        
+        elif cmd_base == "autoquest":
+            if len(parts) > 1:
+                sub = parts[1]
+                if sub == "on":
+                    account.controller.toggle_auto_quest(True)
+                    print(f"[{C.YELLOW}{account.username}{C.RESET}] {C.GREEN}Đã BẬT AutoQuest NV Bố Mộng{C.RESET}")
+                elif sub == "off":
+                    account.controller.toggle_auto_quest(False)
+                    # Hiển thị thống kê khi tắt
+                    stats = account.controller.auto_quest.get_stats()
+                    print(f"[{C.YELLOW}{account.username}{C.RESET}] {C.RED}Đã TẮT AutoQuest{C.RESET}")
+                    if stats["quests_completed"] > 0 or stats["total_kills"] > 0:
+                        print(f"Thống kê: {C.GREEN}{stats['quests_completed']}{C.RESET} NV | {C.CYAN}{stats['total_kills']}{C.RESET} quái | ⏱️ {stats['time_str']}")
+                elif sub == "status":
+                    aq = account.controller.auto_quest
+                    status = aq.current_state.value
+                    is_running = aq.is_running
+                    stats = aq.get_stats()
+                    
+                    if compact_mode:
+                        # Mode gọn cho nhiều account
+                        quest_short = aq.quest_info.mob_name[:15] if aq.quest_info.is_valid else "-"
+                        progress = f"{aq.quest_info.current_progress}/{aq.quest_info.target_count}" if aq.quest_info.is_valid else "-"
+                        print(f"[{C.YELLOW}{account.username:<12}{C.RESET}] {status:<18} | NV: {C.CYAN}{stats['quests_completed']}{C.RESET} | Quái: {C.GREEN}{stats['total_kills']}{C.RESET} | {quest_short:<15} {progress}")
+                    else:
+                        # Mode chi tiết cho 1 account
+                        running_str = f"{C.GREEN}Đang chạy{C.RESET}" if is_running else f"{C.RED}Đã dừng{C.RESET}"
+                        print(f"[{C.YELLOW}{account.username}{C.RESET}] AutoQuest NV Bố Mộng")
+                        print(f"Trạng thái: {running_str} | {C.CYAN}{status}{C.RESET}")
+                        print(f"Thống kê: {C.GREEN}{stats['quests_completed']}{C.RESET} NV hoàn thành | {C.CYAN}{stats['total_kills']}{C.RESET} quái đã giết | {stats['time_str']}")
+                        if aq.quest_info.is_valid:
+                            print(f"NV hiện tại: {C.PURPLE}{aq.quest_info.mob_name}{C.RESET} ({aq.quest_info.current_progress}/{aq.quest_info.target_count})")
+                        else:
+                            print(f"NV hiện tại: {C.GREY}Chưa có{C.RESET}")
+                else:
+                    print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: autoquest <on|off|status>")
+            else:
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: autoquest <on|off|status>")
 
         elif cmd_base == "blacklist":
                 # Commands: blacklist list | add <name|id> | remove <name|id> | clear

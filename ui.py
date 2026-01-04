@@ -169,6 +169,7 @@ def display_help():
     print(f"      {C.YELLOW}- autoplay remove <id1> [id2]...{C.RESET} : Xóa ID quái khỏi danh sách.")
     print(f"      {C.YELLOW}- autoplay list{C.RESET} : Xem danh sách quái đang chọn.")
     print(f"  {C.GREEN}autopet{C.RESET} {C.YELLOW}[on|off]{C.RESET}  - Bật hoặc tắt tự động nâng cấp đệ tử.")
+    print(f"  {C.GREEN}autoquest{C.RESET} {C.YELLOW}[on|off|status]{C.RESET} - Quản lý tự động làm nhiệm vụ Bò Mộng.")
     print(f"  {C.GREEN}findnpc{C.RESET}            - Liệt kê các NPC có trong bản đồ hiện tại.")
     print(f"  {C.GREEN}teleport{C.RESET} {C.YELLOW}<x> <y>{C.RESET}   - Dịch chuyển đến tọa độ (x, y).")
     print(f"  {C.GREEN}teleportnpc{C.RESET} {C.YELLOW}<id>{C.RESET} - Dịch chuyển đến NPC có ID là [id].")

@@ -10,6 +10,7 @@ from services.movement import MovementService
 from logic.auto_play import AutoPlay
 from logic.auto_pet import AutoPet
 from logic.xmap import XMap
+from logic.auto_NVBoMong import AutoQuest, BO_MONG_NPC_TEMPLATE_ID
 
 class Controller:
     """Quản lý xử lý tin nhắn và trạng thái game cho một tài khoản.
@@ -31,6 +32,14 @@ class Controller:
         self.auto_play = AutoPlay(self)
         self.auto_pet = AutoPet(self)
         self.xmap = XMap(self)
+        self.auto_quest = AutoQuest(self)
+
+    def toggle_auto_quest(self, enabled: bool):
+        """Bật hoặc tắt chế độ Auto Quest."""
+        if enabled:
+            self.auto_quest.start()
+        else:
+            self.auto_quest.stop()
 
     def toggle_autoplay(self, enabled: bool):
         """Bật hoặc tắt chế độ AutoPlay; khi bật, thêm task AutoPlay vào `account.tasks` nếu có."""
@@ -280,34 +289,26 @@ class Controller:
             
             char = self.account.char
             
-            # Check for short packet (Optimized packet: Only 2 bytes sent)
-            # LOGIC FIX: The short packet contains the CURRENT COUNT, not the Task ID.
+            # Gói tin ngắn chỉ chứa tiến độ
             if reader.available() == 0:
-                char.task.count = val
-                logger.info(f"Cập nhật nhiệm vụ (Ngắn): Tiến độ -> {val}")
+                new_count = val
+                if char.task.count != new_count:
+                    char.task.count = new_count
+                    logger.info(f"Cập nhật nhiệm vụ chính (Ngắn): Tiến độ -> {new_count}")
                 return
 
-            # Normal packet: task_id, index, count
+            # Gói tin đầy đủ
             task_id = val
-            if reader.available() < 3:
-                 logger.warning(f"TASK_UPDATE: Dữ liệu không đủ ({reader.available()} bytes).")
-                 return
-
             index = reader.read_byte()
             count = reader.read_short()
-            
-            # Verify if it matches current task
-            if char.task.task_id == task_id and char.task.index == index:
-                char.task.count = count
-                logger.info(f"Cập nhật nhiệm vụ (Cmd {msg.command}): [{task_id}] Bước {index} -> {count}")
+
+            if char.task.task_id == task_id:
+                if char.task.index != index or char.task.count != count:
+                    char.task.index = index
+                    char.task.count = count
+                    logger.info(f"Cập nhật NV chính: [{task_id}] Bước {index} -> {count}")
             else:
-                # If ID matches but index diff, maybe task changed step?
-                if char.task.task_id == task_id:
-                     char.task.index = index
-                     char.task.count = count
-                     logger.info(f"Cập nhật nhiệm vụ (Cmd {msg.command}): [{task_id}] Bước {index} -> {count}")
-                else:
-                     logger.warning(f"TASK_UPDATE bị bỏ qua: ID {task_id}, Idx {index} != CurID {char.task.task_id}")
+                logger.info(f"Nhận được cập nhật cho task ID {task_id} (không phải NV chính), tiến độ -> {count}")
 
         except Exception as e:
             logger.error(f"Lỗi khi phân tích TASK_UPDATE: {e}")
@@ -851,6 +852,8 @@ class Controller:
                 mob.status = 0
                 logger.info(f"Quái vật đã CHẾT: ID={mob_id} (ST: {damage})")
                 
+                # Báo cho auto quest biết có quái chết
+                self.auto_quest.increment_kill_count(mob.template_id)
 
                 if self.account.char.mob_focus == mob:
                     self.account.char.mob_focus = None
@@ -921,16 +924,15 @@ class Controller:
 
                 print(f"[{C.YELLOW}{self.account.username:<10}{C.RESET}] {C.CYAN}NPC {npc_template_id:<3}{C.RESET} | {C.WHITE}{summary:<50}{C.RESET} | {C.GREEN}Options: {options_summary}{C.RESET}")
                 self.account.last_opennpc_compact = False # Reset flag
-            else:
+            # else:
                 # Detailed mode for single account
-                print(f"[{C.YELLOW}{self.account.username}{C.RESET}] {C.CYAN}NPC Menu (Template: {npc_template_id}){C.RESET}:\n{formatted_chat}")
-                for i, opt in enumerate(options):
-                    single_line_opt = opt.replace('\n', ' ').strip()
-                    print(f"  {C.GREEN}[{i}]{C.RESET} {single_line_opt}")
+                # print(f"[{C.YELLOW}{self.account.username}{C.RESET}] {C.CYAN}NPC Menu (Template: {npc_template_id}){C.RESET}:\n{formatted_chat}")
+                # for i, opt in enumerate(options):
+                #     single_line_opt = opt.replace('\n', ' ').strip()
+                #     print(f"  {C.GREEN}[{i}]{C.RESET} {single_line_opt}")
 
-            # Pass Bo Mong NPC messages to the auto module
-            if npc_template_id == 17:
-                self.auto_bo_mong.handle_npc_message(menu_chat, options)
+            if npc_template_id == BO_MONG_NPC_TEMPLATE_ID:
+                self.auto_quest.parse_quest_info(menu_chat)
                 
         except Exception as e:
             logger.error(f"Lỗi khi phân tích OPEN_UI_CONFIRM: {e}")
@@ -945,7 +947,7 @@ class Controller:
             logger.info(f"Thông tin nhiệm vụ (Cmd {msg.command}): '{quest_text}'")
             
             # Chuyển thông tin này đến AutoBoMong để xử lý
-            self.auto_bo_mong.handle_npc_message(quest_text, [])
+            # self.auto_bo_mong.handle_npc_message(quest_text, [])
             
         except Exception as e:
             logger.error(f"Lỗi khi phân tích process_quest_info (Cmd {msg.command}): {e}")
@@ -962,7 +964,8 @@ class Controller:
             bo_mong_template_id = 17
             npc_data = self.npcs.get(npc_id)
             if npc_data and npc_data.get('template_id') == bo_mong_template_id:
-                self.auto_bo_mong.handle_npc_message(message, [])
+                pass
+                # self.auto_bo_mong.handle_npc_message(message, [])
 
         except Exception as e:
             logger.error(f"Lỗi khi phân tích NPC_CHAT: {e}")
