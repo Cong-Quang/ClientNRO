@@ -85,7 +85,7 @@ class MovementService:
         await self.controller.account.service.char_move()
         
         # 3. Wait for server to register position
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(0.02)
 
     async def enter_waypoint(self, waypoint_name: str = None, waypoint_index: int = None):
         """

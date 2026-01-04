@@ -1,7 +1,8 @@
 import time
 import asyncio
 import random
-from typing import List, Dict, Optional
+import heapq
+from typing import List, Dict, Optional, Tuple
 from logs.logger_config import logger, TerminalColors as C
 from network.service import Service
 
@@ -9,7 +10,8 @@ class NextMap:
     """Cấu trúc dữ liệu lưu thông tin để di chuyển sang bản đồ kế tiếp"""
     def __init__(self, map_id: int, npc_id: int = -1, select_name: str = "", select_name2: str = "", select_name3: str = "", 
                  walk: bool = False, x: int = -1, y: int = -1, item_id: int = -1, 
-                 index_npc: int = -1, index_npc2: int = -1, index_npc3: int = -1):
+                 index_npc: int = -1, index_npc2: int = -1, index_npc3: int = -1,
+                 capsule_index: int = -1):
         self.map_id = map_id
         self.npc_id = npc_id
         self.select_name = select_name
@@ -22,6 +24,7 @@ class NextMap:
         self.index_npc = index_npc
         self.index_npc2 = index_npc2
         self.index_npc3 = index_npc3
+        self.capsule_index = capsule_index
 
 class XMap:
     def __init__(self, controller):
@@ -30,6 +33,8 @@ class XMap:
         self.is_xmapping = False
         self.target_map_id = -1
         self.path = []
+        self.history = []
+        self.capsule_history = []
         self.last_update = 0
         self.update_interval =  0 # Tối ưu tốc độ
         self.processing_map_change = False
@@ -38,6 +43,21 @@ class XMap:
         
         self.dangerous_maps = set() # Lưu danh sách bản đồ có Boss/Nguy hiểm
         self.zone_changed_in_map = False
+        self.find_npc_in_future = False
+        
+        # --- Dữ liệu validation map ---
+        self.power_60b_maps = {155, 166}
+        self.power_40b_maps = {153, 154, 156, 157, 158, 159}
+        self.cold_maps = {105, 106, 107, 108, 109, 110}
+        self.future_maps = {102, 92, 93, 94, 96, 97, 98, 99, 100, 103}
+        self.clan_maps = {
+            # Khu vực bang hội
+            53, 54, 55, 56, 57, 58, 59, 60, 61, 62,
+            # Khí gas
+            147, 148, 149, 151, 152,
+            # Mảnh vỡ bông tai
+            153, 156, 157, 158, 159
+        }
         
         self.init_map_data()
 
@@ -48,7 +68,7 @@ class XMap:
         
         # Các map có cổng nằm dọc (Trên/Dưới)
         self.direction_overrides[(73, 74)] = "Up"   # Thung lũng chết -> Đồi cây Fide (Cổng trên)
-        self.direction_overrides[(74, 73)] = "Down" # Đồi cây Fide -> Thung lũng chết (Cổng dưới)
+        self.direction_overrides[(74, 73)] = "Left" # Đồi cây Fide -> Thung lũng chết (Cổng trái - Fix theo yêu cầu)
 
         # Danh sách các map đi ngược (Cổng bên Trái thay vì Phải như mặc định)
         # 71->72, 72->64, 64->65...
@@ -205,11 +225,11 @@ class XMap:
                 self.link_maps[u].append(NextMap(v_next))
 
     def add_npc_link(self, current, next_map, npc_id=-1, select_name="", select_name2="", select_name3="", 
-                     walk=False, x=-1, y=-1, item_id=-1, index_npc=-1, index_npc2=-1, index_npc3=-1):
+                     walk=False, x=-1, y=-1, item_id=-1, index_npc=-1, index_npc2=-1, index_npc3=-1, capsule_index=-1):
         """Thêm một liên kết chuyển map cụ thể thông qua NPC hoặc đi bộ tọa độ"""
         if current not in self.link_maps: self.link_maps[current] = []
         self.link_maps[current].append(NextMap(
-            next_map, npc_id, select_name, select_name2, select_name3, walk, x, y, item_id, index_npc, index_npc2, index_npc3
+            next_map, npc_id, select_name, select_name2, select_name3, walk, x, y, item_id, index_npc, index_npc2, index_npc3, capsule_index
         ))
 
     def add_portal_group(self, from_map, to_maps, npc_id, indices):
@@ -231,45 +251,133 @@ class XMap:
                         if inext == ic - 1: return "Left"  # Bên trái trong danh sách
         
         return "Center" # Mặc định ở giữa
+        
+    def check_has_capsule(self) -> Tuple[bool, int]:
+        """Kiểm tra xem nhân vật có Capsule (ID 194) không. Trả về (Has, BagIndex)."""
+        char = self.controller.account.char
+        if not char.arr_item_bag:
+            return False, -1
+        for i, item in enumerate(char.arr_item_bag):
+            if item and item.item_id == 194:
+                return True, i
+        return False, -1
+
+    def get_capsule_destinations(self) -> List[Tuple[int, int]]:
+        """
+        Trả về danh sách các điểm đến của Capsule với Index ĐỘNG.
+        Logic: 
+        1. Lấy danh sách map chuẩn từ server.
+        2. Lọc ra các map trùng với map hiện tại.
+        3. Xác định index dựa trên việc có "Về chỗ cũ" hay không.
+        """
+        gender = self.controller.account.char.gender
+        current_map_id = self.controller.tile_map.map_id
+        
+        home_map = {0: 21, 1: 22, 2: 23}.get(gender, 21)
+        station_map = {0: 24, 1: 25, 2: 26}.get(gender, 24)
+        
+        # Danh sách chuẩn theo thứ tự server (Master List)
+        # Key: Map ID, Value: Tên map (để debug)
+        master_maps = {
+            home_map: "Về nhà",
+            47: "Rừng Karin",
+            48: "Hành tinh Kaio",
+            0: "Làng Aru",
+            7: "Làng Mori",
+            14: "Làng Kakarot",
+            5: "Đảo Kame",
+            20: "Vách núi đen",
+            13: "Đảo Guru",
+            station_map: "Trạm tàu vũ trụ",
+            27: "Rừng Bamboo",
+            19: "Thành phố Vegeta",
+            79: "Núi khỉ đỏ",
+            84: "Siêu Thị",
+            83: "Hang khỉ đen",
+            166: "Hành tinh ngục tù",
+            121: "Đấu trường Jiren",
+            103: "Võ đài Xên bọ hung",
+            110: "Hang băng",
+        }
+        
+        available_dests = []
+        for map_id in master_maps.keys():
+            if map_id != current_map_id:
+                available_dests.append(map_id)
+        
+        # Logic "Về chỗ cũ": nếu map hiện tại là map vừa capsule tới,
+        # server sẽ thêm dòng "Về chỗ cũ" ở index 0.
+        # Điều này làm các index khác bị dịch xuống 1.
+        ui_offset = 0
+        if self.capsule_history and self.capsule_history[-1] == current_map_id:
+            ui_offset = 1
+
+        result = []
+        for i, map_id in enumerate(available_dests):
+            result.append((map_id, i + ui_offset))
+            
+        return result
 
     async def start(self, map_id: int, keep_dangerous: bool = False):
-        """Bắt đầu tiến trình XMap đến bản đồ mục tiêu"""
+        """Bắt đầu tiến trình XMap đến bản đồ mục tiêu với thuật toán tối ưu (Dijkstra + Capsule)"""
+        char = self.controller.account.char
+        gender = char.gender
+        home_map_ids = {0: 21, 1: 22, 2: 23} # TD, NM, XD
+
+        # Kiểm tra xem map mục tiêu có phải là nhà của hành tinh khác không
+        is_a_home_map = map_id in home_map_ids.values()
+        is_own_home_map = (map_id == home_map_ids.get(gender))
+
+        if is_a_home_map and not is_own_home_map:
+            planet_names = {0: "Trái Đất", 1: "Namek", 2: "Xayda"}
+            target_planet_name = "Không xác định"
+            for p_gender, p_map_id in home_map_ids.items():
+                if p_map_id == map_id:
+                    target_planet_name = planet_names.get(p_gender, "Không xác định")
+                    break
+            
+            username = getattr(self.controller.account, 'username', 'Unknown')
+            msg = f"Không thể vào nhà của hành tinh khác. Điểm đến ({target_planet_name}) không phù hợp."
+            
+            if logger.disabled:
+                print(f"\n[{C.YELLOW}{username}{C.RESET}] {C.RED}{msg}{C.RESET} {' ' * 20}")
+            else:
+                logger.error(f"[{username}] {msg}")
+            return
+
         self.is_xmapping = True
         self.target_map_id = map_id
         current_map = self.controller.tile_map.map_id
+        self.history = [current_map]
+        self.capsule_history = []
         
-        # Xóa dữ liệu bản đồ nguy hiểm cũ khi bắt đầu hành trình mới, trừ khi được yêu cầu giữ lại
         if not keep_dangerous:
             self.dangerous_maps.clear()
         
-        logger.info(f"Bắt đầu XMap: {current_map} -> {map_id}")
+        logger.info(f"Bắt đầu XMap (Smart): {current_map} -> {map_id}")
         
         if current_map == map_id:
             self.finish()
             return
 
-        # Tìm đường đi bằng thuật toán BFS
+        # Tìm đường đi tối ưu
         self.path = self.find_path(current_map, map_id)
+        
         if not self.path:
             logger.error(f"Không tìm thấy đường đi từ {current_map} đến {map_id}")
             self.finish()
         else:
-            logger.info(f"Đường đi: {self.path}")
+            # Format log đường đi cho gọn
+            path_str = " -> ".join(str(p) for p in self.path)
+            logger.info(f"Đường đi tối ưu ({len(self.path)-1} bước): {path_str}")
             asyncio.create_task(self.run_loop())
 
     async def go_home(self):
         """Tự động xác định map nhà dựa trên hành tinh (gender) và di chuyển về."""
         gender = self.controller.account.char.gender
-        # Mapping theo yêu cầu: 0=Trái Đất(0), 1=Namek(22), 2=Xayda(44)
-        home_map_ids = {
-            0: 0,   # Trái Đất
-            1: 22,  # Namek
-            2: 44   # Xayda
-        }
-        
-        target_home = home_map_ids.get(gender, 21) # Mặc định 21 nếu lỗi
-        
-        logger.info(f"Phát hiện hành tinh: {['Trái Đất', 'Namek', 'Xayda'][gender] if 0 <= gender <= 2 else 'Unknown'}. Về nhà: {target_home}")
+        home_map_ids = {0: 21, 1: 22, 2: 23} # Map ID nhà: 21 (TD), 22 (NM), 23 (XD)
+        target_home = home_map_ids.get(gender, 21)
+        logger.info(f"Về nhà: {target_home}")
         await self.start(target_home)
 
     async def run_loop(self):
@@ -279,18 +387,26 @@ class XMap:
             await asyncio.sleep(0.01)
 
     def finish(self):
-        """Kết thúc XMap"""
+        """Kết thúc XMap và hiển thị lộ trình đã đi"""
         self.is_xmapping = False
         self.processing_map_change = False
-        # nếu người dùng không bật logger, in dòng ra thông báo cho người dùng biết là đã tới
         username = getattr(self.controller.account, 'username', 'Unknown')
         
         current_map = self.controller.tile_map.map_id
+        
+        # Format lịch sử map đã đi
+        history_str = " -> ".join(map(str, self.history))
+        
+        # Format thông tin capsule nếu có dùng
+        capsule_str = ""
+        if self.capsule_history:
+            capsule_str = f" [{C.CYAN}Capsule: {', '.join(map(str, self.capsule_history))}{C.RESET}]"
+
         if current_map == self.target_map_id:
-            msg = f"Đã đến bản đồ mục tiêu: {C.GREEN}{self.target_map_id}{C.RESET}"
+            msg = f"Đã đến bản đồ mục tiêu: {C.GREEN}{self.target_map_id}{C.RESET}{capsule_str} {C.GREY}[{history_str}]{C.RESET}"
             log_func = logger.info
         else:
-            msg = f"XMap kết thúc. {C.RED}(Chưa đến đích: {current_map} -> {self.target_map_id}){C.RESET}"
+            msg = f"XMap kết thúc. {C.RED}(Chưa đến đích: {current_map} -> {self.target_map_id}){C.RESET} {C.GREY}[{history_str}]{C.RESET}"
             log_func = logger.warning
 
         if logger.disabled:
@@ -299,64 +415,188 @@ class XMap:
             log_func(f"\n[{C.YELLOW}{username}{C.RESET}] {msg} {' ' * 20}")
       
 
-    def find_path(self, start, end):
-        """Thuật toán tìm đường đi ngắn nhất (BFS)"""
-        if start == end: return [start]
-        queue = [(start, [start])]
-        visited = {start}
+    def _is_map_accessible(self, map_id: int, char) -> bool:
+        """Kiểm tra xem một bản đồ có thể truy cập được không dựa trên các yêu cầu."""
+        try:
+            # Yêu cầu sức mạnh
+            if map_id in self.power_60b_maps and char.c_power < 60_000_000_000:
+                return False
+            if map_id in self.power_40b_maps and char.c_power < 40_000_000_000:
+                return False
+
+            # Yêu cầu nhiệm vụ
+            task_id = char.task_main.id if hasattr(char, 'task_main') else 0
+            if map_id in self.cold_maps and task_id < 30: # Giả định cần xong nv 30
+                return False
+            if map_id in self.future_maps and task_id <= 24:
+                return False
+
+            # Yêu cầu bang hội
+            has_clan = hasattr(char, 'clan') and char.clan is not None
+            if map_id in self.clan_maps and not has_clan:
+                return False
+                
+        except Exception as e:
+            logger.error(f"Lỗi khi kiểm tra map {map_id}: {e}")
+            return False
+
+        return True
+
+    def find_path(self, start: int, end: int) -> List[int]:
+        """
+        Thuật toán tìm đường đi ngắn nhất (Dijkstra) kết hợp đi bộ và Capsule.
+        - Chi phí đi bộ/npc: 1
+        - Chi phí dùng capsule: 1.5 (Ưu tiên hơn đi bộ 2 map, nhưng kém hơn đi bộ 1 map)
+        """
+        if start == end:
+            return [start]
+
+        char = self.controller.account.char
+        costs: Dict[int, float] = {start: 0}
+        pq: List[Tuple[float, int]] = [(0, start)]
+        came_from: Dict[int, Optional[int]] = {start: None}
+
+        has_capsule, _ = self.check_has_capsule()
+        capsule_dests = []
+        if has_capsule:
+            capsule_dests = [dest[0] for dest in self.get_capsule_destinations()]
+
+        while pq:
+            current_cost, current_node = heapq.heappop(pq)
+
+            if current_cost > costs.get(current_node, float('inf')):
+                continue
+
+            if current_node == end:
+                break
+
+            # 1. Khám phá các đường đi bộ/NPC
+            if current_node in self.link_maps:
+                for next_map_obj in self.link_maps[current_node]:
+                    neighbor_node = next_map_obj.map_id
+                    if not self._is_map_accessible(neighbor_node, char):
+                        continue
+
+                    new_cost = current_cost + 1
+                    if new_cost < costs.get(neighbor_node, float('inf')):
+                        costs[neighbor_node] = new_cost
+                        came_from[neighbor_node] = current_node
+                        heapq.heappush(pq, (new_cost, neighbor_node))
+
+            # 2. Khám phá các đường đi bằng Capsule (nếu có)
+            if has_capsule:
+                CAPSULE_COST = 3.5
+                for dest_map in capsule_dests:
+                    if dest_map == current_node:
+                        continue
+                    if not self._is_map_accessible(dest_map, char):
+                        continue
+                        
+                    new_cost = current_cost + CAPSULE_COST
+                    if new_cost < costs.get(dest_map, float('inf')):
+                        costs[dest_map] = new_cost
+                        came_from[dest_map] = current_node
+                        heapq.heappush(pq, (new_cost, dest_map))
+
+        if end not in came_from:
+            return None
+
+        path = []
+        curr = end
+        while curr is not None:
+            path.append(curr)
+            curr = came_from.get(curr)
+        path.reverse()
         
-        while queue:
-            (vertex, path) = queue.pop(0)
-            if vertex not in self.link_maps: continue
-            
-            for next_map_obj in self.link_maps[vertex]:
-                neighbor = next_map_obj.map_id
-                if neighbor not in visited:
-                    if neighbor == end:
-                        return path + [neighbor]
-                    visited.add(neighbor)
-                    queue.append((neighbor, path + [neighbor]))
+        if path and path[0] == start:
+            return path
         return None
 
     async def update(self):
         """Cập nhật trạng thái nhân vật và thực hiện bước di chuyển tiếp theo"""
         if not self.is_xmapping: return
         
-        # Kiểm tra kết nối
         if not self.controller.account.session.connected:
-            logger.warning("XMap: Mất kết nối máy chủ. Dừng XMap ngay lập tức.")
             self.finish()
             return
 
-        self.last_update = time.time()
-
         current_map = self.controller.tile_map.map_id
+
+        # --- Xử lý logic đặc biệt cho map Siêu Thị (84) ---
+        if current_map == 84 and self.target_map_id != 84:
+            gender = self.controller.account.char.gender
+            station_map = {0: 24, 1: 25, 2: 26}.get(gender)
+
+            # Nếu đường đi không bắt đầu bằng việc thoát ra trạm vũ trụ, hãy tính toán lại
+            if not self.path or len(self.path) < 2 or self.path[1] != station_map:
+                logger.info("Đang ở Siêu Thị (84), định tuyến lại qua trạm vũ trụ...")
+                path_from_station = self.find_path(station_map, self.target_map_id)
+                
+                if path_from_station:
+                    self.path = [84] + path_from_station
+                    path_str = " -> ".join(str(p) for p in self.path)
+                    logger.info(f"Đường đi mới từ Siêu Thị: {path_str}")
+                else:
+                    logger.error(f"Không tìm thấy đường đi từ trạm vũ trụ ({station_map}) đến {self.target_map_id}")
+                    self.finish()
+                    return
         
-        # Nếu nhân vật đang chết, xử lý ngay (về nhà và dừng XMap)
+        # --- Xử lý logic đặc biệt cho map Tương Lai ---
+        is_target_future = self.target_map_id in self.future_maps
+        char = self.controller.account.char
+        task_id = char.task_main.id if hasattr(char, 'task_main') else 0
+
+        if is_target_future and task_id > 24:
+            npc_38_present = any(npc['template_id'] == 38 for npc in self.controller.npcs.values())
+            
+            # Nếu đang ở trong khu vực tìm kiếm (27, 28, 29) và chưa thấy NPC
+            if not npc_38_present and current_map in {27, 28, 29}:
+                path_overridden = False
+                if current_map == 27:
+                    # Đi từ 27 -> 28
+                    if not self.path or (len(self.path) > 1 and self.path[1] != 28):
+                        self.path = [27, 28]
+                        self.find_npc_in_future = False
+                        path_overridden = True
+                elif current_map == 28:
+                    # Đi từ 28 -> 29 (nếu đang đi tới) hoặc 28 -> 27 (nếu đang đi về)
+                    next_map = 27 if self.find_npc_in_future else 29
+                    if not self.path or (len(self.path) > 1 and self.path[1] != next_map):
+                        self.path = [28, next_map]
+                        path_overridden = True
+                elif current_map == 29:
+                     # Đi từ 29 -> 28, và đánh dấu là đang đi về
+                    if not self.path or (len(self.path) > 1 and self.path[1] != 28):
+                        self.path = [29, 28]
+                        self.find_npc_in_future = True
+                        path_overridden = True
+                
+                if path_overridden:
+                    logger.info(f"Logic Tương Lai: Ghi đè đường đi -> {' -> '.join(map(str, self.path))}")
+
+        self.last_update = time.time()
+        
+        # Theo dõi lịch sử di chuyển
+        if self.history and current_map != self.history[-1]:
+            self.history.append(current_map)
+
         try:
-            if getattr(self.controller.account.char, 'is_die', False):
-                logger.warning("XMap: Phát hiện nhân vật đã chết (HP == 0). Thực hiện về nhà và dừng XMap.")
+            if getattr(self.controller.account.char, 'is_die', False) or getattr(self.controller.account.char, 'c_hp', 1) == 0:
                 self.handle_death()
                 return
         except Exception:
-            # Fall back to direct HP check if property missing
-            if getattr(self.controller.account.char, 'c_hp', 1) == 0:
-                logger.warning("XMap: Phát hiện nhân vật đã chết (HP == 0). Thực hiện về nhà và dừng XMap.")
-                self.handle_death()
-                return
+            pass
 
         # Reset cờ đổi khu vực nếu đã sang map mới
         if not self.path or current_map != self.path[0]:
              self.zone_changed_in_map = False
 
-        # Xử lý né Boss: Nếu bản đồ này bị đánh dấu nguy hiểm, tự động đổi khu ngẫu nhiên
+        # Xử lý né Boss
         if current_map in self.dangerous_maps and not self.zone_changed_in_map:
             current_zone = self.controller.map_info.get('zone', 0)
             next_zone = random.randint(0, 10)
             while next_zone == current_zone:
                 next_zone = random.randint(0, 10)
-            
-            logger.warning(f"XMap: Bản đồ {current_map} nguy hiểm. Đang đổi sang khu {next_zone} để né Boss.")
             await self.controller.account.service.request_change_zone(next_zone)
             self.zone_changed_in_map = True
             return 
@@ -368,13 +608,12 @@ class XMap:
         # Kiểm tra trạng thái đang chờ đổi map
         if self.processing_map_change:
             if current_map == self.expected_next_map_id:
-                 logger.info(f"Đã sang map {current_map}. Tiếp tục hành trình.")
-                 logger.info(f"Đã sang map {current_map}. Tiếp tục hành trình.")
                  self.processing_map_change = False
                  self.last_action_time = 0
             elif time.time() - self.last_action_time > 5.0: 
-                 logger.warning("Quá thời gian đổi map. Đang thử lại...")
-                 self.processing_map_change = False
+                 logger.error(f"XMap thất bại: Quá thời gian chờ đổi sang map {self.expected_next_map_id}.")
+                 self.finish()
+                 return
             else:
                  return 
         
@@ -384,6 +623,7 @@ class XMap:
                  idx = self.path.index(current_map)
                  self.path = self.path[idx:]
              else:
+                 # Recalculate path from current location
                  self.path = self.find_path(current_map, self.target_map_id)
                  if not self.path:
                      self.finish()
@@ -394,7 +634,7 @@ class XMap:
 
         next_map_id = self.path[1]
         
-        # Tìm đối tượng kết nối tương ứng
+        # 1. Tìm liên kết vật lý có sẵn
         connection = None
         if current_map in self.link_maps:
             for nm in self.link_maps[current_map]:
@@ -402,44 +642,61 @@ class XMap:
                     connection = nm
                     break
         
+        # 2. Nếu không có liên kết vật lý, kiểm tra xem có phải là pha nhảy Capsule không
         if connection:
             await self.process_next_map(connection)
         else:
+            # Kiểm tra xem next_map_id có trong danh sách Capsule không
+            has_capsule, _ = self.check_has_capsule()
+            if has_capsule:
+                capsules = self.get_capsule_destinations()
+                capsule_idx = -1
+                for map_dest, idx in capsules:
+                    if map_dest == next_map_id:
+                        capsule_idx = idx
+                        break
+                
+                if capsule_idx != -1:
+                    logger.info(f"Phát hiện đường đi Capsule: {current_map} -> {next_map_id} (Index {capsule_idx})")
+                    virtual_connection = NextMap(next_map_id, capsule_index=capsule_idx)
+                    await self.process_next_map(virtual_connection)
+                    return
+
             logger.error(f"Không tìm thấy liên kết từ {current_map} đến {next_map_id}")
             self.finish()
 
     def handle_death(self):
-        """Được gọi khi nhân vật chết - Đánh dấu bản đồ này là nguy hiểm, gửi lệnh về nhà và dừng XMap."""
         current_map = self.controller.tile_map.map_id
         logger.warning(f"XMap: Nhân vật chết tại map {current_map}. Đánh dấu nguy hiểm.")
         self.dangerous_maps.add(current_map)
-
-        # Nếu đang trong quá trình XMap, gửi lệnh về nhà và kết thúc XMap
         if self.is_xmapping:
-            try:
-                asyncio.create_task(self.controller.account.service.return_town_from_dead())
-            except Exception as e:
-                logger.error(f"Lỗi khi cố gắng gửi ME_BACK sau khi chết: {e}")
-
-            # Dừng việc di chuyển tự động và xóa đường đi hiện tại
+            asyncio.create_task(self.controller.account.service.return_town_from_dead())
             self.finish()
             self.path = []
             self.processing_map_change = False
             self.expected_next_map_id = -1
 
     async def process_next_map(self, next_map: NextMap):
-        """Quyết định phương thức di chuyển (NPC, Đi bộ, hay Điểm chuyển map)"""
+        """Quyết định phương thức di chuyển"""
         current_map_id = self.controller.tile_map.map_id
+        
+        # Logic đặc biệt: Capsule Move
+        if next_map.capsule_index != -1:
+             await self.handle_capsule_move(next_map)
+             self.processing_map_change = True
+             self.expected_next_map_id = next_map.map_id
+             self.last_action_time = time.time()
+             return
+
         if current_map_id != self.path[0]:
-             logger.warning(f"XMap: Lệch đường! Hiện tại: {current_map_id}, Mong đợi: {self.path[0]}")
              self.processing_map_change = False
              return
 
         action_performed = False
-        # Hiển thị trạng thái di chuyển ra console cho người dùng khi logger tắt
         if logger.disabled:
             username = getattr(self.controller.account, 'username', 'Unknown')
             logger.info(f"[{C.YELLOW}{username}{C.RESET}] Đang di chuyển: {C.CYAN}{current_map_id}{C.RESET} -> {C.GREEN}{next_map.map_id}{C.RESET}...", end="\r")
+        
         if next_map.npc_id != -1:
             action_performed = await self.handle_npc_move(next_map)
         elif next_map.walk:
@@ -453,42 +710,54 @@ class XMap:
             action_performed = True
 
         if action_performed:
-            # Đánh dấu đang chờ đổi map (Non-blocking)
             self.processing_map_change = True
             self.expected_next_map_id = next_map.map_id
             self.last_action_time = time.time()
 
+    async def handle_capsule_move(self, next_map: NextMap):
+        """Thực hiện quy trình sử dụng Capsule"""
+        has_item, bag_index = self.check_has_capsule()
+        if not has_item or bag_index == -1:
+            logger.error("XMap: Cần dùng Capsule nhưng không tìm thấy item trong hành trang.")
+            return
+
+        idx_select = next_map.capsule_index
+        logger.info(f"Sử dụng Capsule (Slot {bag_index}) -> Chọn dòng {idx_select}")
+        
+        # Lưu vào lịch sử dùng capsule
+        self.capsule_history.append(next_map.map_id)
+        
+        # 1. Use Item
+        # useItem(type=0[bag], where=1[me], index=bag_index, template=-1)
+        await self.controller.account.service.use_item(0, 1, bag_index, -1)
+        
+        # Wait a bit for server to process item usage (Menu opens)
+        await asyncio.sleep(0.1) 
+        
+        # 2. Select Map
+        await self.controller.account.service.request_map_select(idx_select)
+        
+        # Wait for map change logic in update()
+        
     async def handle_waypoint_move(self, next_map: NextMap):
         """Xử lý di chuyển qua các điểm chuyển map (Waypoints)"""
         waypoints = self.controller.tile_map.waypoints
-        if not waypoints:
-            logger.warning("Không tìm thấy điểm chuyển map nào.")
-            return
-
-        # Debug Waypoints
-        for i, wp in enumerate(waypoints):
-            logger.info(f"WP[{i}]: {wp.name} (MinX={wp.min_x}, MaxX={wp.max_x}, MinY={wp.min_y}, MaxY={wp.max_y})")
+        if not waypoints: return
 
         current_map_id = self.controller.tile_map.map_id
         next_map_id = next_map.map_id
         direction = self.get_map_direction(current_map_id, next_map_id)
         
-        # Kiểm tra override hướng đi nếu có
         if (current_map_id, next_map_id) in self.direction_overrides:
             direction = self.direction_overrides[(current_map_id, next_map_id)]
-            logger.info(f"XMap Override: {current_map_id}->{next_map_id} ép hướng {direction}")
         
-        # Sắp xếp các điểm chuyển map theo trục X
         sorted_wps = sorted(waypoints, key=lambda w: w.center_x)
         target_wp = None
         
-        # Xử lý các trường hợp đặc biệt (ví dụ: Map 7 đi map 197 qua waypoint số 3)
-        if current_map_id == 7 and next_map_id == 197:
-            if len(waypoints) >= 3:
-                target_wp = waypoints[2] 
+        if current_map_id == 7 and next_map_id == 197 and len(waypoints) >= 3:
+            target_wp = waypoints[2] 
 
         if target_wp is None:
-            # Ưu tiên tìm điểm chuyển map ở trung tâm đối với các map nhà (42, 43, 44)
             BASE_MAPS = {42, 43, 44}
             if next_map_id in BASE_MAPS:
                  for wp in sorted_wps:
@@ -496,56 +765,44 @@ class XMap:
                          target_wp = wp
                          break
             
-            # Logic chọn waypoint theo hướng Left/Right/Up/Down/Center
             if target_wp is None:
-                if direction == "Left":
-                    target_wp = sorted_wps[0] 
-                elif direction == "Right":
-                    target_wp = sorted_wps[-1] 
-                elif direction == "Up":
-                    # Tìm cổng cao nhất (Y nhỏ nhất)
-                    sorted_y = sorted(waypoints, key=lambda w: w.center_y)
-                    target_wp = sorted_y[0]
-                    logger.info(f"Direction Up: Selected WP {target_wp.name} at Y={target_wp.center_y}")
-                elif direction == "Down":
-                    # Tìm cổng thấp nhất (Y lớn nhất)
-                    sorted_y = sorted(waypoints, key=lambda w: w.center_y)
-                    target_wp = sorted_y[-1]
-                    logger.info(f"Direction Down: Selected WP {target_wp.name} at Y={target_wp.center_y}")
-                elif direction == "Center":
-                    if len(sorted_wps) > 1:
-                        target_wp = sorted_wps[len(sorted_wps) // 2]
-                    else:
-                        target_wp = sorted_wps[0]
+                if direction == "Left": target_wp = sorted_wps[0] 
+                elif direction == "Right": target_wp = sorted_wps[-1] 
+                elif direction == "Up": target_wp = sorted(waypoints, key=lambda w: w.center_y)[0]
+                elif direction == "Down": target_wp = sorted(waypoints, key=lambda w: w.center_y)[-1]
+                elif direction == "Center": target_wp = sorted_wps[len(sorted_wps) // 2] if len(sorted_wps) > 1 else sorted_wps[0]
         
-        # Dự phòng cuối cùng
-        if target_wp is None and waypoints:
-            target_wp = waypoints[0]
+        if target_wp is None and waypoints: target_wp = waypoints[0]
 
-        logger.info(f"XMap: Đi {current_map_id}->{next_map_id} (Hướng: {direction}). Chọn WP: {target_wp.name}")
         await self.controller.movement.enter_waypoint(waypoint_index=waypoints.index(target_wp))
 
     async def handle_npc_move(self, next_map: NextMap) -> bool:
-        """Xử lý tương tác với NPC để chuyển map"""
-        target_npc = None
-        max_retries = 10
-        # Tìm NPC cụ thể trong map
-        for _ in range(max_retries):
+        """Xử lý tương tác với NPC để chuyển map (Tối ưu)"""
+        
+        def find_target_npc():
             for npc in self.controller.npcs.values():
                 if npc['template_id'] == next_map.npc_id:
-                    target_npc = npc
+                    return npc
+            return None
+
+        # 1. Kiểm tra ngay lập tức xem NPC đã có chưa
+        target_npc = find_target_npc()
+
+        # 2. Nếu chưa có (mới vào map), đợi tối đa 0.1s
+        if not target_npc:
+            for _ in range(10): # 10 lần * 0.01s = 0.1s
+                await asyncio.sleep(0.01)
+                target_npc = find_target_npc()
+                if target_npc:
                     break
-            
-            if target_npc:
-                logger.info(f"Tìm thấy NPC {next_map.npc_id}. Đang tiến tới...")
-                await self.controller.movement.teleport_to(target_npc['x'], target_npc['y'] - 3)
-                break
-            await asyncio.sleep(0.01)
-        else:
-            logger.warning(f"Không tìm thấy NPC {next_map.npc_id} sau nhiều lần thử.")
+        
+        if not target_npc:
+            logger.warning(f"Không tìm thấy NPC {next_map.npc_id} sau khi đợi.")
             return False 
         
-        # Mở menu và chọn các tùy chọn tương ứng
+        # 3. Thực hiện hành động
+        await self.controller.movement.teleport_to(target_npc['x'], target_npc['y'] - 3)
+        
         await self.controller.account.service.open_menu_npc(next_map.npc_id)
         
         if next_map.index_npc != -1:
@@ -556,12 +813,7 @@ class XMap:
         return True
 
     async def handle_walk_move(self, next_map: NextMap):
-        """Xử lý đi bộ đến tọa độ để kích hoạt chuyển map"""
         char = self.controller.account.char
         char.cx = next_map.x
         char.cy = next_map.y
         await self.controller.account.service.char_move()
-
-    async def handle_item_move(self, next_map: NextMap):
-        """Xử lý sử dụng vật phẩm (Chưa triển khai logic cụ thể)"""
-        pass

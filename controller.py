@@ -548,48 +548,65 @@ class Controller:
 
 
                 try:
-
                     num_body_items = reader.read_byte()
                     for _ in range(num_body_items):
+                        if reader.available() < 2: break
                         template_id = reader.read_short()
                         if template_id != -1:
-                            reader.read_int()
-                            reader.read_utf()
-                            reader.read_utf()
+                            if reader.available() < 4: break
+                            reader.read_int() # quantity
+                            if reader.available() < 1: break
+                            # Skip reading strings for now to avoid complexity
+                            reader.read_utf() # info
+                            reader.read_utf() # content
+                            if reader.available() < 1: break
                             num_options = reader.read_ubyte()
                             for _ in range(num_options):
-                                reader.read_short()
-                                reader.read_int()
+                                if reader.available() < 3: break
+                                reader.read_byte() # opt id
+                                reader.read_short() # opt param
                 except Exception as e:
                     logger.error(f"Lỗi khi phân tích Body Items: {e}")
 
                 try:
+                    if reader.available() < 1: return
                     num_bag_items = reader.read_byte()
                     for _ in range(num_bag_items):
+                        if reader.available() < 2: break
                         template_id = reader.read_short()
                         if template_id != -1:
+                            if reader.available() < 4: break
                             reader.read_int()
+                            if reader.available() < 1: break
                             reader.read_utf()
                             reader.read_utf()
+                            if reader.available() < 1: break
                             num_options = reader.read_ubyte()
                             for _ in range(num_options):
+                                if reader.available() < 3: break
+                                reader.read_byte()
                                 reader.read_short()
-                                reader.read_int()
                 except Exception as e:
                     logger.error(f"Lỗi khi phân tích Bag Items: {e}")
-
+                
                 try:
+                    if reader.available() < 1: return
                     num_box_items = reader.read_byte()
                     for _ in range(num_box_items):
+                        if reader.available() < 2: break
                         template_id = reader.read_short()
                         if template_id != -1:
+                            if reader.available() < 4: break
                             reader.read_int()
+                            if reader.available() < 1: break
                             reader.read_utf()
                             reader.read_utf()
+                            if reader.available() < 1: break
                             num_options = reader.read_ubyte()
                             for _ in range(num_options):
+                                if reader.available() < 3: break
+                                reader.read_byte()
                                 reader.read_short()
-                                reader.read_int()
                 except Exception as e:
                     logger.error(f"Lỗi khi phân tích Box Items: {e}")
 
@@ -621,6 +638,20 @@ class Controller:
                 old_mp = char.c_mp
                 char.c_mp = reader.read_int()
                 logger.info(f"Cập nhật MP: {old_mp} -> {char.c_mp}")
+
+            elif sub_cmd == 61: # Unhandled sub-command
+                if reader.available() > 0:
+                    remaining = reader.read_remaining()
+                    logger.info(f"SUB_COMMAND (Lệnh {msg.command}) sub_cmd 61: Payload Hex: {remaining.hex()}")
+                else:
+                    logger.info(f"SUB_COMMAND (Lệnh {msg.command}) sub_cmd 61 (empty)")
+
+            elif sub_cmd == 14: # Unhandled sub-command (frequent)
+                if reader.available() > 0:
+                    remaining = reader.read_remaining()
+                    logger.info(f"SUB_COMMAND (Lệnh {msg.command}) sub_cmd 14: Payload Hex: {remaining.hex()}")
+                else:
+                    logger.info(f"SUB_COMMAND (Lệnh {msg.command}) sub_cmd 14 (empty)")
 
             else:
                 logger.info(f"SUB_COMMAND (Lệnh {msg.command}) lệnh phụ chưa xử lý: {sub_cmd}")
@@ -873,9 +904,28 @@ class Controller:
             logger.info(f"NPC Menu (Template ID {npc_template_id}): '{menu_chat}'")
             for i, opt in enumerate(options):
                 logger.info(f"  [{i}] {opt}")
+            
+            # Pass Bo Mong NPC messages to the auto module
+            if npc_template_id == 17:
+                self.auto_bo_mong.handle_npc_message(menu_chat, options)
                 
         except Exception as e:
             logger.error(f"Lỗi khi phân tích OPEN_UI_CONFIRM: {e}")
+
+    def process_quest_info(self, msg: Message):
+        """Xử lý thông tin nhiệm vụ (phỏng đoán từ Cmd 93)."""
+        try:
+            reader = msg.reader()
+            # Cấu trúc của gói tin này chưa rõ, giả định nó chứa một chuỗi UTF
+            # có chứa chi tiết nhiệm vụ mà AutoBoMong đang chờ.
+            quest_text = reader.read_utf()
+            logger.info(f"Thông tin nhiệm vụ (Cmd {msg.command}): '{quest_text}'")
+            
+            # Chuyển thông tin này đến AutoBoMong để xử lý
+            self.auto_bo_mong.handle_npc_message(quest_text, [])
+            
+        except Exception as e:
+            logger.error(f"Lỗi khi phân tích process_quest_info (Cmd {msg.command}): {e}")
 
     def process_npc_chat(self, msg: Message):
         """Ghi log nội dung chat của NPC (NPC_CHAT)."""
@@ -884,6 +934,14 @@ class Controller:
             npc_id = reader.read_short()
             message = reader.read_utf()
             logger.info(f"NPC Chat (Cmd {msg.command}): NPC_ID={npc_id}, Nội dung='{message}'")
+
+            # Check if this NPC is Bo Mong and pass the message
+            # We need to check against the template_id stored in self.npcs
+            bo_mong_template_id = 17
+            npc_data = self.npcs.get(npc_id)
+            if npc_data and npc_data.get('template_id') == bo_mong_template_id:
+                self.auto_bo_mong.handle_npc_message(message, [])
+
         except Exception as e:
             logger.error(f"Lỗi khi phân tích NPC_CHAT: {e}")
             
