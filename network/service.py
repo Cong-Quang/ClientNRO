@@ -65,6 +65,21 @@ class Service:
         await self.session.send_message(msg)
         logger.warning(f"Dịch chuyển tới ({my_char.cx}, {my_char.cy}) [Loại=1, Send Y={num2!=0}]")
 
+    async def request_task_info(self):
+        """Gửi yêu cầu cập nhật thông tin nhiệm vụ."""
+        try:
+            # 1. Gửi TASK_GET (40)
+            msg = Message(Cmd.TASK_GET)
+            msg.writer().write_byte(0)
+            await self.session.send_message(msg)
+            
+            # 2. Gửi ME_LOAD_ALL (-30, 0) để cập nhật ID nhiệm vụ gốc (để check desync)
+            await self.request_me_info()
+            
+            logger.info("Đã gửi yêu cầu cập nhật nhiệm vụ (Cmd 40) & ME_LOAD_ALL")
+        except Exception as e:
+            logger.error(f"Lỗi khi gửi yêu cầu cập nhật nhiệm vụ: {e}")
+
     async def request_change_map(self):
         # Mã lệnh (CMD): -23 (ĐỔI_BẢN_ĐỒ)
         msg = Message(-23)

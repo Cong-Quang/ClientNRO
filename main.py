@@ -450,12 +450,20 @@ async def command_loop(manager: AccountManager):
                 continue
 
             elif cmd_base == "logout":
-                # logout <index> hoặc logout all hoặc logout 1,2,3 hoặc logout <group>
-                if len(parts) < 2:
+                # logout [target]
+                target = None
+                if len(parts) >= 2:
+                    target = parts[1]
+                elif manager.command_target is not None:
+                     if isinstance(manager.command_target, int):
+                         target = str(manager.command_target)
+                     else:
+                         target = manager.command_target
+                
+                if not target:
                     print("Sử dụng: logout <index|list|all|group_name>")
                     continue
                 
-                target = parts[1]
                 accounts_to_logout = []
 
                 if target == "all":
@@ -679,21 +687,28 @@ async def command_loop(manager: AccountManager):
 
             # --- Command Execution ---
             target_accounts = manager.get_target_accounts()
-            # Lọc chỉ gửi lệnh cho acc online, trừ lệnh 'login' (nhưng login đã xử lý riêng ở trên)
-            online_targets = [acc for acc in target_accounts if acc.is_logged_in]
-            
-            if not online_targets:
+            # Lọc chỉ gửi lệnh cho acc online, giữ lại index gốc để hiển thị đúng
+            online_targets_with_idx = []
+            for acc in target_accounts:
+                if acc.is_logged_in:
+                    try:
+                        real_idx = manager.accounts.index(acc)
+                        online_targets_with_idx.append((real_idx, acc))
+                    except ValueError:
+                        pass
+
+            if not online_targets_with_idx:
                 print("Không có mục tiêu nào đang online để thực hiện lệnh.")
                 continue
             
-            # Build a readable recipient list (index and username, show offline if any)
+            # Build a readable recipient list
             recipients = []
-            for i, acc in enumerate(online_targets):
+            for idx, acc in online_targets_with_idx:
                 recipients.append(f"[{C.YELLOW}{acc.username}{C.RESET}]")
-            print(f"Đang gửi lệnh '{C.PURPLE}{command}{C.RESET}' đến {len(online_targets)} tài khoản: {', '.join(recipients)}")
+            print(f"Đang gửi lệnh '{C.PURPLE}{command}{C.RESET}' đến {len(online_targets_with_idx)} tài khoản: {', '.join(recipients)}")
             
             # Xác định chế độ hiển thị gọn (compact) nếu gửi cho nhiều hơn 1 tài khoản
-            is_compact = len(online_targets) > 1
+            is_compact = len(online_targets_with_idx) > 1
             if is_compact and "pet info" in command:
                  # Gọn hơn: Username | Id | Tên Đệ | Trạng thái | HP | MP | SM | SĐ
                  print(f"{C.CYAN}{'Tài khoản':<15} {'ID':<4} {'Tên Đệ':<12} | {'TT':<6} | {'HP':>7} | {'MP':>7} | {'SM':>7} | {'SĐ':>7}{C.RESET}")
@@ -703,8 +718,17 @@ async def command_loop(manager: AccountManager):
             elif is_compact and command.strip() == "show":
                  # Header matching ui.py columns (right-aligned numbers)
                  print(f"{C.CYAN}{'Tài khoản':<19} | {'Bản đồ':<18} | {'ID':<3} | {'Khu':<3} | {'Tọa độ':<8} | {'HP':>8} | {'MP':>7} | {'SM':>7} | {'SĐ':>7} | {'Chức năng':<14}{C.RESET}")
+            elif is_compact and command.strip() == "show nhiemvu":
+                 h_idx = "Idx"
+                 h_user = "User"
+                 h_id = "ID"
+                 h_name = "Tên NV"
+                 h_step = "Bước"
+                 h_prog = "Tiến độ"
+                 print(f"{C.PURPLE}{h_idx:<3}{C.RESET} | {C.RED}{h_user:<13}{C.RESET} | {C.CYAN}{h_id:<3}{C.RESET} | {C.GREEN}{h_name:<30}{C.RESET} | {C.YELLOW}{h_step:<25}{C.RESET} | {C.PURPLE}{h_prog}{C.RESET}")
+                 print(f"{C.GREY}{'-'*105}{C.RESET}")
 
-            tasks = [handle_single_command(command, acc, compact_mode=is_compact, idx=i) for i, acc in enumerate(online_targets)]
+            tasks = [handle_single_command(command, acc, compact_mode=is_compact, idx=real_idx) for real_idx, acc in online_targets_with_idx]
             results = await asyncio.gather(*tasks)
 
             
@@ -957,6 +981,8 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                      display_character_base_stats(account, compact=compact_mode, idx=idx)
                 
                 elif sub == "nhiemvu":
+                     await account.service.request_task_info()
+                     await asyncio.sleep(0.5)
                      from ui import display_task_info
                      display_task_info(account, compact=compact_mode, idx=idx)
                 
@@ -996,9 +1022,7 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                 await account.service.request_change_zone(zone_id)
             else:
                 print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: khu <số khu>")    
-
-                
-                print(f"[{C.YELLOW}{account.username}{C.RESET}] {C.GREEN}{info}{C.RESET}")
+              #  print(f"[{C.YELLOW}{account.username}{C.RESET}] {C.GREEN}{info}{C.RESET}")
 
         elif cmd_base == "congcs":
             # congcs <hp> <mp> <sd>

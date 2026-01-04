@@ -1,5 +1,6 @@
 from logs.logger_config import logger 
 import asyncio
+import struct
 from network.message import Message
 from cmd import Cmd
 from network.reader import Reader
@@ -273,22 +274,39 @@ class Controller:
         """Cập nhật tiến độ nhiệm vụ (TASK_UPDATE)."""
         try:
             reader = msg.reader()
-            task_id = reader.read_short()
+            val = reader.read_short()
+            
+            char = self.account.char
+            
+            # Check for short packet (Optimized packet: Only 2 bytes sent)
+            # LOGIC FIX: The short packet contains the CURRENT COUNT, not the Task ID.
+            if reader.available() == 0:
+                char.task.count = val
+                logger.info(f"Cập nhật nhiệm vụ (Ngắn): Tiến độ -> {val}")
+                return
+
+            # Normal packet: task_id, index, count
+            task_id = val
+            if reader.available() < 3:
+                 logger.warning(f"TASK_UPDATE: Dữ liệu không đủ ({reader.available()} bytes).")
+                 return
+
             index = reader.read_byte()
             count = reader.read_short()
             
-            char = self.account.char
             # Verify if it matches current task
             if char.task.task_id == task_id and char.task.index == index:
                 char.task.count = count
                 logger.info(f"Cập nhật nhiệm vụ (Cmd {msg.command}): [{task_id}] Bước {index} -> {count}")
             else:
                 # If ID matches but index diff, maybe task changed step?
-                # Usually TASK_GET is sent on step change, but TASK_UPDATE is for count.
                 if char.task.task_id == task_id:
                      char.task.index = index
                      char.task.count = count
                      logger.info(f"Cập nhật nhiệm vụ (Cmd {msg.command}): [{task_id}] Bước {index} -> {count}")
+                else:
+                     logger.warning(f"TASK_UPDATE bị bỏ qua: ID {task_id}, Idx {index} != CurID {char.task.task_id}")
+
         except Exception as e:
             logger.error(f"Lỗi khi phân tích TASK_UPDATE: {e}")
 
@@ -1130,39 +1148,45 @@ class Controller:
                 reader.read_utf()
                 
             # Npc Templates
-            num_npcs = reader.read_byte()
+            num_npcs = reader.read_ubyte()
             for _ in range(num_npcs):
                 reader.read_utf() # name
                 reader.read_short() # head
                 reader.read_short() # body
                 reader.read_short() # leg
-                num_menu = reader.read_byte()
+                num_menu = reader.read_ubyte()
                 for _ in range(num_menu):
-                    num_str = reader.read_byte()
+                    num_str = reader.read_ubyte()
                     for _ in range(num_str):
                         reader.read_utf()
             
             # Mob Templates
             from model.game_objects import MOB_TEMPLATES, MobTemplate
-            num_mobs = reader.read_byte()
-            count = 0
-            for i in range(num_mobs):
-                t = MobTemplate()
-                t.mob_template_id = i
-                t.type = reader.read_byte()
-                t.name = reader.read_utf()
-                t.hp = reader.read_int()
-                t.range_move = reader.read_byte()
-                t.speed = reader.read_byte()
-                t.dart_type = reader.read_byte()
-                
-                MOB_TEMPLATES[i] = t
-                count += 1
-            
-            logger.info(f"Đã cập nhật {count} Mob Templates từ gói UPDATE_MAP.")
+            try:
+                num_mobs = reader.read_ubyte()
+                count = 0
+                for i in range(num_mobs):
+                    t = MobTemplate()
+                    t.mob_template_id = i
+                    t.type = reader.read_byte()
+                    t.name = reader.read_utf()
+                    t.hp = reader.read_int()
+                    t.range_move = reader.read_byte()
+                    t.speed = reader.read_byte()
+                    t.dart_type = reader.read_byte()
+                    
+                    MOB_TEMPLATES[i] = t
+                    count += 1
+                logger.info(f"Đã cập nhật {count} Mob Templates từ gói UPDATE_MAP.")
+            except struct.error:
+                 logger.warning(f"UPDATE_MAP: Dữ liệu Mob không đầy đủ (có thể do bản đồ cache hoặc gói tin ngắn). Đã đọc {count} mobs. Size={len(msg.get_data())}")
             
         except Exception as e:
             logger.error(f"Lỗi khi xử lý UPDATE_MAP: {e}")
+            try:
+                logger.error(f"Packet data (hex): {msg.get_data().hex()}")
+            except:
+                pass
             import traceback
             traceback.print_exc()
         """Xử lý gói tin liên quan đến Mabu và ghi lại trạng thái (MABU)."""

@@ -102,4 +102,35 @@ target 7
 khu 7
 
 target 8
-khu 8
+khu 9
+
+[nhiemvu]
+group create upnhv 1,2,3,4,5,6,7,8
+target upnhv
+login
+target 1
+khu 1
+
+target 2
+khu 2
+
+target 3
+khu 3
+
+target 4
+khu 4
+
+target 5
+khu 5
+
+target 6
+khu 6
+
+target 7
+khu 7
+
+target 8
+khu 9
+sleep 5
+target upnhv
+show
