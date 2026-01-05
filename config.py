@@ -25,7 +25,7 @@ class Config:
 
     # USE_LOCAL_IP_FIRST: True/False — True để ưu tiên gán 5 IP local cho 1 tài khoản trước khi dùng proxy.
     # False để bỏ qua IP local và gán trực tiếp 5 tài khoản cho 1 proxy.
-    USE_LOCAL_IP_FIRST = False     
+    USE_LOCAL_IP_FIRST = True     
     
     # ACCOUNTS: list dict tài khoản; mỗi dict cần 'username' và 'password', có thể thêm 'proxy' (tuỳ chọn)
     ACCOUNTS = [

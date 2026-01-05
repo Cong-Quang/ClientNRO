@@ -428,7 +428,7 @@ class XMap:
             log_func = logger.warning
 
         if logger.disabled:
-            print(f"\n[{C.YELLOW}{username}{C.RESET}] {msg} {' ' * 20}")
+            print(f"[{C.YELLOW}{username}{C.RESET}] {msg} {' ' * 20}")
         else:
             log_func(f"\n[{C.YELLOW}{username}{C.RESET}] {msg} {' ' * 20}")
       

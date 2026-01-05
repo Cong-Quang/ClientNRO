@@ -68,6 +68,7 @@ class AutoPlay:
                 mob_focus = None
 
         # 2. Tìm mục tiêu mới nếu mục tiêu cũ không hợp lệ
+        force_move = False  # Cờ buộc di chuyển khi chọn mục tiêu mới
         if not target_valid:
             best_mob = None
             min_dist = 999999
@@ -88,6 +89,7 @@ class AutoPlay:
             if best_mob:
                 my_char.mob_focus = best_mob
                 mob_focus = best_mob
+                force_move = True  # Buộc di chuyển đến mục tiêu mới
                 # logger.info(f"Auto: Tìm thấy mục tiêu {best_mob.mob_id}")
             else:
                 return
@@ -104,7 +106,15 @@ class AutoPlay:
             dist_y = abs(mob_focus.y - my_char.cy) # cho quoái bay
             
             # Y luôn phải bằng với Y của mob khi tấn công
-            if dist_y > 10 or dist_x > 60:
+            # force_move = True khi chọn mục tiêu mới để đảm bảo di chuyển đến mob ngay lập tức
+            if force_move or dist_y > 10 or dist_x > 60:
+                # Khi chọn mục tiêu mới, teleport về 100,100 trước để fix bug phát đầu tiên
+                if force_move:
+                    my_char.cx = 100
+                    my_char.cy = 100
+                    await service.char_move()
+                    await asyncio.sleep(0.01)
+                
                 logger.info(f"Auto: Dịch chuyển tới Quái {mob_focus.mob_id}")
                 my_char.cx = mob_focus.x
                 my_char.cy = mob_focus.y  # Y luôn bằng Y của mob
