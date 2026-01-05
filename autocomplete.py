@@ -8,7 +8,7 @@ COMMAND_TREE = {
     "logger": ["on", "off"],
     "autoplay": ["on", "off", "add", "remove", "list"],
     "autopet": ["on", "off"],
-    "autoquest": ["on", "off", "status"],
+    "autobomong": ["on", "off", "status"],
     "autoLogin": ["on", "off"],
     "exit": [],
     "cls": [],

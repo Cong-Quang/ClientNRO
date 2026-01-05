@@ -3,8 +3,13 @@ import os
 import shutil
 from config import Config
 from account import Account
-from logs.logger_config import logger, set_logger_status, TerminalColors
-from ui import display_help, display_pet_info, display_pet_help, display_character_status
+from logs.logger_config import logger, set_logger_status, TerminalColors, Box, print_header, print_separator
+from ui import (
+    display_help, display_pet_info, display_pet_help, display_character_status,
+    display_character_base_stats, display_task_info, print_compact_header_show,
+    print_compact_header_pet, print_compact_header_csgoc, print_compact_header_task,
+    print_compact_header_autoquest, print_compact_footer
+)
 from autocomplete import get_input_with_autocomplete, COMMAND_TREE
 from combo import ComboEngine
 import time
@@ -512,9 +517,13 @@ async def command_loop(manager: AccountManager):
 
             elif cmd_base == "proxy":
                 if len(parts) > 1 and parts[1] == "list":
-                    print(f"{C.CYAN}--- Danh sách Proxy ---{C.RESET}")
+                    B = Box
+                    print()
+                    print(f"{C.PURPLE}{B.TL}{B.H * 55}{B.TR}{C.RESET}")
+                    print(f"{C.PURPLE}{B.V}{C.RESET} {C.BOLD}{'#':<6} {'Địa chỉ':<30} {'Sử dụng':>10}{C.RESET} {C.PURPLE}{B.V}{C.RESET}")
+                    print(f"{C.PURPLE}{B.LT}{B.H * 55}{B.RT}{C.RESET}")
                     
-                    # Tính toán usage
+                    # Calculate usage
                     usage_map = {p: 0 for p in proxy_list}
                     local_usage = 0
                     
@@ -526,63 +535,70 @@ async def command_loop(manager: AccountManager):
                             else:
                                 local_usage += 1
                     
-                    # Hiển thị Local IP
-                    local_color = C.GREEN if local_usage > 0 else C.GREY
-                    print(f"[Local] {local_color}{'IP Máy':<30} - Đang dùng: {local_usage}/5{C.RESET}")
+                    # Local IP row
+                    usage_bar = f"{'#' * local_usage}{'-' * (5 - local_usage)}"
+                    local_col = C.BRIGHT_GREEN if local_usage > 0 else C.DIM
+                    print(f"{C.PURPLE}{B.V}{C.RESET} {C.CYAN}Local{C.RESET}  {local_col}{'IP Máy':<30}{C.RESET} {local_col}{usage_bar} {local_usage}/5{C.RESET} {C.PURPLE}{B.V}{C.RESET}")
 
-                    # Hiển thị Proxy List
+                    # Proxy list
                     if not proxy_list:
-                        print("  (Không có proxy nào được tải)")
+                        print(f"{C.PURPLE}{B.V}{C.RESET} {C.DIM}(Không có proxy nào được tải){C.RESET}")
                     
                     for i, p in enumerate(proxy_list):
                         count = usage_map.get(p, 0)
-                        # Lấy phần IP:Port để hiển thị cho đẹp
                         try:
                             display_p = p.split('@')[-1]
                         except:
                             display_p = p
+                        if len(display_p) > 28:
+                            display_p = "..." + display_p[-25:]
                         
-                        if count > 0:
-                            color = C.GREEN
-                            status = f"Đang dùng: {count}/5"
-                        else:
-                            color = C.GREY
-                            status = "Chưa dùng"
-                        
-                        print(f"[{i+1}]     {color}{display_p:<30} - {status}{C.RESET}")
+                        usage_bar = f"{'#' * count}{'-' * (5 - count)}"
+                        col = C.BRIGHT_GREEN if count > 0 else C.DIM
+                        print(f"{C.PURPLE}{B.V}{C.RESET} {C.YELLOW}[{i+1:>2}]{C.RESET}   {col}{display_p:<30}{C.RESET} {col}{usage_bar} {count}/5{C.RESET} {C.PURPLE}{B.V}{C.RESET}")
+                    
+                    print(f"{C.PURPLE}{B.BL}{B.H * 55}{B.BR}{C.RESET}")
+                    print()
                 else:
-                    print("Sử dụng: proxy list")
+                    print(f"{C.YELLOW}Sử dụng: proxy list{C.RESET}")
                 continue
 
             elif cmd_base == "list":
-                print(f"{C.CYAN}--- Danh sách tài khoản ---{C.RESET}")
+                B = Box
+                print()
+                print(f"{C.CYAN}{B.TL}{B.H * 70}{B.TR}{C.RESET}")
+                print(f"{C.CYAN}{B.V}{C.RESET} {C.BOLD}{'#':<3} {'Tài khoản':<15} {'Trạng thái':<12} {'Kết nối':<25} {'':>5}{C.RESET} {C.CYAN}{B.V}{C.RESET}")
+                print(f"{C.CYAN}{B.LT}{B.H * 70}{B.RT}{C.RESET}")
+                
                 for i, acc in enumerate(manager.accounts):
-                    status_text = acc.status
+                    # Status with symbol
                     if acc.status == "Logged In":
-                        status_color = C.GREEN
+                        status_display = f"{C.BRIGHT_GREEN}[ON] Online{C.RESET}"
                     elif acc.status == "Reconnecting":
-                        status_color = C.YELLOW
+                        status_display = f"{C.BRIGHT_YELLOW}[..] Reconnect{C.RESET}"
                     else:
-                        status_color = C.RED
+                        status_display = f"{C.RED}[--] Offline{C.RESET}"
                     
-                    status = f"{status_color}{status_text}{C.RESET}"
-
+                    # Target marker
                     target_marker = ""
                     if isinstance(manager.command_target, int) and i == manager.command_target:
-                        target_marker = f"{C.PURPLE}(*){C.RESET}"
+                        target_marker = f"{C.PURPLE}[*]{C.RESET}"
                     
-                    # Hiển thị thông tin proxy ngắn gọn
-                    proxy_info = "Local"
+                    # Proxy info
+                    proxy_info = f"{C.DIM}Local IP{C.RESET}"
                     if acc.proxy:
-                        # Chỉ hiển thị IP cuối cho gọn
                         try:
-                             # format http://user:pass@ip:port
-                             ip_part = acc.proxy.split('@')[-1]
-                             proxy_info = f"Proxy({ip_part})"
+                            ip_part = acc.proxy.split('@')[-1]
+                            if len(ip_part) > 20:
+                                ip_part = "..." + ip_part[-17:]
+                            proxy_info = f"{C.PURPLE}Proxy:{C.RESET}{C.DIM}{ip_part}{C.RESET}"
                         except:
-                             proxy_info = "Proxy"
+                            proxy_info = f"{C.PURPLE}Proxy{C.RESET}"
 
-                    print(f"[{C.YELLOW}{i}{C.RESET}] {acc.username:<15} {status:<20} [{C.CYAN}{proxy_info}{C.RESET}] {target_marker}")
+                    print(f"{C.CYAN}{B.V}{C.RESET} {C.YELLOW}{i:<3}{C.RESET} {acc.username:<15} {status_display:<22} {proxy_info:<35} {target_marker} {C.CYAN}{B.V}{C.RESET}")
+                
+                print(f"{C.CYAN}{B.BL}{B.H * 70}{B.BR}{C.RESET}")
+                print()
                 continue
             
             # --- Group Management ---
@@ -677,7 +693,7 @@ async def command_loop(manager: AccountManager):
             # Define commands that are valid to be sent to accounts.
             # If the command is not in this list, it's an unknown command for a single account.
             valid_target_commands = [
-                "pet", "logger", "autoplay", "autopet", "autoquest", "blacklist", "gomap", 
+                "pet", "logger", "autoplay", "autopet", "autobomong", "blacklist", "gomap", 
                 "findnpc", "findmob", "teleport", "teleportnpc", "andau", "hit", "show", 
                 "csgoc", "opennpc", "khu", "congcs", "task", "finditem", "useitem"
             ]
@@ -710,27 +726,15 @@ async def command_loop(manager: AccountManager):
             # Xác định chế độ hiển thị gọn (compact) nếu gửi cho nhiều hơn 1 tài khoản
             is_compact = len(online_targets_with_idx) > 1
             if is_compact and "pet info" in command:
-                 # Gọn hơn: Username | Id | Tên Đệ | Trạng thái | HP | MP | SM | SĐ
-                 print(f"{C.CYAN}{'Tài khoản':<15} {'ID':<4} {'Tên Đệ':<12} | {'TT':<6} | {'HP':>7} | {'MP':>7} | {'SM':>7} | {'SĐ':>7}{C.RESET}")
+                 print_compact_header_pet()
             elif is_compact and "csgoc" in command:
-                # Header for base stats compact view
-                print(f"{C.CYAN}{'Tài khoản':<19} | {'HP Gốc':>8} | {'MP Gốc':>7} | {'SĐ Gốc':>7} | {'Giáp Gốc':>7} | {'CM Gốc':>5} | {'Tiềm năng':>7}{C.RESET}")
+                 print_compact_header_csgoc()
             elif is_compact and command.strip() == "show":
-                 # Header matching ui.py columns (right-aligned numbers)
-                 print(f"{C.CYAN}{'Tài khoản':<19} | {'Bản đồ':<18} | {'ID':<3} | {'Khu':<3} | {'Tọa độ':<8} | {'HP':>8} | {'MP':>7} | {'SM':>7} | {'SĐ':>7} | {'Chức năng':<14}{C.RESET}")
+                 print_compact_header_show()
             elif is_compact and command.strip() == "show nhiemvu":
-                 h_idx = "Idx"
-                 h_user = "User"
-                 h_id = "ID"
-                 h_name = "Tên NV"
-                 h_step = "Bước"
-                 h_prog = "Tiến độ"
-                 print(f"{C.PURPLE}{h_idx:<3}{C.RESET} | {C.RED}{h_user:<13}{C.RESET} | {C.CYAN}{h_id:<3}{C.RESET} | {C.GREEN}{h_name:<30}{C.RESET} | {C.YELLOW}{h_step:<25}{C.RESET} | {C.PURPLE}{h_prog}{C.RESET}")
-                 print(f"{C.GREY}{'-'*105}{C.RESET}")
-            elif is_compact and "autoquest status" in command:
-                 # Header for autoquest status compact view
-                 print(f"{C.CYAN}{'Tài khoản':<14} | {'TT':<3} | {'Trạng thái':<18} | {'NV':<3} | {'Quái':<6} | {'Nhiệm vụ hiện tại':<15} {'Tiến độ'}{C.RESET}")
-                 print(f"{C.GREY}{'-'*90}{C.RESET}")
+                 print_compact_header_task()
+            elif is_compact and "autobomong status" in command:
+                 print_compact_header_autoquest()
 
             tasks = [handle_single_command(command, acc, compact_mode=is_compact, idx=real_idx) for real_idx, acc in online_targets_with_idx]
             results = await asyncio.gather(*tasks)
@@ -837,17 +841,17 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
             else:
                 print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: autopet <on|off>")
         
-        elif cmd_base == "autoquest":
+        elif cmd_base == "autobomong":
             if len(parts) > 1:
                 sub = parts[1]
                 if sub == "on":
                     account.controller.toggle_auto_quest(True)
-                    print(f"[{C.YELLOW}{account.username}{C.RESET}] {C.GREEN}Đã BẬT AutoQuest NV Bố Mộng{C.RESET}")
+                    print(f"[{C.YELLOW}{account.username}{C.RESET}] {C.GREEN}Đã BẬT Auto Bo Mong{C.RESET}")
                 elif sub == "off":
                     account.controller.toggle_auto_quest(False)
                     # Hiển thị thống kê khi tắt
                     stats = account.controller.auto_quest.get_stats()
-                    print(f"[{C.YELLOW}{account.username}{C.RESET}] {C.RED}Đã TẮT AutoQuest{C.RESET}")
+                    print(f"[{C.YELLOW}{account.username}{C.RESET}] {C.RED}Đã TẮT Auto Bo Mong{C.RESET}")
                     if stats["quests_completed"] > 0 or stats["total_kills"] > 0:
                         print(f"Thống kê: {C.GREEN}{stats['quests_completed']}{C.RESET} NV | {C.CYAN}{stats['total_kills']}{C.RESET} quái | ⏱️ {stats['time_str']}")
                 elif sub == "status":
@@ -857,17 +861,36 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                     stats = aq.get_stats()
                     
                     if compact_mode:
-                        # Mode gọn cho nhiều account
-                        quest_short = aq.quest_info.mob_name[:15] if aq.quest_info.is_valid else "-"
+                        B = Box
+                        # Mode gọn cho nhiều account - Align với header trong ui.py
+                        quest_short = aq.quest_info.mob_name[:16] if aq.quest_info.is_valid else "-"
                         progress = f"{aq.quest_info.current_progress}/{aq.quest_info.target_count}" if aq.quest_info.is_valid else "-"
                         rem = stats.get('quests_remaining', 0)
                         tot = stats.get('quests_total', 0)
                         nv_str = f"{rem}/{tot}" if tot > 0 else f"{stats['quests_completed']}"
-                        print(f"[{C.YELLOW}{account.username:<12}{C.RESET}] {status:<18} | NV: {C.CYAN}{nv_str:<5}{C.RESET} | Quái: {C.GREEN}{stats['total_kills']}{C.RESET} | {quest_short:<15} {progress}")
+                        
+                        # On/Off
+                        on_txt = "[ON]" if is_running else "[--]"
+                        on_col = f"{C.BRIGHT_GREEN}{on_txt}{C.RESET}" if is_running else f"{C.RED}{on_txt}{C.RESET}"
+                        
+                        # Row Format: User(14) | On(4) | Status(20) | NV(4) | Quái(6) | NV Hiện tại(16) | Tiến độ
+                        user_padded = f"[{account.username}]"
+                        user_padded = f"{user_padded:<14}"
+                        
+                        row = (
+                            f" {C.YELLOW}{user_padded}{C.RESET} {C.DIM}|{C.RESET} "
+                            f"{on_col} {C.DIM}|{C.RESET} "
+                            f"{status:<20} {C.DIM}|{C.RESET} "
+                            f"{C.CYAN}{nv_str:<5}{C.RESET} {C.DIM}|{C.RESET} "
+                            f"{C.GREEN}{stats['total_kills']:<6}{C.RESET} {C.DIM}|{C.RESET} "
+                            f"{quest_short:<16} {C.DIM}|{C.RESET} "
+                            f"{progress}"
+                        )
+                        print(row)
                     else:
                         # Mode chi tiết cho 1 account
                         running_str = f"{C.GREEN}Đang chạy{C.RESET}" if is_running else f"{C.RED}Đã dừng{C.RESET}"
-                        print(f"[{C.YELLOW}{account.username}{C.RESET}] AutoQuest NV Bố Mộng")
+                        print(f"[{C.YELLOW}{account.username}{C.RESET}] Auto Bo Mong")
                         print(f"Trạng thái: {running_str} | {C.CYAN}{status}{C.RESET}")
                         print(f"Thống kê: {C.GREEN}{stats['quests_completed']}{C.RESET} NV hoàn thành | {C.CYAN}{stats['total_kills']}{C.RESET} quái đã giết | {stats['time_str']}")
                         if aq.quest_info.is_valid:
@@ -875,9 +898,9 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                         else:
                             print(f"NV hiện tại: {C.GREY}Chưa có{C.RESET}")
                 else:
-                    print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: autoquest <on|off|status>")
+                    print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: autobomong <on|off|status>")
             else:
-                print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: autoquest <on|off|status>")
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: autobomong <on|off|status>")
 
         elif cmd_base == "blacklist":
                 # Commands: blacklist list | add <name|id> | remove <name|id> | clear
