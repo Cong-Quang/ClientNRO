@@ -45,6 +45,36 @@ class AutoPlay:
         my_char = self.controller.account.char
         service = self.controller.account.service
         
+        # 0. Kiểm tra nếu nhân vật chết -> Hồi sinh và quay về map cũ
+        # statusMe == 14 = Trạng thái chết trong game
+        # Kiểm tra cả c_hp == 0 VÀ statusMe == 14 để tránh false positive khi data chưa load
+        if my_char.c_hp == 0 and my_char.statusMe == 14:
+            current_map_id = self.controller.tile_map.map_id
+            logger.info(f"Auto: Nhân vật chết tại map {current_map_id}. Đang hồi sinh...")
+            
+            # Gọi lệnh về làng khi chết
+            await service.return_town_from_dead()
+            
+            # Chờ hồi sinh xong (chờ tối đa 5 giây)
+            for _ in range(50):
+                await asyncio.sleep(0.1)
+                if my_char.c_hp > 0 or my_char.statusMe != 14:
+                    break
+            
+            # Nếu đã hồi sinh và đang ở map khác, dùng xmap quay về map cũ
+            if my_char.c_hp > 0 or my_char.statusMe != 14:
+                new_map_id = self.controller.tile_map.map_id
+                if new_map_id != current_map_id:
+                    logger.info(f"Auto: Đã hồi sinh tại map {new_map_id}. Quay về map {current_map_id}...")
+                    await self.controller.xmap.start(current_map_id)
+                    
+                    # Chờ xmap hoàn thành
+                    while self.controller.xmap.is_xmapping:
+                        await asyncio.sleep(0.5)
+                    
+                    logger.info(f"Auto: Đã quay về map {current_map_id}.")
+            return  # Kết thúc lượt này, vòng lặp tiếp theo sẽ tiếp tục tấn công
+        
         # 1. Xác thực Mục tiêu Hiện tại (Focus)
         mob_focus = my_char.mob_focus
         target_valid = False
