@@ -1,5 +1,12 @@
 import random
 class Config:
+    
+    # tạo account
+    # DEFAULT_CHAR_GENDER: 0 (Trai Dat), 1 (Namek), 2 (Sayda)
+    DEFAULT_CHAR_GENDER = 1
+    # DEFAULT_CHAR_HAIR: ID toc
+    DEFAULT_CHAR_HAIR = 4
+
     # HOST: địa chỉ server (IP hoặc domain)
     HOST = "103.245.255.222"
     
@@ -39,6 +46,11 @@ class Config:
         {"username": "poopooi09", "password": "02082003"},
         {"username": "poopooi10", "password": "02082003"},
         {"username": "ordinary215", "password": "123456789"},
+        {"username": "poopooi11", "password": "02082003"},
+        {"username": "poopooi12", "password": "02082003"},
+        {"username": "poopooi13", "password": "02082003"},
+        {"username": "poopooi14", "password": "02082003"},
+        {"username": "poopooi15", "password": "02082003"},
     ]
 
 

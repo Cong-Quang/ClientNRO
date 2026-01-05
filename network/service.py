@@ -230,6 +230,19 @@ class Service:
         except Exception as e:
             logger.error(f"Lỗi khi xác nhận menu: {e}")
 
+    async def send_client_input(self, inputs: list[str]):
+        """Gửi dữ liệu nhập từ client (Cmd -125 - CLIENT_INPUT)"""
+        try:
+            msg = Message(Cmd.CLIENT_INPUT)
+            writer = msg.writer()
+            writer.write_byte(len(inputs))
+            for text in inputs:
+                writer.write_utf(text)
+            await self.session.send_message(msg)
+            logger.info(f"Đã gửi input client (Cmd -125): {inputs}")
+        except Exception as e:
+            logger.error(f"Lỗi khi gửi input client: {e}")
+
     async def open_menu_npc(self, npc_id: int):
         """Mở menu NPC (Cmd 33 - OPEN_MENU)"""
         try:
@@ -312,5 +325,24 @@ class Service:
             logger.info(f"Đã gửi tin nhắn chat: {text}")
         except Exception as e:
             logger.error(f"Lỗi khi gửi tin nhắn chat: {e}")
+
+    async def create_character(self, name: str, gender: int, hair: int):
+        """
+        Tạo nhân vật mới (Cmd -28, sub 2).
+        :param name: Tên nhân vật
+        :param gender: Giới tính (0: Trái đất, 1: Namek, 2: Sayda)
+        :param hair: ID tóc
+        """
+        try:
+            msg = Message(Cmd.NOT_MAP)
+            writer = msg.writer()
+            writer.write_byte(2) # Sub-command CREATE_PLAYER
+            writer.write_utf(name)
+            writer.write_byte(gender)
+            writer.write_byte(hair)
+            await self.session.send_message(msg)
+            logger.info(f"Đã gửi yêu cầu tạo nhân vật: Name={name}, Gender={gender}, Hair={hair}")
+        except Exception as e:
+            logger.error(f"Lỗi khi gửi yêu cầu tạo nhân vật: {e}")
 
     

@@ -32,7 +32,9 @@ COMMAND_TREE = {
     "hit": [],
     "proxy": ["list"],
     "finditem": [],
-    "useitem": []
+    "finditem": [],
+    "useitem": [],
+    "givecode": []
 }
 
 COMMAND_HISTORY = []

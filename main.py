@@ -695,7 +695,7 @@ async def command_loop(manager: AccountManager):
             valid_target_commands = [
                 "pet", "logger", "autoplay", "autopet", "autobomong", "blacklist", "gomap", 
                 "findnpc", "findmob", "teleport", "teleportnpc", "andau", "hit", "show", 
-                "csgoc", "opennpc", "khu", "congcs", "task", "finditem", "useitem"
+                "csgoc", "opennpc", "khu", "congcs", "task", "finditem", "useitem", "givecode"
             ]
             if cmd_base not in valid_target_commands:
                 print(f"{C.RED}Lệnh không xác định: '{command}'. Gõ 'help'.{C.RESET}")
@@ -1138,6 +1138,14 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                 asyncio.create_task(account.controller.use_item_by_id(item_id, select))
             else:
                 print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: useItem <id> [0=Use|1=Sell]")
+
+        elif cmd_base == "givecode":
+            if len(parts) >= 2:
+                codes = parts[1:] # All remaining parts are codes
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Bắt đầu nhập {len(codes)} giftcode: {codes}")
+                account.controller.auto_giftcode.start(codes)
+            else:
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: givecode [code1] [code2] ...")
                 
         else:
             print(f"[{C.YELLOW}{account.username}{C.RESET}] Lệnh không xác định: '{command}'. Gõ 'help'.")

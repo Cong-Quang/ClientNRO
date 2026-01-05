@@ -1,5 +1,6 @@
 from logs.logger_config import logger 
 import asyncio
+import re
 import struct
 from network.message import Message
 from cmd import Cmd
@@ -12,6 +13,7 @@ from logic.auto_pet import AutoPet
 import ui
 from logic.xmap import XMap
 from logic.auto_NVBoMong import AutoQuest, BO_MONG_NPC_TEMPLATE_ID
+from logic.auto_giftcode import AutoGiftcode
 
 class Controller:
     """Quản lý xử lý tin nhắn và trạng thái game cho một tài khoản.
@@ -34,6 +36,7 @@ class Controller:
         self.auto_pet = AutoPet(self)
         self.xmap = XMap(self)
         self.auto_quest = AutoQuest(self)
+        self.auto_giftcode = AutoGiftcode(self)
 
     def toggle_auto_quest(self, enabled: bool):
         """Bật hoặc tắt chế độ Auto Quest."""
@@ -159,6 +162,8 @@ class Controller:
                 self.process_update_data(msg)
             elif cmd == Cmd.UPDATE_MAP:
                 self.process_update_map(msg)
+            elif cmd == Cmd.CREATE_PLAYER:
+                self.process_create_player(msg)
             else:
                 logger.info(f"Unhandled command: {cmd}, len={len(msg.get_data())}, hex={msg.get_data().hex()}")
         except Exception as e:
@@ -1526,3 +1531,32 @@ class Controller:
             logger.info(f"Thể lực (Cmd {msg.command}): Giá trị={the_luc_value}, Payload Hex: {msg.get_data().hex()}")
         except Exception as e:
             logger.error(f"Lỗi khi phân tích THELUC: {e}")
+
+    def process_create_player(self, msg: Message):
+        """Xử lý yêu cầu tạo nhân vật từ server (Cmd 2)."""
+        try:
+            # Server chỉ gửi lệnh Cmd 2 để báo client bật UI tạo nhân vật.
+            # Không có payload quan trọng.
+            logger.info("Server yêu cầu tạo nhân vật mới (Cmd 2).")
+            
+            # Tự động tạo nhân vật
+            # Yêu cầu: "hentaz" + 3 ký tự đuôi của tài khoản
+            # Ví dụ: tk123456 -> hentaz456
+            
+            clean_username = re.sub(r'[^a-zA-Z0-9]', '', self.account.username)
+            suffix = clean_username[-3:] if len(clean_username) >= 3 else clean_username
+            clean_name = f"hentaz{suffix}"
+
+            # Random giới tính (0-2) và tóc (0-2)
+            # Hiện tại set cứng Namek (1) và tóc (0) cho ổn định
+            from config import Config
+            gender = Config.DEFAULT_CHAR_GENDER
+            hair = Config.DEFAULT_CHAR_HAIR
+            
+            logger.info(f"Tự động tạo nhân vật: Name={clean_name}, Gender={gender}, Hair={hair}")
+            asyncio.create_task(self.account.service.create_character(clean_name, gender, hair))
+            
+        except Exception as e:
+            logger.error(f"Lỗi khi xử lý tạo nhân vật: {e}")
+            import traceback
+            traceback.print_exc()
