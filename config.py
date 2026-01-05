@@ -20,7 +20,7 @@ class Config:
     MAX_ACCOUNTS = 1000
 
     # AUTO_LOGIN: True/False — tự động đăng nhập lại khi mất kết nối
-    AUTO_LOGIN = True   
+    AUTO_LOGIN = False   
 
     # DEFAULT_LOGIN: list các index (int) trong ACCOUNTS được login khi 'login' không có tham số / 'login default'
     DEFAULT_LOGIN = [0, 2, 3, 4, 5]  
@@ -32,7 +32,7 @@ class Config:
 
     # USE_LOCAL_IP_FIRST: True/False — True để ưu tiên gán 5 IP local cho 1 tài khoản trước khi dùng proxy.
     # False để bỏ qua IP local và gán trực tiếp 5 tài khoản cho 1 proxy.
-    USE_LOCAL_IP_FIRST = True     
+    USE_LOCAL_IP_FIRST = False     
     
     # ACCOUNTS: list dict tài khoản; mỗi dict cần 'username' và 'password', có thể thêm 'proxy' (tuỳ chọn)
     # ACCOUNTS: list dict tài khoản; mỗi dict cần 'username' và 'password', có thể thêm 'proxy' (tuỳ chọn)
