@@ -283,12 +283,22 @@ class AutoQuest:
             await self.transition_to(AutoState.REPORT_QUEST)
             return
         
-        if not self.controller.auto_play.interval:
-            logger.info(f"[{self.account.username}] Bắt đầu tự động đánh quái: {self.quest_info.mob_name} (Tiến độ: {self.quest_info.current_progress}/{self.quest_info.target_count})")
-            _, mob_id = self.get_quest_target_ids()
-            if mob_id != -1:
+        # Luôn đảm bảo target_mobs đúng với nhiệm vụ hiện tại
+        _, mob_id = self.get_quest_target_ids()
+        current_targets = self.controller.auto_play.target_mobs
+        
+        # Debug log 
+        logger.info(f"[{self.account.username}] [DEBUG] Quest mob: {self.quest_info.mob_name}, need template_id={mob_id}, current target_mobs={current_targets}")
+        
+        if mob_id != -1:
+            # Luôn set target_mobs để đảm bảo đúng
+            if mob_id not in current_targets or len(current_targets) != 1:
                 self.controller.auto_play.target_mobs.clear()
                 self.controller.auto_play.target_mobs.add(mob_id)
+                logger.info(f"[{self.account.username}] Đã set target_mobs = {{{mob_id}}} ({self.quest_info.mob_name})")
+        
+        if not self.controller.auto_play.interval:
+            logger.info(f"[{self.account.username}] Bắt đầu tự động đánh quái: {self.quest_info.mob_name} (Tiến độ: {self.quest_info.current_progress}/{self.quest_info.target_count})")
             self.controller.toggle_autoplay(True)
 
     async def handle_report_quest(self):
@@ -299,42 +309,43 @@ class AutoQuest:
 
         logger.info(f"[{self.account.username}] Tiến hành trả nhiệm vụ (Tiến độ local: {self.quest_info.current_progress}/{self.quest_info.target_count}).")
         
-        old_mob_name = self.quest_info.mob_name
+        old_quest_info = self.quest_info
         
-        # 1. Trả nhiệm vụ (Option 0)
-        await self._interact_with_npc_menu(BO_MONG_NPC_TEMPLATE_ID, [0])
+        # 1. Trả nhiệm vụ: [1] Nhiệm vụ hằng ngày -> [0] Trả nhiệm vụ
+        await self._interact_with_npc_menu(BO_MONG_NPC_TEMPLATE_ID, [1, 0])
         await asyncio.sleep(2)
         
-        # 2. Mở lại menu để nhận NV mới (Option 1)
-        await self._interact_with_npc_menu(BO_MONG_NPC_TEMPLATE_ID, [1])
-        await asyncio.sleep(1)
-        
-        if self.quest_info.is_valid:
-            if self.quest_info.mob_name != old_mob_name:
-                self.quests_completed += 1
-                logger.info(f"[{self.account.username}] Đã nhận NV mới: {self.quest_info.mob_name} (Tổng hoàn thành: {self.quests_completed})")
-                await self.transition_to(AutoState.NAVIGATE_TO_MAP)
-            elif self.quest_info.initial_count >= self.quest_info.target_count:
-                # Server xác nhận đủ, trả lại lần nữa
-                logger.info(f"[{self.account.username}] Server xác nhận đủ. Chọn trả NV...")
-                await self._interact_with_npc_menu(BO_MONG_NPC_TEMPLATE_ID, [0])
-                await asyncio.sleep(2)
-                await self.transition_to(AutoState.GET_QUEST)
-            else:
-                 # Server bảo chưa đủ
+        # 2. Kiểm tra kết quả trả NV từ server
+        # Nếu quest_info vẫn giữ nguyên mob cũ với progress < target -> Server báo chưa đủ
+        if self.quest_info.is_valid and self.quest_info.mob_name == old_quest_info.mob_name:
+            if self.quest_info.initial_count < self.quest_info.target_count:
+                # Server báo chưa đủ số lượng, tiếp tục farm
                 logger.info(f"[{self.account.username}] Server: chưa đủ ({self.quest_info.initial_count}/{self.quest_info.target_count}). Tiếp tục farm!")
                 await self.transition_to(AutoState.NAVIGATE_TO_MAP)
-        else:
-             # Option 4: Siêu khó
-            logger.info(f"[{self.account.username}] Chọn độ khó Siêu khó...")
-            await self.controller.account.service.confirm_menu_npc(BO_MONG_NPC_TEMPLATE_ID, 4)
-            await asyncio.sleep(2)
+                return
+        
+        # 3. Trả NV thành công -> Reset data cũ
+        logger.info(f"[{self.account.username}] Trả NV thành công! Reset và nhận NV mới...")
+        self.quests_completed += 1
+        self.quest_info = QuestInfo()  # Reset data cũ
+        
+        # 4. Nhận NV mới: [1] Nhiệm vụ hằng ngày -> [4] Siêu khó
+        await self._interact_with_npc_menu(BO_MONG_NPC_TEMPLATE_ID, [1, 4])
+        await asyncio.sleep(2)
+        
+        if self.quest_info.is_valid:
+            # Kiểm tra điều kiện map trước khi đi
+            map_id, _ = self.get_quest_target_ids()
+            if map_id != -1 and not self._can_access_map(map_id):
+                logger.warning(f"[{self.account.username}] NV mới yêu cầu map {map_id} không thể vào. Huỷ và nhận NV khác...")
+                await self._cancel_and_get_new_quest()
+                return
             
-            if self.quest_info.is_valid:
-                logger.info(f"[{self.account.username}] Đã nhận NV mới: {self.quest_info.mob_name}")
-                await self.transition_to(AutoState.NAVIGATE_TO_MAP)
-            else:
-                logger.info(f"[{self.account.username}] Không có NV mới. Kiểm tra lại...")
+            logger.info(f"[{self.account.username}] Đã nhận NV mới: {self.quest_info.mob_name} (Tổng hoàn thành: {self.quests_completed})")
+            await self.transition_to(AutoState.NAVIGATE_TO_MAP)
+        else:
+            logger.warning(f"[{self.account.username}] Không nhận được NV mới. Thử lại...")
+            await self.transition_to(AutoState.GET_QUEST)
 
     def parse_quest_info(self, menu_text: str):
         lower_text = menu_text.lower()
@@ -392,19 +403,30 @@ class AutoQuest:
         logger.info(f"[{self.account.username}] Nhiệm vụ được cập nhật: {self.quest_info}")
 
     def increment_kill_count(self, mob_template_id: int):
-        if not self.is_running or not self.quest_info.is_valid or self.current_state != AutoState.EXECUTE_QUEST:
-            return
-
+        # Debug: Log mọi lần gọi hàm này
         _, quest_mob_id = self.get_quest_target_ids()
-        if quest_mob_id != -1 and mob_template_id == quest_mob_id:
-            self.quest_info.kill_count += 1
-            self.total_kills += 1  # Thống kê tổng số quái đã giết
-            logger.info(f"[{self.account.username}] Đã diệt {self.quest_info.mob_name} ({self.quest_info.current_progress}/{self.quest_info.target_count})")
+        
+        # Kiểm tra điều kiện
+        if not self.is_running:
+            return
+        if not self.quest_info.is_valid:
+            return
+        if self.current_state != AutoState.EXECUTE_QUEST:
+            return
+        
+        # Log chi tiết để debug khi template_id không khớp
+        if mob_template_id != quest_mob_id:
+            logger.warning(f"[{self.account.username}] Giết quái template_id={mob_template_id}, cần={quest_mob_id} ({self.quest_info.mob_name}) - KHÔNG KHỚP")
+            return
             
-            # Khi đủ mục tiêu, dừng autoplay - handle_execute_quest sẽ xử lý chuyển trạng thái
-            if self.quest_info.current_progress >= self.quest_info.target_count:
-                logger.info(f"[{self.account.username}] Đã đủ mục tiêu! Dừng đánh quái...")
-                self.controller.toggle_autoplay(False)
+        self.quest_info.kill_count += 1
+        self.total_kills += 1  # Thống kê tổng số quái đã giết
+        logger.info(f"[{self.account.username}] Đã diệt {self.quest_info.mob_name} ({self.quest_info.current_progress}/{self.quest_info.target_count})")
+        
+        # Khi đủ mục tiêu, dừng autoplay - handle_execute_quest sẽ xử lý chuyển trạng thái
+        if self.quest_info.current_progress >= self.quest_info.target_count:
+            logger.info(f"[{self.account.username}] Đã đủ mục tiêu! Dừng đánh quái...")
+            self.controller.toggle_autoplay(False)
 
     def get_quest_target_ids(self) -> (int, int):
         if not self.quest_info or not self.quest_info.mob_name:
@@ -439,14 +461,33 @@ class AutoQuest:
         
         if self.account.char.map_id != BO_MONG_MAP_ID:
             await self.go_to_map(BO_MONG_MAP_ID)
-            return
+            if self.account.char.map_id != BO_MONG_MAP_ID:
+                return  # Không về được map, thử lại sau
         
-        # Helper: Option 2 (Bỏ nhiệm vụ)
-        await self._interact_with_npc_menu(BO_MONG_NPC_TEMPLATE_ID, [2])
+        # Huỷ NV: [1] Nhiệm vụ hằng ngày -> [1] Huỷ nhiệm vụ
+        await self._interact_with_npc_menu(BO_MONG_NPC_TEMPLATE_ID, [1, 1])
         await asyncio.sleep(1)
         
+        # Reset quest info
         self.quest_info = QuestInfo()
-        await self.transition_to(AutoState.GET_QUEST)
+        
+        # Nhận NV mới ngay: [1] Nhiệm vụ hằng ngày -> [4] Siêu khó
+        await self._interact_with_npc_menu(BO_MONG_NPC_TEMPLATE_ID, [1, 4])
+        await asyncio.sleep(2)
+        
+        if self.quest_info.is_valid:
+            # Kiểm tra lại xem NV mới có vào được map không
+            map_id, _ = self.get_quest_target_ids()
+            if map_id != -1 and not self._can_access_map(map_id):
+                logger.warning(f"[{self.account.username}] NV mới vẫn không thể vào map {map_id}. Huỷ tiếp...")
+                # Gọi đệ quy để huỷ và nhận NV khác
+                await self._cancel_and_get_new_quest()
+                return
+            
+            logger.info(f"[{self.account.username}] Đã nhận NV mới: {self.quest_info.mob_name}")
+            await self.transition_to(AutoState.NAVIGATE_TO_MAP)
+        else:
+            await self.transition_to(AutoState.GET_QUEST)
 
     async def go_to_map(self, map_id: int):
         if self.account.char.map_id == map_id:

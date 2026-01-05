@@ -99,10 +99,15 @@ class AutoPlay:
             if mob_focus.status <= 1 or mob_focus.hp <= 0:
                 return
             # Nếu ở quá xa (ví dụ > 60px), thực hiện dịch chuyển tức thời
-            if dist > 60:
+            # Kiểm tra khoảng cách X và Y riêng biệt
+            dist_x = abs(mob_focus.x - my_char.cx)
+            dist_y = abs(mob_focus.y - my_char.cy) # cho quoái bay
+            
+            # Y luôn phải bằng với Y của mob khi tấn công
+            if dist_y > 10 or dist_x > 60:
                 logger.info(f"Auto: Dịch chuyển tới Quái {mob_focus.mob_id}")
                 my_char.cx = mob_focus.x
-                my_char.cy = mob_focus.y
+                my_char.cy = mob_focus.y  # Y luôn bằng Y của mob
                 # Cập nhật hướng quay mặt về phía quái
                 my_char.cdir = 1 if mob_focus.x > my_char.cx else -1
                 

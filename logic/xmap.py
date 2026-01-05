@@ -138,6 +138,11 @@ class XMap:
         self.add_link_maps(160, 161, 162, 163)
 
         self.add_link_maps(42, 0, 1, 2, 3, 4, 5, 6)
+        # Đảo Kame (5) có 4 waypoint đi đến: Rừng Xương (4), Name Kamê (29), Rừng nhiệt đới (217), Đông Karin (6)
+        self.add_link_maps(5, 4)   # Đảo Kame <-> Rừng Xương
+        self.add_link_maps(5, 29)  # Đảo Kame <-> Name Kamê
+        self.add_link_maps(5, 217) # Đảo Kame <-> Rừng nhiệt đới
+        self.add_link_maps(5, 6)   # Đảo Kame <-> Đông Karin
         self.add_link_maps(43, 22, 7, 8, 9, 11, 12, 13, 10)
         self.add_link_maps(52, 44, 14, 15, 16, 17, 18, 20, 19)
         self.add_link_maps(53, 58, 59, 60, 61, 62, 55, 56, 54, 57)
@@ -459,6 +464,10 @@ class XMap:
             # Map Cold (105-110): Xong Task 30 (tức là Task ID > 30)
             if map_id in self.cold_maps and task_id <= 30:
                 return False
+            
+            # Map Fide ( núi khỉ vàng) (80): Yêu cầu Task ID >= 21
+            if map_id == 80 and task_id < 21:
+                return False
 
             # 3. Yêu cầu Bang hội: Map 53-62
             # Lưu ý: self.clan_maps hiện tại có thể chứa nhiều map hơn, 
@@ -773,8 +782,23 @@ class XMap:
         sorted_wps = sorted(waypoints, key=lambda w: w.center_x)
         target_wp = None
         
+        # Xử lý đặc biệt map 7 (Làng Mori) đi map 197
         if current_map_id == 7 and next_map_id == 197 and len(waypoints) >= 3:
             target_wp = waypoints[2] 
+        
+        # Xử lý đặc biệt map 5 (Đảo Kame) có 4 waypoint
+        # Thứ tự waypoint (sorted by x): [Rừng Xương(4)] [Name Kamê(29)] [Rừng nhiệt đới(217)] [Đông Karin(6)]
+        if current_map_id == 5 and len(waypoints) >= 4:
+            kame_waypoint_map = {
+                4: 0,    # Rừng Xương -> waypoint index 0 (ngoài cùng bên trái)
+                29: 1,   # Name Kamê -> waypoint index 1
+                217: 2,  # Rừng nhiệt đới -> waypoint index 2
+                6: 3,    # Đông Karin -> waypoint index 3 (ngoài cùng bên phải)
+            }
+            if next_map_id in kame_waypoint_map:
+                wp_idx = kame_waypoint_map[next_map_id]
+                target_wp = sorted_wps[wp_idx]
+                logger.info(f"Map Kame: Chọn waypoint {wp_idx} để đến map {next_map_id}") 
 
         if target_wp is None:
             BASE_MAPS = {42, 43, 44}
