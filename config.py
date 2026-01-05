@@ -35,23 +35,18 @@ class Config:
     USE_LOCAL_IP_FIRST = True     
     
     # ACCOUNTS: list dict tài khoản; mỗi dict cần 'username' và 'password', có thể thêm 'proxy' (tuỳ chọn)
-    ACCOUNTS = [
-        {"username": "poopooi01", "password": "02082003"},
-        {"username": "poopooi03", "password": "02082003"},
-        {"username": "poopooi04", "password": "02082003"},
-        {"username": "poopooi05", "password": "02082003"},
-        {"username": "poopooi06", "password": "02082003"},
-        {"username": "poopooi07", "password": "02082003"},
-        {"username": "poopooi08", "password": "02082003"},
-        {"username": "poopooi09", "password": "02082003"},
-        {"username": "poopooi10", "password": "02082003"},
-        {"username": "ordinary215", "password": "123456789"},
-        {"username": "poopooi11", "password": "02082003"},
-        {"username": "poopooi12", "password": "02082003"},
-        {"username": "poopooi13", "password": "02082003"},
-        {"username": "poopooi14", "password": "02082003"},
-        {"username": "poopooi15", "password": "02082003"},
-    ]
+    # ACCOUNTS: list dict tài khoản; mỗi dict cần 'username' và 'password', có thể thêm 'proxy' (tuỳ chọn)
+    ACCOUNTS = []
+    try:
+        with open("accounts.txt", "r") as f:
+            for line in f:
+                line = line.strip()
+                if line and ":" in line:
+                    parts = line.split(":")
+                    if len(parts) >= 2:
+                        ACCOUNTS.append({"username": parts[0].strip(), "password": parts[1].strip()})
+    except Exception as e:
+        print(f"Error loading accounts: {e}")
 
 
     # From prompt: "Fukada:103.245.255.222:12451:0,0,0"

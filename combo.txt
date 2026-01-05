@@ -1,136 +1,16 @@
-[setup]
-login all
-group create upcs 0,9
-group create updt 1,2,3,4,5,6,7,8
-group create updtk1 1,2,3,4
-group create updtk2 5,6,7,8
+[test_vars]
+var a 10
+var b 20
+set c int(a) + int(b)
+print Result: ${a} + ${b} = ${c}
 sleep 1
-target upcs
-autoplay on
-target updt
-autopet on
-target all
-cls
-list
-show
+print Done vars test
 
-
-[chia_khu]
-target updtk1
-khu 1
-target updtk2
-khu 2
-target upcs
-khu 1
-sleep 1
-target all
-cls
-list
-show
-
-[debug]
-cls
-target all
-login all
-autoLogin on
-list
-
-[up_su]
-target all
-login
-gomap 123
-sleep 10
-autoLogin on
-autoplay on
-target 0
-khu 11
-
-target 1
-khu 1
-
-target 2
-khu 2
-
-target 3
-khu 3
-
-target 4
-khu 4
-
-target 5
-khu 5
-
-target 6
-khu 6
-
-target 7
-khu 7
-
-target 8
-khu 8
-
-target 9
-khu 9
-
-target 10
-khu 10
-
-cls
-show
-list
-
-[gr1_8]
-target 1
-khu 1
-
-target 2
-khu 2
-
-target 3
-khu 3
-
-target 4
-khu 4
-
-target 5
-khu 5
-
-target 6
-khu 6
-
-target 7
-khu 7
-
-target 8
-khu 9
-
-[nhiemvu]
-group create upnhv 1,2,3,4,5,6,7,8
-target upnhv
-login
-target 1
-khu 1
-
-target 2
-khu 2
-
-target 3
-khu 3
-
-target 4
-khu 4
-
-target 5
-khu 5
-
-target 6
-khu 6
-
-target 7
-khu 7
-
-target 8
-khu 9
-sleep 5
-target upnhv
-show
+[test_loop]
+var i 0
+while int(i) < 3
+  print Iterator i is ${i}
+  set i int(i) + 1
+  sleep 1
+endwhile
+print Loop finished

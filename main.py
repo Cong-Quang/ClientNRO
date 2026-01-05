@@ -12,6 +12,7 @@ from ui import (
 )
 from autocomplete import get_input_with_autocomplete, COMMAND_TREE
 from combo import ComboEngine
+from macro_interpreter import MacroInterpreter
 import time
 
 MOB_NAMES = {}
@@ -165,8 +166,8 @@ async def command_loop(manager: AccountManager):
     # Tải danh sách proxy khi bắt đầu
     proxy_list = load_proxies()
     combo_engine = ComboEngine()
-    combo_queue = []
-    combo_running = False
+    combo_engine = ComboEngine()
+    current_macro: MacroInterpreter | None = None
     
     while True:
         # Update autocomplete with current groups
@@ -188,14 +189,21 @@ async def command_loop(manager: AccountManager):
         prompt = f"[{target_str}]> "
 
         try:
-            if combo_running:
-                if not combo_queue:
-                    combo_running = False
-                    print("Combo hoàn tất.")
+            if current_macro:
+                if not current_macro.is_running():
+                    current_macro = None
+                    print(f"{C.GREEN}Macro hoàn tất.{C.RESET}")
                     continue
 
-                command = combo_queue.pop(0)
-                print(f">>> {command}")
+                command = current_macro.next_command()
+                if command is None:
+                    # Check again if finished after call
+                    if not current_macro.is_running():
+                        current_macro = None
+                        print(f"{C.GREEN}Macro hoàn tất.{C.RESET}")
+                    continue
+
+                print(f"{C.CYAN}>>> [Macro] {command}{C.RESET}")
             else:
                 command = await asyncio.to_thread(get_input_with_autocomplete, prompt)
 
@@ -242,8 +250,9 @@ async def command_loop(manager: AccountManager):
                     continue
 
                 # Nạp combo vào queue
-                combo_queue = combo_engine.get(sub).copy()
-                combo_running = True
+                # Nạp combo vào interpreter
+                raw_lines = combo_engine.get(sub)
+                current_macro = MacroInterpreter(sub, raw_lines)
                 print(f"Bắt đầu chạy combo '{sub}'")
                 continue
 

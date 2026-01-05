@@ -47,7 +47,7 @@ autocomplete.py: Hỗ trợ gợi ý lệnh trong Terminal (Tab completion).
 combo.py & combo.txt: Hệ thống Macro/Scripting. Đọc file txt và thực thi chuỗi hành động.
 
 proxy.txt & mob_data.txt: Dữ liệu đầu vào (IP Proxy và Database quái vật).
-
+accounts.txt: lưu thông tin các tài khoản
 B. Module network/ (Giao tiếp Server)
 
 session.py: Quản lý Socket TCP, Handshake, Keep-alive.
@@ -108,7 +108,7 @@ AutoPlay (Logic) -> Quyết định đánh quái X.
 3. Luồng Combo/Macro
 
 User nhập lệnh/File combo.txt -> Combo.py parse lệnh -> Gọi các hàm trong Controller hoặc Service.
-
+macro_interpreter.py parse file combo.txt và thực hiện các lệnh trong file, như kiểu ngôn ngữ lập trình đơn giản để macro nhanh
 4. INSTRUCTIONS FOR AI (HƯỚNG DẪN LÀM VIỆC)
 
 Khi được yêu cầu viết code hoặc fix bug:
