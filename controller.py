@@ -9,6 +9,7 @@ from network.service import Service
 from services.movement import MovementService
 from logic.auto_play import AutoPlay
 from logic.auto_pet import AutoPet
+import ui
 from logic.xmap import XMap
 from logic.auto_NVBoMong import AutoQuest, BO_MONG_NPC_TEMPLATE_ID
 
@@ -88,6 +89,8 @@ class Controller:
                 self.process_game_info(msg)
             elif cmd == Cmd.MAP_INFO:
                 self.process_map_info(msg)
+            elif cmd == Cmd.OPEN_UI_ZONE:
+                self.process_zone_list(msg)
             elif cmd == Cmd.BAG:
                 self.process_bag_info(msg)
             elif cmd == Cmd.ITEM_BACKGROUND:
@@ -371,6 +374,7 @@ class Controller:
             self.account.char.cy = reader.read_short()
             self.account.char.map_id = map_id
 
+
             self.tile_map.waypoints = []
             num_waypoints = reader.read_byte()
             for _ in range(num_waypoints):
@@ -433,6 +437,43 @@ class Controller:
             logger.error(f"Error parsing MAP_INFO: {e}")
             import traceback
             traceback.print_exc()
+
+    def process_zone_list(self, msg: Message):
+        """Xử lý gói tin danh sách khu vực (Cmd 29)."""
+        try:
+            reader = msg.reader()
+            zones_data = []
+            
+            n_zones = reader.read_byte()
+            for _ in range(n_zones):
+                zone_id = reader.read_byte()
+                pts = reader.read_byte() # status/points?
+                num_players = reader.read_byte()
+                max_players = reader.read_byte()
+                rank_flag = reader.read_byte()
+                
+                z_info = {
+                    'zone_id': zone_id,
+                    'pts': pts,
+                    'num_players': num_players,
+                    'max_players': max_players,
+                    'rank_flag': rank_flag
+                }
+                
+                if rank_flag == 1:
+                    z_info['rankName1'] = reader.read_utf()
+                    z_info['rank1'] = reader.read_int()
+                    z_info['rankName2'] = reader.read_utf()
+                    z_info['rank2'] = reader.read_int()
+                    
+                zones_data.append(z_info)
+                
+            current_zone = self.map_info.get('zone', -1)
+            ui.display_zone_list(zones_data, self.map_info.get('name', 'Unknown'), self.account.username, current_zone)
+            
+        except Exception as e:
+            logger.error(f"Lỗi khi xử lý danh sách khu vực: {e}")
+
 
     def process_npc_live(self, msg: Message):
         """Xử lý NPC_LIVE: cập nhật HP và trạng thái khi quái vật hồi sinh."""

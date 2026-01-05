@@ -138,6 +138,18 @@ class Service:
         except Exception as e:
             logger.error(f"Lỗi khi gửi yêu cầu đổi khu vực: {e}")
 
+    async def open_zone_ui(self):
+        """
+        Gửi yêu cầu mở giao diện chọn khu vực (Zone UI)
+        Mã lệnh (CMD): 29
+        """
+        try:
+            msg = Message(Cmd.OPEN_UI_ZONE)
+            await self.session.send_message(msg)
+            logger.info("Đã gửi yêu cầu mở giao diện khu vực (Cmd 29)")
+        except Exception as e:
+            logger.error(f"Lỗi khi gửi yêu cầu mở giao diện khu vực: {e}")
+
     async def use_item(self, type: int, where: int, index: int, template_id: int):
         """
         Sử dụng một vật phẩm. (Cmd -43)

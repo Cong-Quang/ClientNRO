@@ -1097,8 +1097,9 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                 # Gọi hàm gửi packet đổi khu (tên hàm có thể là request_change_zone hoặc change_zone tùy source của bạn)
                 await account.service.request_change_zone(zone_id)
             else:
-                print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: khu <số khu>")    
-              #  print(f"[{C.YELLOW}{account.username}{C.RESET}] {C.GREEN}{info}{C.RESET}")
+                # Nếu không có tham số, hiển thị danh sách khu vực
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Đang lấy danh sách khu vực...")
+                await account.service.open_zone_ui()
 
         elif cmd_base == "congcs":
             # congcs <hp> <mp> <sd>

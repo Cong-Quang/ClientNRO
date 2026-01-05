@@ -623,3 +623,51 @@ def print_compact_footer(width: int = 90, color: str = None):
     """Print footer line for compact tables."""
     col = color or C.CYAN
     print(f"{col}{B.BL}{B.H * width}{B.BR}{C.RESET}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ZONE DISPLAY
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def display_zone_list(zones_data: list, map_name: str, account_name: str, current_zone_id: int = -1):
+    """Hiển thị danh sách khu vực và số lượng người chơi."""
+    print()
+    print_header(f"[ZONE] Danh Sach Khu Vuc - {map_name} ({account_name})", width=60, color=C.CYAN)
+    
+    # Header
+    print(f"  {C.BOLD}{C.BRIGHT_CYAN}{'Zone':<6} {'Người Chơi':<12} {'Tối Đa':<8} {'Thông Tin Thêm'}{C.RESET}")
+    print(f"  {C.DIM}{B.H * 56}{C.RESET}")
+    
+    # Sort zones by Zone ID (ascending) for cleaner list
+    sorted_zones = sorted(zones_data, key=lambda x: x['zone_id'])
+    
+    for z in sorted_zones:
+        z_id = z['zone_id']
+        curr = z['num_players']
+        max_p = z['max_players']
+        
+        # Color coding for occupancy
+        if curr >= max_p:
+            p_color = C.RED      # Full
+        elif curr >= max_p * 0.8:
+            p_color = C.YELLOW   # Crowded
+        else:
+            p_color = C.GREEN    # Good
+            
+        extra_info = ""
+        if z.get('rank_flag'):
+            r1 = z.get('rank1', 0)
+            r2 = z.get('rank2', 0)
+            extra_info = f"{C.DIM}({r1} vs {r2}){C.RESET}"
+            
+        # Highlight current zone
+        if z_id == current_zone_id:
+            z_display = f"{z_id} (*)"
+        else:
+            z_display = f"{z_id}"
+            
+        print(f"  {C.CYAN}{z_display:<6}{C.RESET} {p_color}{curr:<12}{C.RESET} {C.GREY}{max_p:<8}{C.RESET} {extra_info}")
+
+    print(f"  {C.DIM}{B.H * 56}{C.RESET}")
+    print(f"  {C.BRIGHT_WHITE}Tổng số khu:{C.RESET} {C.BRIGHT_YELLOW}{len(zones_data)}{C.RESET}")
+    print_separator(60, color=C.CYAN)
