@@ -671,3 +671,53 @@ def display_zone_list(zones_data: list, map_name: str, account_name: str, curren
     print(f"  {C.DIM}{B.H * 56}{C.RESET}")
     print(f"  {C.BRIGHT_WHITE}Tổng số khu:{C.RESET} {C.BRIGHT_YELLOW}{len(zones_data)}{C.RESET}")
     print_separator(60, color=C.CYAN)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MACRO HELP DISPLAY
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def display_macro_help():
+    """Hiển thị hướng dẫn sử dụng hệ thống Macro mới."""
+    print()
+    print_header("[MACRO] HUONG DAN LAP TRINH MACRO", width=70, color=C.BRIGHT_GREEN)
+    print()
+    print(f"  {C.CYAN}Hệ thống Macro mới hỗ trợ biến, vòng lặp và logic cơ bản.{C.RESET}")
+    print(f"  {C.GREY}Sử dụng dấu # để viết ghi chú (VD: var a 1 # bien a){C.RESET}")
+    print()
+    
+    # Section: Core Commands
+    print_section_header("Cấu trúc lệnh cơ bản", width=70, color=C.PURPLE)
+    cmds = [
+        ("var <name> <val>", "Khai báo biến. VD: var a 10"),
+        ("set <name> <expr>", "Gán giá trị mới. VD: set a int(a) + 1"),
+        ("print <msg>", "In ra màn hình console (hỗ trợ ${var})"),
+        ("sleep <sec>", "Chờ X giây (VD: sleep 1.5)"),
+    ]
+    for cmd, desc in cmds:
+        print(f"  {C.GREEN}{cmd:<26}{C.RESET} {C.DIM}-{C.RESET} {desc}")
+    print()
+
+    # Section: Control Flow
+    print_section_header("Vòng lặp & Điều kiện", width=70, color=C.PURPLE)
+    print(f"  {C.YELLOW}while <condition>{C.RESET}")
+    print(f"      ... commands ...")
+    print(f"  {C.YELLOW}endwhile{C.RESET}")
+    print()
+    print(f"  Ví dụ:")
+    print(f"    var i 0")
+    print(f"    while int(i) < 5")
+    print(f"      print Lặp lần ${{i}}")
+    print(f"      set i int(i) + 1")
+    print(f"      sleep 1")
+    print(f"    endwhile")
+    print()
+    
+    # Section: Expressions
+    print_section_header("Biểu thức & Toán học", width=70, color=C.PURPLE)
+    print(f"  Hỗ trợ các hàm Python cơ bản: {C.CYAN}int(), float(), str(), abs(), round(), math.*{C.RESET}")
+    print(f"  Truy cập biến trong lệnh game bằng cú pháp: {C.ORANGE}${{ten_bien}}{C.RESET}")
+    print(f"  Trong biểu thức (while/set) có thể dùng tên biến trực tiếp.")
+    print()
+    print_separator(70, color=C.BRIGHT_GREEN)
+    print()

@@ -8,7 +8,7 @@ from ui import (
     display_help, display_pet_info, display_pet_help, display_character_status,
     display_character_base_stats, display_task_info, print_compact_header_show,
     print_compact_header_pet, print_compact_header_csgoc, print_compact_header_task,
-    print_compact_header_autoquest, print_compact_footer
+    print_compact_header_autoquest, print_compact_footer, display_macro_help
 )
 from autocomplete import get_input_with_autocomplete, COMMAND_TREE
 from combo import ComboEngine
@@ -177,7 +177,7 @@ async def command_loop(manager: AccountManager):
         COMMAND_TREE["login"] = login_suggestions
         COMMAND_TREE["logout"] = current_group_names
         COMMAND_TREE["target"] = current_group_names
-        COMMAND_TREE["combo"] = ["list", "reload"] + combo_engine.list()
+        COMMAND_TREE["combo"] = ["list", "reload", "help"] + combo_engine.list()
 
         target_str = f"{C.RED}None{C.RESET}"
         if manager.command_target is not None:
@@ -229,10 +229,14 @@ async def command_loop(manager: AccountManager):
             
             elif cmd_base == "combo":
                 if len(parts) == 1:
-                    print("combo list | combo <name> | combo reload")
+                    print("combo list | combo <name> | combo reload | combo help")
                     continue
 
                 sub = parts[1]
+
+                if sub == "help":
+                    display_macro_help()
+                    continue
 
                 if sub == "list":
                     print("Danh sách combo:")
