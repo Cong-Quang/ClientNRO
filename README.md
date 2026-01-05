@@ -109,6 +109,16 @@ AutoPlay (Logic) -> Quyết định đánh quái X.
 
 User nhập lệnh/File combo.txt -> Combo.py parse lệnh -> Gọi các hàm trong Controller hoặc Service.
 macro_interpreter.py parse file combo.txt và thực hiện các lệnh trong file, như kiểu ngôn ngữ lập trình đơn giản để macro nhanh
+
+112: 4. BOSS NOTIFICATION SYSTEM (HỆ THỐNG SĂN BOSS)
+113: 
+114: logic/boss_manager.py: Quản lý danh sách Boss, trạng thái (Sống/Chết), tính thời gian spawn.
+115: 
+116: logic/map_data.py: Database chứa Mapping ID <-> Tên Map. Tự động chuyển đổi giúp hiển thị chính xác ID Map của Boss.
+117: 
+118: Lệnh Terminal:
+119: * `show boss`: Hiển thị danh sách 15 Boss gần nhất kèm trạng thái, map, khu vực và ID Map.
+
 4. INSTRUCTIONS FOR AI (HƯỚNG DẪN LÀM VIỆC)
 
 Khi được yêu cầu viết code hoặc fix bug:
