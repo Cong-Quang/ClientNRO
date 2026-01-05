@@ -164,6 +164,26 @@ class Controller:
                 self.process_update_map(msg)
             elif cmd == Cmd.CREATE_PLAYER:
                 self.process_create_player(msg)
+            
+            # --- BOSS NOTIFICATION HANDLERS ---
+            elif cmd == Cmd.SERVER_MESSAGE:
+                 self.process_server_message(msg)
+            elif cmd == Cmd.CHAT_THEGIOI_SERVER:
+                 self.process_chat_server(msg)
+            elif cmd == Cmd.CHAT_MAP:
+                 self.process_chat_map(msg)
+            elif cmd == Cmd.SERVER_ALERT:
+                 self.process_server_alert(msg)
+            elif cmd == Cmd.BIG_MESSAGE:
+                 self.process_big_message(msg)
+            elif cmd == Cmd.CHAT_VIP:
+                 self.process_chat_vip(msg)
+            elif cmd == Cmd.BIG_BOSS:
+                 self.process_big_boss(msg, 1)
+            elif cmd == Cmd.BIG_BOSS_2:
+                 self.process_big_boss(msg, 2)
+            # ----------------------------------
+
             else:
                 logger.info(f"Unhandled command: {cmd}, len={len(msg.get_data())}, hex={msg.get_data().hex()}")
         except Exception as e:
@@ -1560,3 +1580,146 @@ class Controller:
             logger.error(f"Lỗi khi xử lý tạo nhân vật: {e}")
             import traceback
             traceback.print_exc()
+
+    def process_server_message(self, msg: Message):
+        """Xử lý thông báo từ server (Cmd -25)."""
+        try:
+            reader = msg.reader()
+            text = reader.read_utf()
+            logger.info(f"SERVER MESSAGE: {text}")
+            self.check_boss_notification(text, source="SERVER_MESSAGE")
+        except Exception as e:
+            logger.error(f"Error parsing SERVER_MESSAGE: {e}")
+
+    def process_chat_server(self, msg: Message):
+        """Xử lý chat thế giới từ server (Cmd 92)."""
+        try:
+            reader = msg.reader()
+            text = reader.read_utf()
+            # logger.info(f"CHAT SERVER: {text}")
+            self.check_boss_notification(text, source="CHAT_SERVER")
+        except Exception as e:
+            logger.error(f"Error parsing CHAT_THEGIOI_SERVER: {e}")
+
+    def process_chat_map(self, msg: Message):
+        """Xử lý chat trong map (Cmd 44) - có thể là thông báo boss ở một số server."""
+        try:
+            reader = msg.reader()
+            player_id = reader.read_int()
+            text = reader.read_utf()
+            # logger.info(f"CHAT MAP [{player_id}]: {text}")
+            self.check_boss_notification(text, source="CHAT_MAP")
+        except Exception as e:
+            logger.error(f"Error parsing CHAT_MAP: {e}")
+
+    def process_server_alert(self, msg: Message):
+        """Xử lý thông báo server (Cmd 94)."""
+        try:
+            reader = msg.reader()
+            text = reader.read_utf()
+            logger.info(f"SERVER ALERT: {text}")
+            self.check_boss_notification(text, source="SERVER_ALERT")
+        except Exception as e:
+            logger.error(f"Error parsing SERVER_ALERT: {e}")
+
+    def process_chat_vip(self, msg: Message):
+        """Xử lý chat VIP (Cmd 93) - Kênh chính thông báo Boss."""
+        try:
+            reader = msg.reader()
+            text = reader.read_utf()
+            # logger.info(f"CHAT VIP: {text}")
+            self.check_boss_notification(text, source="CHAT_VIP")
+        except Exception as e:
+            logger.error(f"Error parsing CHAT_VIP: {e}")
+
+    def process_big_message(self, msg: Message):
+        """Xử lý thông báo lớn (Cmd -70)."""
+        try:
+            reader = msg.reader()
+            text = reader.read_utf()
+            # logger.info(f"BIG MESSAGE: {text}")
+            self.check_boss_notification(text, source="BIG_MESSAGE")
+        except Exception as e:
+            logger.error(f"Error parsing BIG_MESSAGE: {e}")
+
+    def process_big_boss(self, msg: Message, type: int):
+        """Xử lý thông tin Big Boss (Cmd 101, 102)."""
+        try:
+            # Struct unknown, usually just triggers an effect or UI
+            # Logging to see if it carries text
+            logger.info(f"BIG_BOSS type {type} received. Len: {len(msg.get_data())}")
+        except Exception as e:
+            logger.error(f"Error parsing BIG_BOSS: {e}")
+
+
+    def check_boss_notification(self, text: str, source: str = "UNKNOWN"):
+        """
+        Kiểm tra nội dung chat xem có phải thông báo boss xuất hiện không.
+        Logic ported from NotifBoss.cs:
+        a = a.Replace("boss ", "").Replace(" vừa xuất hiện tại ", "|").Replace("khu vực ", "|");
+        """
+        # TEMPORARY DEBUG: Print EVERYTHING to identify the correct format
+        # print(f"[DEBUG_MSG][{source}] {text}")
+        
+        # Original logic (relaxed check)
+        if "xuất hiện tại" in text:
+            try:
+                from logic.boss_manager import BossManager
+                
+                # Normalize text
+                clean_text = text.replace("Boss ", "").replace("boss ", "").replace("BOSS ", "") 
+                
+                # Handle "vừa xuất hiện tại" OR "đã xuất hiện tại"
+                # Priority: Check specific phrases first
+                if " vừa xuất hiện tại " in clean_text:
+                    splitter = " vừa xuất hiện tại "
+                elif " đã xuất hiện tại " in clean_text:
+                    splitter = " đã xuất hiện tại "
+                else:
+                    splitter = " xuất hiện tại "
+                
+                parts = clean_text.split(splitter)
+                if len(parts) >= 2:
+                    boss_name = parts[0].strip()
+                    location_part = parts[1]
+                    
+                    # Tách khu vực nếu có
+                    map_name = location_part.strip()
+                    zone_id = -1
+                    
+                    # Logic cũ: Chỉ tách nếu có từ "khu vực" rõ ràng
+                    if "khu vực" in location_part:
+                        loc_parts = location_part.split(" khu vực ")
+                        map_name = loc_parts[0].strip()
+                        if len(loc_parts) > 1:
+                            try:
+                                zone_id = int(loc_parts[1].strip())
+                            except:
+                                pass
+
+                    BossManager().add_boss(boss_name, map_name, zone_id)
+                    logger.info(f"PHÁT HIỆN BOSS: {boss_name} tại {map_name} (Khu {zone_id})")
+            
+            except Exception as e:
+                logger.error(f"Lỗi khi phân tích thông báo Boss: {e}")
+
+        # Check death message
+        # Example: "Bóp Vú Linh Tây vừa tiêu diệt được Android 15 mọi người đều ngưỡng mộ"
+        if "vừa tiêu diệt được" in text:
+            try:
+                from logic.boss_manager import BossManager
+                parts = text.split(" vừa tiêu diệt được ")
+                if len(parts) >= 2:
+                    # part[0] is player name, part[1] is "BossName mọi người..."
+                    # We need to extract BossName. 
+                    # suffix " mọi người đều ngưỡng mộ" seems common but check if it varies
+                    remainder = parts[1]
+                    boss_name = remainder.split(" mọi người")[0].strip()
+                    
+                    if BossManager().mark_boss_dead(boss_name):
+                         logger.info(f"BOSS DIED: {boss_name}")
+            except Exception as e:
+                logger.error(f"Lỗi khi xử lý boss chết: {e}")
+
+            except Exception as e:
+                logger.error(f"Lỗi khi phân tích thông báo Boss: {e}")

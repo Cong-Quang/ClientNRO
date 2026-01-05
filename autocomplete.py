@@ -16,7 +16,7 @@ COMMAND_TREE = {
     "help": [],
     "list": [],
     "target": [],
-    "show": ["csgoc", "nhiemvu"],
+    "show": ["csgoc", "nhiemvu", "boss"],
     "csgoc": [],
     "khu": [],
     "login": ["all"],

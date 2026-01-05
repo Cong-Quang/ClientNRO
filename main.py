@@ -410,7 +410,7 @@ async def command_loop(manager: AccountManager):
                             # Tìm proxy còn slot
                             found_proxy = False
                             for p in proxy_list:
-                                if proxy_usage[p] < 5:
+                                if proxy_usage[p] < 4:
                                     assigned_proxy = p
                                     proxy_usage[p] += 1
                                     found_proxy = True
@@ -418,10 +418,10 @@ async def command_loop(manager: AccountManager):
                                         display_p = p.split('@')[-1]
                                     except:
                                         display_p = p
-                                    print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.PURPLE}Gán Proxy{C.RESET} {C.GREY}...{display_p[-15:]}{C.RESET} (Slot {C.CYAN}{proxy_usage[p]}/5{C.RESET})")
+                                    print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.PURPLE}Gán Proxy{C.RESET} {C.GREY}...{display_p[-15:]}{C.RESET} (Slot {C.CYAN}{proxy_usage[p]}/4{C.RESET})")
                                     break
                             if not found_proxy:
-                                print(f"{C.RED}Hết tài nguyên mạng (IP máy & Proxy đều full 5 acc).{C.RESET}")
+                                print(f"{C.RED}Hết tài nguyên mạng (IP máy & Proxy đều full 4 acc).{C.RESET}")
                                 stop_login_sequence = True
                     else:
                         # Chế độ mới: Chỉ dùng proxy
@@ -431,7 +431,7 @@ async def command_loop(manager: AccountManager):
                             stop_login_sequence = True
                         else:
                             for p in proxy_list:
-                                if proxy_usage[p] < 5:
+                                if proxy_usage[p] < 4:
                                     assigned_proxy = p
                                     proxy_usage[p] += 1
                                     found_proxy = True
@@ -439,10 +439,10 @@ async def command_loop(manager: AccountManager):
                                         display_p = p.split('@')[-1]
                                     except:
                                         display_p = p
-                                    print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.PURPLE}Gán Proxy (Bỏ qua IP Local){C.RESET} {C.GREY}...{display_p[-15:]}{C.RESET} (Slot {C.CYAN}{proxy_usage[p]}/5{C.RESET})")
+                                    print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.PURPLE}Gán Proxy (Bỏ qua IP Local){C.RESET} {C.GREY}...{display_p[-15:]}{C.RESET} (Slot {C.CYAN}{proxy_usage[p]}/4{C.RESET})")
                                     break
                         if not found_proxy and proxy_list:
-                            print(f"{C.RED}Tất cả các proxy đều đã full (5 acc/proxy).{C.RESET}")
+                            print(f"{C.RED}Tất cả các proxy đều đã full (4 acc/proxy).{C.RESET}")
                             stop_login_sequence = True
 
                     if stop_login_sequence:
@@ -566,9 +566,9 @@ async def command_loop(manager: AccountManager):
                         if len(display_p) > 28:
                             display_p = "..." + display_p[-25:]
                         
-                        usage_bar = f"{'#' * count}{'-' * (5 - count)}"
+                        usage_bar = f"{'#' * count}{'-' * (4 - count)}"
                         col = C.BRIGHT_GREEN if count > 0 else C.DIM
-                        print(f"{C.PURPLE}{B.V}{C.RESET} {C.YELLOW}[{i+1:>2}]{C.RESET}   {col}{display_p:<30}{C.RESET} {col}{usage_bar} {count}/5{C.RESET} {C.PURPLE}{B.V}{C.RESET}")
+                        print(f"{C.PURPLE}{B.V}{C.RESET} {C.YELLOW}[{i+1:>2}]{C.RESET}   {col}{display_p:<30}{C.RESET} {col}{usage_bar} {count}/4{C.RESET} {C.PURPLE}{B.V}{C.RESET}")
                     
                     print(f"{C.PURPLE}{B.BL}{B.H * 55}{B.BR}{C.RESET}")
                     print()
@@ -748,6 +748,15 @@ async def command_loop(manager: AccountManager):
                  print_compact_header_task()
             elif is_compact and "autobomong status" in command:
                  print_compact_header_autoquest()
+
+            # --- Handle show boss command ---
+            if command.strip() == "show boss":
+                from logic.boss_manager import BossManager
+                bosses = BossManager().get_bosses()
+                import ui
+                ui.display_boss_list(bosses)
+                continue
+            # --------------------------------
 
             tasks = [handle_single_command(command, acc, compact_mode=is_compact, idx=real_idx) for real_idx, acc in online_targets_with_idx]
             results = await asyncio.gather(*tasks)

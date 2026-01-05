@@ -123,9 +123,13 @@ class Session:
         # GHI NHẬT KÝ HEX
         logger.debug(f"GỬI [Mã hóa={self.get_key_complete}][Chỉ mục_W={self.cur_w}]: {buffer.hex()}")
 
-        self.writer.write(buffer)
-        await self.writer.drain()
-        logger.info(f"Đã gửi tin nhắn: {command}, Độ dài: {length} bytes")
+        try:
+            self.writer.write(buffer)
+            await self.writer.drain()
+            logger.info(f"Đã gửi tin nhắn: {command}, Độ dài: {length} bytes")
+        except Exception as e:
+            logger.error(f"Lỗi khi gửi tin nhắn (socket error): {e}")
+            self.disconnect()
 
     async def listen(self):
         logger.info("Đang lắng nghe tin nhắn...")

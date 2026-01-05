@@ -64,7 +64,7 @@ class Account:
         writer.write_int(600)             # Height
         writer.write_bool(True)           # isQwerty
         writer.write_bool(True)           # isTouch
-        writer.write_utf(f"Con Cặc|{self.version}") # Platform | Version
+        writer.write_utf(f"client 1|{self.version}") # Platform | Version
         await self.session.send_message(msg_client)
         await asyncio.sleep(0.5)
 
