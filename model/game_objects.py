@@ -122,6 +122,7 @@ class Char:
         self.cySend = 0
         
         self.mob_focus: Mob = None
+        self.char_focus = None  # Dict chứa thông tin char được target (boss/player)
         self.skills = [] # List[Skill]
         self.myskill: Skill = None # Selected skill
 

@@ -691,6 +691,10 @@ class AutoBoss:
         if not boss_char:
             logger.info(f"[{self.username}] Boss '{self.target_boss_name}' đã bị tiêu diệt!")
             
+            # TẮT AutoAttack khi boss chết
+            if self.controller.auto_attack and self.controller.auto_attack.is_running:
+                self.controller.toggle_auto_attack(False)
+            
             # Nếu dùng queue mode, chuyển boss tiếp theo
             if self.use_queue_mode:
                 await self._next_boss_in_queue()
@@ -716,10 +720,13 @@ class AutoBoss:
         await self.controller.account.service.char_move()
         await asyncio.sleep(0.1)
         
-        # Bật AutoAttack nếu chưa bật
+        # Bật AutoAttack nếu chưa bật và TẮT auto_retarget
         if self.controller.auto_attack is None or not self.controller.auto_attack.is_running:
             logger.info(f"[{self.username}] Bật Auto Attack để tấn công boss...")
             self.controller.toggle_auto_attack(True)
+            # TẮT auto_retarget để chỉ attack boss, không attack mob khác
+            self.controller.auto_attack.auto_retarget = False
+            self.controller.auto_attack.last_target_type = "char"  # Chỉ tìm char (boss)
         
         # Monitor trong state này
         await asyncio.sleep(1.0)

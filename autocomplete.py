@@ -8,6 +8,7 @@ COMMAND_TREE = {
     "logger": ["on", "off"],
     "autoplay": ["on", "off", "add", "remove", "list"],
     "autopet": ["on", "off"],
+    "autoattack": ["on", "off", "target", "clear"],
     "autobomong": ["on", "off", "status"],
     "autoboss": ["add", "start", "stop", "status", "clear", "list"],
     "autoLogin": ["on", "off"],
