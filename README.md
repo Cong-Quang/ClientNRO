@@ -3,6 +3,7 @@ Bạn là một Senior với 10 năm kinh nghiệm về Python Automation Engine
 Tech Stack: Python 3.12+ (Bắt buộc).
 Constraint: CHỈ sử dụng thư viện chuẩn (Standard Library) - KHÔNG dùng requests, numpy.
 Architecture Style: Modular, Event-driven, Non-blocking I/O.
+không sử dụng icon hay sticker vào code nhé.
 
 1. CODING STANDARDS (TIÊU CHUẨN CODE)
 
@@ -110,16 +111,56 @@ AutoPlay (Logic) -> Quyết định đánh quái X.
 User nhập lệnh/File combo.txt -> Combo.py parse lệnh -> Gọi các hàm trong Controller hoặc Service.
 macro_interpreter.py parse file combo.txt và thực hiện các lệnh trong file, như kiểu ngôn ngữ lập trình đơn giản để macro nhanh
 
-112: 4. BOSS NOTIFICATION SYSTEM (HỆ THỐNG SĂN BOSS)
-113: 
-114: logic/boss_manager.py: Quản lý danh sách Boss, trạng thái (Sống/Chết), tính thời gian spawn.
-115: 
-116: logic/map_data.py: Database chứa Mapping ID <-> Tên Map. Tự động chuyển đổi giúp hiển thị chính xác ID Map của Boss.
-117: 
-118: Lệnh Terminal:
-119: * `show boss`: Hiển thị danh sách 15 Boss gần nhất kèm trạng thái, map, khu vực và ID Map.
+4. BOSS NOTIFICATION SYSTEM (HỆ THỐNG SĂN BOSS)
 
-4. INSTRUCTIONS FOR AI (HƯỚNG DẪN LÀM VIỆC)
+logic/boss_manager.py: Quản lý danh sách Boss, trạng thái (Sống/Chết), tính thời gian spawn.
+
+logic/map_data.py: Database chứa Mapping ID <-> Tên Map. Tự động chuyển đổi giúp hiển thị chính xác ID Map của Boss.
+
+Lệnh Terminal:
+* `show boss`: Hiển thị danh sách 15 Boss gần nhất kèm trạng thái, map, khu vực và ID Map.
+
+5. AUTO BOSS SYSTEM (HỆ THỐNG SĂN BOSS TỰ ĐỘNG)
+
+logic/auto_boss.py: State Machine săn boss tự động với cooperative multi-account support.
+
+Lệnh Terminal:
+* `autoboss add <boss_name>`: Thêm boss vào queue (hỗ trợ fuzzy matching)
+* `autoboss start`: Bắt đầu săn boss theo queue
+* `autoboss stop`: Dừng auto boss  
+* `autoboss show`: Hiển thị queue hiện tại
+* `autoboss clear`: Xóa toàn bộ queue
+
+Tính năng:
+- **Queue Mode**: Săn nhiều boss liên tiếp
+- **Zone Distribution**: Nhiều accounts tự động chia zones (round-robin)
+- **Group Coordination**: Accounts cùng boss = cùng group
+- **Auto Attack Integration**: Tự động bật auto attack khi tìm thấy boss
+
+State Machine: SEARCHING → NAVIGATING → ZONE_SCANNING → GATHERING → ATTACKING → RECOVERING
+
+6. PLAYER DETECTION SYSTEM (HỆ THỐNG PHÁT HIỆN NGƯỜI CHƠI)
+121: 
+122: Hệ thống phát hiện và hiển thị người chơi trong map hiện tại.
+123: 
+124: Lệnh Terminal:
+125: * `show finfomap`: Hiển thị danh sách tất cả người chơi trong map với thông tin: ID, Tên, Level, HP, Vị trí, Clan ID.
+126: 
+127: Phát hiện kỹ thuật quan trọng:
+128: 
+129: **FINISH_LOADMAP Protocol**: Bot phải gửi packet FINISH_LOADMAP (Cmd -39) sau khi nhận MAP_INFO để báo server client đã sẵn sàng. Server sẽ phản hồi bằng cách gửi PLAYER_ADD packets cho tất cả người chơi hiện có trong map.
+130: 
+131: Luồng hoạt động:
+132: 1. Server gửi MAP_INFO → Client load map data
+133: 2. Client gửi FINISH_LOADMAP (service.finish_load_map()) → Signal ready
+134: 3. Server gửi PLAYER_ADD cho tất cả người chơi → Client cập nhật controller.chars
+135: 4. `show finfomap` hiển thị dữ liệu từ controller.chars với smart filtering (loại boss/NPC)
+136: 
+137: Lưu ý: Server chỉ gửi người chơi trong viewport (tầm nhìn), không gửi toàn bộ zone. Điều này là tối ưu băng thông của game.
+
+138: 6. INSTRUCTIONS FOR AI (HƯỚNG DẪN LÀM VIỆC)
+
+auto_attack.py: ở trong folder logic nó chứa logic của auto attack
 
 Khi được yêu cầu viết code hoặc fix bug:
 

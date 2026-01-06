@@ -75,7 +75,13 @@ class AutoPlay:
                     logger.info(f"Auto: Đã quay về map {current_map_id}.")
             return  # Kết thúc lượt này, vòng lặp tiếp theo sẽ tiếp tục tấn công
         
-        # 1. Xác thực Mục tiêu Hiện tại (Focus)
+        # 1. Ưu tiên attack Char (Boss/Player) nếu có char_focus
+        char_focus = my_char.char_focus
+        if char_focus:
+            await self._attack_char_focus(char_focus, service, my_char)
+            return
+        
+        # 2. Xác thực Mục tiêu Mob Hiện tại (Focus)
         mob_focus = my_char.mob_focus
         target_valid = False
         
@@ -169,6 +175,51 @@ class AutoPlay:
                         
                         # Nghỉ rất ngắn để tránh bị server drop packet (hủy gói tin)
                         await asyncio.sleep(0.02)
+    
+    async def _attack_char_focus(self, char_focus: dict, service, my_char):
+        """
+        Tấn công char_focus (Boss hoặc Player)
+        char_focus là dict chứa thông tin char từ controller.chars
+        """
+        char_id = char_focus.get('id')
+        char_name = char_focus.get('name', 'Unknown')
+        char_x = char_focus.get('x', my_char.cx)
+        char_y = char_focus.get('y', my_char.cy)
+        char_hp = char_focus.get('hp', 0)
+        
+        # Kiểm tra target còn sống
+        if char_hp <= 0:
+            my_char.char_focus = None
+            return
+        
+        # Tính khoảng cách
+        dist = math.sqrt((char_x - my_char.cx)**2 + (char_y - my_char.cy)**2)
+        
+        # Di chuyển nếu quá xa (> 60px)
+        if dist > 60:
+            logger.info(f"Auto: Dịch chuyển tới Boss/Char {char_name}")
+            my_char.cx = char_x
+            my_char.cy = char_y
+            my_char.cdir = 1 if char_x > my_char.cx else -1
+            await service.char_move()
+            await asyncio.sleep(0.01)
+        
+        # Thực hiện tấn công
+        skill = self.find_best_skill()
+        if skill:
+            await service.select_skill(skill.template.id)
+            
+            # Vòng lặp tấn công char (boss/player)
+            for i in range(20):
+                # Check HP từ controller.chars để xem còn sống không
+                current_char = self.controller.chars.get(char_id)
+                if current_char and current_char.get('hp', 0) > 0:
+                    await service.send_player_attack(mob_ids=None, char_ids=[char_id])
+                    await asyncio.sleep(0.02)
+                else:
+                    # Target đã chết
+                    my_char.char_focus = None
+                    break
 
     def find_best_skill(self) -> Skill:
         my_char = self.controller.account.char

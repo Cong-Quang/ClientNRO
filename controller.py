@@ -14,6 +14,7 @@ import ui
 from logic.xmap import XMap
 from logic.auto_NVBoMong import AutoQuest, BO_MONG_NPC_TEMPLATE_ID
 from logic.auto_giftcode import AutoGiftcode
+from logic.auto_boss import AutoBoss
 
 class Controller:
     """Quản lý xử lý tin nhắn và trạng thái game cho một tài khoản.
@@ -30,13 +31,17 @@ class Controller:
         self.map_info = {}
         self.mobs = {}
         self.npcs = {}
+        self.chars = {}  # Danh sách characters khác trong map (bao gồm bosses)
         self.tile_map = TileMap()
+        self.zone_list = []  # Lưu danh sách zone cho auto_boss
         self.movement = MovementService(self)
         self.auto_play = AutoPlay(self)
+        self.auto_attack = None  # Will be imported lazily to avoid circular import
         self.auto_pet = AutoPet(self)
         self.xmap = XMap(self)
         self.auto_quest = AutoQuest(self)
         self.auto_giftcode = AutoGiftcode(self)
+        self.auto_boss = AutoBoss(self)
 
     def toggle_auto_quest(self, enabled: bool):
         """Bật hoặc tắt chế độ Auto Quest."""
@@ -62,6 +67,28 @@ class Controller:
                 self.account.tasks.append(task)
         else:
             self.auto_pet.stop()
+    
+    def toggle_auto_attack(self, enabled: bool):
+        """Bật hoặc tắt Auto Attack (Universal - cho cả mobs và chars)"""
+        # Lazy import to avoid circular dependency
+        if self.auto_attack is None:
+            from logic.auto_attack import AutoAttack
+            self.auto_attack = AutoAttack(self)
+        
+        if enabled:
+            self.auto_attack.start()
+        else:
+            self.auto_attack.stop()
+    
+    def toggle_auto_boss(self, enabled: bool, boss_name: str = ""):
+        """Bật hoặc tắt chế độ Auto Boss."""
+        if enabled:
+            if boss_name:
+                self.auto_boss.start(boss_name)
+            else:
+                logger.warning("Cần chỉ định tên boss để bắt đầu Auto Boss")
+        else:
+            self.auto_boss.stop()
 
     def on_message(self, msg: Message):
         """Chuyển tiếp tin nhắn theo `msg.command` đến handler tương ứng.
@@ -183,6 +210,10 @@ class Controller:
             elif cmd == Cmd.BIG_BOSS_2:
                  self.process_big_boss(msg, 2)
             # ----------------------------------
+            
+            elif cmd == 18:
+                # REQUEST_PLAYERS response - danh sách người chơi trong map
+                self.process_player_list_update(msg)
 
             else:
                 logger.info(f"Unhandled command: {cmd}, len={len(msg.get_data())}, hex={msg.get_data().hex()}")
@@ -394,6 +425,9 @@ class Controller:
 
             self.map_info = {'id': map_id, 'name': map_name, 'planet': planet_id, 'zone': zone_id}
             self.tile_map.set_map_info(map_id, planet_id, tile_id, bg_id, type_map, map_name, zone_id)
+            
+            # Clear chars list when entering new map/zone
+            self.chars.clear()
 
             self.account.char.cx = reader.read_short()
             self.account.char.cy = reader.read_short()
@@ -457,6 +491,9 @@ class Controller:
                 self.account.login_event.set()
 
             asyncio.create_task(self.account.service.pet_info())
+            
+            # GỬI FINISH_LOADMAP để server gửi PLAYER_ADD cho người chơi hiện có
+            asyncio.create_task(self.account.service.finish_load_map())
 
         except Exception as e:
             logger.error(f"Error parsing MAP_INFO: {e}")
@@ -492,6 +529,9 @@ class Controller:
                     z_info['rank2'] = reader.read_int()
                     
                 zones_data.append(z_info)
+            
+            # Lưu zone_list cho auto_boss sử dụng
+            self.zone_list = zones_data
                 
             current_zone = self.map_info.get('zone', -1)
             ui.display_zone_list(zones_data, self.map_info.get('name', 'Unknown'), self.account.username, current_zone)
@@ -827,6 +867,9 @@ class Controller:
             char_data = self.read_char_info(reader)
             char_data['id'] = player_id
             char_data['clan_id'] = clan_id
+            
+            # Lưu vào chars dict (cho boss detection)
+            self.chars[player_id] = char_data
             
             logger.info(f"Đã thêm người chơi (Cmd {msg.command}): ID={player_id}, Tên='{char_data.get('name')}', Vị trí=({char_data.get('x')},{char_data.get('y')})")
         except Exception as e:
@@ -1253,6 +1296,34 @@ class Controller:
             logger.info(f"Thách đấu (Cmd {msg.command}): ChallengeID={challenge_id}, Payload Hex: {msg.get_data().hex()}")
         except Exception as e:
             logger.error(f"Lỗi khi phân tích THACHDAU: {e}")
+
+    def process_player_list_update(self, msg: Message):
+        """Xử lý phản hồi REQUEST_PLAYERS (Cmd 18) - cập nhật vị trí và HP người chơi."""
+        try:
+            reader = msg.reader()
+            num_players = reader.read_byte()
+            logger.info(f"Processing player list update (Cmd 18): {num_players} players")
+            
+            for i in range(num_players):
+                char_id = reader.read_int()
+                cx = reader.read_short()
+                cy = reader.read_short()
+                hp_show = reader.read_long()
+                
+                # Cập nhật người chơi hiện có
+                if char_id in self.chars:
+                    self.chars[char_id]['x'] = cx
+                    self.chars[char_id]['y'] = cy
+                    self.chars[char_id]['hp'] = hp_show
+                    logger.debug(f"Updated player {char_id} ({self.chars[char_id].get('name')}): pos=({cx},{cy}), HP={hp_show}")
+                else:
+                    # Player chưa có trong dict - có thể là người mới hoặc chưa nhận PLAYER_ADD
+                    logger.warning(f"Player {char_id} in list but not in chars dict (pos={cx},{cy}, HP={hp_show})")
+                    
+        except Exception as e:
+            logger.error(f"Lỗi khi phân tích REQUEST_PLAYERS response: {e}")
+            import traceback
+            traceback.print_exc()
 
     def process_power_info(self, msg: Message):
         """Xử lý thông tin sức mạnh (POWER_INFO -115)."""

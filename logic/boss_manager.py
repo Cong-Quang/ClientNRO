@@ -67,6 +67,20 @@ class BossManager:
     def get_bosses(self):
         """Trả về danh sách boss, sắp xếp mới nhất trước."""
         return sorted(self.bosses, key=lambda x: x['time'], reverse=True)
+    
+    def find_bosses_by_keyword(self, keyword: str):
+        """
+        Tìm tất cả boss có tên chứa keyword (case-insensitive).
+        Trả về list của boss đang sống, sắp xếp theo thời gian mới nhất.
+        
+        Ví dụ: keyword="Super Broly" sẽ match "Super Broly 1", "Super Broly 25"
+        """
+        keyword_lower = keyword.lower()
+        matching_bosses = [
+            b for b in self.bosses 
+            if keyword_lower in b['name'].lower() and b['status'] == 'Sống'
+        ]
+        return sorted(matching_bosses, key=lambda x: x['time'], reverse=True)
 
     def clear_expired(self, minutes: int = 60):
         """Xóa boss đã xuất hiện quá lâu."""

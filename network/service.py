@@ -101,14 +101,26 @@ class Service:
         await self.session.send_message(msg)
         logger.info("Gửi yêu cầu tải bản đồ ngoại tuyến (Cmd -33)")
 
-    async def send_player_attack(self, mob_ids: list[int], cdir: int = 1):
-        # Mã lệnh (CMD): 54 (TẤN_CÔNG)
+    async def send_player_attack(self, mob_ids: list[int] = None, char_ids: list[int] = None, cdir: int = 1):
+        """
+        Gửi lệnh tấn công (Cmd 54)
+        - mob_ids: Danh sách ID của mobs cần tấn công
+        - char_ids: Danh sách ID của chars (bosses/players) cần tấn công
+        - cdir: Hướng nhân vật (1 = phải, -1 = trái)
+        """
         msg = Message(54)
         writer = msg.writer()
         
-        for mob_id in mob_ids:
-            writer.write_byte(mob_id)
-            
+        # Ghi mob IDs
+        if mob_ids:
+            for mob_id in mob_ids:
+                writer.write_byte(mob_id)
+        
+        # Ghi char IDs (for bosses/players)
+        if char_ids:
+            for char_id in char_ids:
+                writer.write_int(char_id)
+        
         writer.write_byte(cdir)
         await self.session.send_message(msg)
 
@@ -149,6 +161,32 @@ class Service:
             logger.info("Đã gửi yêu cầu mở giao diện khu vực (Cmd 29)")
         except Exception as e:
             logger.error(f"Lỗi khi gửi yêu cầu mở giao diện khu vực: {e}")
+
+    async def request_players(self):
+        """
+        Yêu cầu danh sách người chơi trong map hiện tại (Cmd 18 - REQUEST_PLAYERS)
+        Server sẽ trả về danh sách ID, vị trí và HP của tất cả người chơi
+        """
+        try:
+            msg = Message(Cmd.REQUEST_PLAYERS)
+            await self.session.send_message(msg)
+            logger.info("Đã gửi yêu cầu danh sách người chơi trong map (REQUEST_PLAYERS)")
+        except Exception as e:
+            logger.error(f"Lỗi khi gửi yêu cầu REQUEST_PLAYERS: {e}")
+
+    async def finish_load_map(self):
+        """
+        Gửi FINISH_LOADMAP packet để báo server client đã sẵn sàng (Cmd -39)
+        Server sẽ trả về PLAYER_ADD packets cho tất cả người chơi trong map
+        """
+        try:
+            msg = Message(Cmd.FINISH_LOADMAP)
+            await self.session.send_message(msg)
+            logger.info("Đã gửi FINISH_LOADMAP - server sẽ gửi danh sách người chơi")
+        except Exception as e:
+            logger.error(f"Lỗi khi gửi FINISH_LOADMAP: {e}")
+
+
 
     async def use_item(self, type: int, where: int, index: int, template_id: int):
         """

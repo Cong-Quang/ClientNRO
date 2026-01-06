@@ -706,7 +706,7 @@ async def command_loop(manager: AccountManager):
             # Define commands that are valid to be sent to accounts.
             # If the command is not in this list, it's an unknown command for a single account.
             valid_target_commands = [
-                "pet", "logger", "autoplay", "autopet", "autobomong", "blacklist", "gomap", 
+                "pet", "logger", "autoplay", "autopet", "autobomong", "autoboss", "blacklist", "gomap", 
                 "findnpc", "findmob", "teleport", "teleportnpc", "andau", "hit", "show", 
                 "csgoc", "opennpc", "khu", "congcs", "task", "finditem", "useitem", "givecode"
             ]
@@ -923,6 +923,86 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                     print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: autobomong <on|off|status>")
             else:
                 print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: autobomong <on|off|status>")
+        
+        elif cmd_base == "autoboss":
+            # autoboss <boss_name> | autoboss add <boss> | autoboss start | autoboss stop | autoboss status | autoboss clear | autoboss list
+            if len(parts) > 1:
+                sub = parts[1]
+                
+                # Queue management (support both 'add' and 'queue')
+                if sub in ["add", "queue"]:
+                    # autoboss add <boss_name> hoặc autoboss add Boss1,Boss2,Boss3
+                    if len(parts) > 2:
+                        boss_input = " ".join(parts[2:])
+                        
+                        # Check if comma-separated (nhiều boss)
+                        if "," in boss_input:
+                            boss_names = [name.strip() for name in boss_input.split(",")]
+                            for boss_name in boss_names:
+                                if boss_name:
+                                    account.controller.auto_boss.add_to_queue(boss_name)
+                            print(f"[{C.YELLOW}{account.username}{C.RESET}] Đã thêm {C.PURPLE}{len(boss_names)} bosses{C.RESET} vào queue")
+                        else:
+                            # Single boss
+                            account.controller.auto_boss.add_to_queue(boss_input)
+                            print(f"[{C.YELLOW}{account.username}{C.RESET}] Đã thêm '{C.PURPLE}{boss_input}{C.RESET}' vào queue")
+                    else:
+                        print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: autoboss add <tên boss> hoặc autoboss add Boss1,Boss2,Boss3")
+                
+                elif sub == "start":
+                    # autoboss start (start queue mode)
+                    account.controller.auto_boss.start_queue()
+                    queue_size = len(account.controller.auto_boss.boss_queue)
+                    if queue_size > 0:
+                        print(f"[{C.YELLOW}{account.username}{C.RESET}] {C.GREEN}Bắt đầu săn {queue_size} bosses theo queue{C.RESET}")
+                
+                elif sub == "clear":
+                    # autoboss clear (clear queue)
+                    account.controller.auto_boss.clear_queue()
+                    print(f"[{C.YELLOW}{account.username}{C.RESET}] Đã xóa queue")
+                
+                elif sub == "list":
+                    # autoboss list (show queue)
+                    queue_info = account.controller.auto_boss.show_queue()
+                    print(f"[{C.YELLOW}{account.username}{C.RESET}]")
+                    print(queue_info)
+                
+                elif sub == "stop":
+                    account.controller.toggle_auto_boss(False)
+                    print(f"[{C.YELLOW}{account.username}{C.RESET}] {C.RED}Đã dừng Auto Boss{C.RESET}")
+                    
+                elif sub == "status":
+                    ab = account.controller.auto_boss
+                    if ab.is_running:
+                        mode = "QUEUE" if ab.use_queue_mode else "SINGLE"
+                        print(f"[{C.YELLOW}{account.username}{C.RESET}] Auto Boss: {C.GREEN}RUNNING{C.RESET} ({mode} mode)")
+                        print(f"  Target: {C.PURPLE}{ab.target_boss_name}{C.RESET}")
+                        print(f"  State: {C.CYAN}{ab.state.value}{C.RESET}")
+                        if ab.use_queue_mode:
+                            print(f"  Queue Progress: [{ab.current_boss_index}/{len(ab.boss_queue)-1}]")
+                        if ab.target_map_id != -1:
+                            print(f"  Map: {ab.target_map_id}, Zone: {ab.target_zone_id}")
+                    else:
+                        print(f"[{C.YELLOW}{account.username}{C.RESET}] Auto Boss: {C.RED}STOPPED{C.RESET}")
+                        queue_size = len(account.controller.auto_boss.boss_queue)
+                        if queue_size > 0:
+                            print(f"  Queue: {queue_size} bosses waiting")
+                            
+                else:
+                    # Tên boss là phần còn lại của command (single boss mode)
+                    boss_name = " ".join(parts[1:])
+                    account.controller.toggle_auto_boss(True, boss_name)
+                    print(f"[{C.YELLOW}{account.username}{C.RESET}] {C.GREEN}Bắt đầu Auto Boss (Single): {C.PURPLE}{boss_name}{C.RESET}")
+            else:
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng:")
+                print(f"  autoboss <tên boss>                    - Săn 1 boss")
+                print(f"  autoboss add <boss>                    - Thêm boss vào queue")
+                print(f"  autoboss add Boss1,Boss2,Boss3         - Thêm nhiều boss")
+                print(f"  autoboss start                         - Bắt đầu queue")
+                print(f"  autoboss list                          - Xem queue")
+                print(f"  autoboss clear                         - Xóa queue")
+                print(f"  autoboss stop                          - Dừng")
+                print(f"  autoboss status                        - Trạng thái")
 
         elif cmd_base == "blacklist":
                 # Commands: blacklist list | add <name|id> | remove <name|id> | clear
@@ -1082,6 +1162,69 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                      await asyncio.sleep(0.5)
                      from ui import display_task_info
                      return True, display_task_info(account, compact=compact_mode, idx=idx, print_output=False)
+                
+                elif sub == "finfomap":
+                    # Hiển thị danh sách tất cả người chơi trong map hiện tại
+                    chars = account.controller.chars
+                    if not chars:
+                        print(f"[{C.YELLOW}{account.username}{C.RESET}] Không có người chơi nào khác trong map hiện tại.")
+                    else:
+                        # Lọc chỉ lấy người chơi thật (loại bỏ boss/entity lạ)
+                        # Boss thường có ID âm, tên lạ, hoặc HP/level bất thường
+                        real_players = {}
+                        for player_id, player_data in chars.items():
+                            name = player_data.get('name', '').strip()
+                            level = player_data.get('level', 0)
+                            hp = player_data.get('hp', 0)
+                            max_hp = player_data.get('max_hp', 0)
+                            
+                            # Filter: Bỏ qua nếu:
+                            # - ID âm (thường là boss)
+                            # - Tên rỗng hoặc chỉ có ký tự đặc biệt
+                            # - Level = 1 và HP quá cao (boss giả dạng)
+                            # - HP hoặc max_hp = 0 (dữ liệu lỗi)
+                            if player_id < 0:
+                                continue
+                            if not name or len(name) < 2 or name == "$":
+                                continue
+                            if level == 1 and max_hp > 100000:  # Boss thường có HP cực cao ở level 1
+                                continue
+                            if hp == 0 and max_hp == 0:
+                                continue
+                                
+                            real_players[player_id] = player_data
+                        
+                        if not real_players:
+                            print(f"[{C.YELLOW}{account.username}{C.RESET}] Không có người chơi nào khác trong map hiện tại.")
+                            print(f"{C.DIM}(Có {len(chars)} entity khác - có thể là boss/NPC){C.RESET}")
+                        else:
+                            B = Box
+                            print()
+                            print(f"[{C.YELLOW}{account.username}{C.RESET}] {C.CYAN}=== Danh sách người chơi trong Map ==={C.RESET}")
+                            print(f"{C.PURPLE}{B.TL}{B.H * 100}{B.TR}{C.RESET}")
+                            print(f"{C.PURPLE}{B.V}{C.RESET} {C.BOLD}{'ID':<10} {'Tên':<20} {'Lv':<5} {'HP':<25} {'Vị trí':<15} {'Clan ID':<10}{C.RESET} {C.PURPLE}{B.V}{C.RESET}")
+                            print(f"{C.PURPLE}{B.LT}{B.H * 100}{B.RT}{C.RESET}")
+                            
+                            for player_id, player_data in real_players.items():
+                                name = player_data.get('name', 'N/A')
+                                level = player_data.get('level', 0)
+                                hp = player_data.get('hp', 0)
+                                max_hp = player_data.get('max_hp', 0)
+                                x = player_data.get('x', 0)
+                                y = player_data.get('y', 0)
+                                clan_id = player_data.get('clan_id', -1)
+                                
+                                hp_display = f"{hp:,}/{max_hp:,}"  # Format với dấu phẩy
+                                pos_display = f"({x}, {y})"
+                                clan_display = str(clan_id) if clan_id != -1 else "None"
+                                
+                                print(f"{C.PURPLE}{B.V}{C.RESET} {C.CYAN}{player_id:<10}{C.RESET} {C.GREEN}{name:<20}{C.RESET} {C.YELLOW}{level:<5}{C.RESET} {hp_display:<25} {pos_display:<15} {clan_display:<10} {C.PURPLE}{B.V}{C.RESET}")
+                            
+                            print(f"{C.PURPLE}{B.BL}{B.H * 100}{B.BR}{C.RESET}")
+                            print(f"Tổng số người chơi: {C.BRIGHT_GREEN}{len(real_players)}{C.RESET}")
+                            if len(chars) > len(real_players):
+                                print(f"{C.DIM}(+ {len(chars) - len(real_players)} entity khác - có thể là boss/NPC){C.RESET}")
+                            print()
                 
                 else:
                     print(f"[{C.YELLOW}{account.username}{C.RESET}] Lệnh show con không xác định: {sub}")
