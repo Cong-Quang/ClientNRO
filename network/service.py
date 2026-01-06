@@ -116,12 +116,11 @@ class Service:
             for mob_id in mob_ids:
                 writer.write_byte(mob_id)
         
-        # Ghi char IDs (for bosses/players)
         if char_ids:
             for char_id in char_ids:
                 writer.write_int(char_id)
         
-        writer.write_byte(cdir)
+        # writer.write_byte(cdir) # Fix: GameGoc does NOT send cdir in Cmd 54 (PLAYER_ATTACK_NPC)
         await self.session.send_message(msg)
 
     async def select_skill(self, skill_template_id: int):

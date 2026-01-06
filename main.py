@@ -13,6 +13,7 @@ from ui import (
 from autocomplete import get_input_with_autocomplete, COMMAND_TREE
 from combo import ComboEngine
 from macro_interpreter import MacroInterpreter
+from ai_command_handler import AICommandHandler
 import time
 
 MOB_NAMES = {}
@@ -169,6 +170,10 @@ async def command_loop(manager: AccountManager):
     combo_engine = ComboEngine()
     current_macro: MacroInterpreter | None = None
     
+    # Initialize AI Command Handler
+    ai_handler = AICommandHandler()
+    ai_handler.load_weights("ai_core/weights/default_weights.json")
+    
     while True:
         # Update autocomplete with current groups
         current_group_names = list(manager.groups.keys())
@@ -222,6 +227,9 @@ async def command_loop(manager: AccountManager):
                     print("sleep <seconds>")
                 continue
 
+            # === AI Commands ===
+            if await ai_handler.handle_ai_command(parts, manager):
+                continue
 
             if cmd_base == "exit":
                 manager.stop_all()
@@ -708,7 +716,8 @@ async def command_loop(manager: AccountManager):
             valid_target_commands = [
                 "pet", "logger", "autoplay", "autopet", "autoattack", "autobomong", "autoboss", "blacklist", "gomap", 
                 "findnpc", "findmob", "teleport", "teleportnpc", "andau", "hit", "show", 
-                "csgoc", "opennpc", "khu", "congcs", "task", "finditem", "useitem", "givecode"
+                "csgoc", "opennpc", "khu", "congcs", "task", "finditem", "useitem", "givecode",
+                "aiagent"  # AI Agent per-account control
             ]
             if cmd_base not in valid_target_commands:
                 print(f"{C.RED}Lệnh không xác định: '{command}'. Gõ 'help'.{C.RESET}")
@@ -862,6 +871,57 @@ async def handle_single_command(command: str, account: Account, compact_mode: bo
                 print(f"[{C.YELLOW}{account.username}{C.RESET}] Đã {'BẬT' if status else 'TẮT'} autopet.")
             else:
                 print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: autopet <on|off>")
+        
+        elif cmd_base == "aiagent":
+            # AI Agent control (per account)
+            if len(parts) > 1:
+                sub = parts[1]
+                
+                if sub in ["on", "off"]:
+                    status = sub == "on"
+                    account.controller.toggle_ai_agent(status)
+                    print(f"[{C.YELLOW}{account.username}{C.RESET}] Đã {'BẬT' if status else 'TẮT'} AI Agent.")
+                
+                elif sub == "status":
+                    # Show AI status for this account
+                    if account.controller.ai_agent:
+                        ai_status = account.controller.ai_agent.get_status()
+                        print(f"[{C.YELLOW}{account.username}{C.RESET}] AI Status:")
+                        for key, val in ai_status.items():
+                            print(f"  {key}: {val}")
+                        
+                        # DEBUG: Print SharedMemory consistency check
+                        debug = account.controller.ai_agent.get_debug_status()
+                        print(f"  [DEBUG] SM_ID: {debug['sm_id']}")
+                        print(f"  [DEBUG] Groups: {debug['sm_groups']}")
+                        print(f"  [DEBUG] Active: {debug['sm_active_groups']}")
+                    else:
+                        print(f"[{C.YELLOW}{account.username}{C.RESET}] AI Agent chưa được khởi tạo.")
+                
+                elif sub == "train":
+                    # Enable/disable training
+                    if len(parts) > 2 and parts[2] in ["on", "off"]:
+                        train_status = parts[2] == "on"
+                        if account.controller.ai_agent:
+                            account.controller.ai_agent.enable_training(train_status)
+                            print(f"[{C.YELLOW}{account.username}{C.RESET}] Online training {'BẬT' if train_status else 'TẮT'}.")
+                        else:
+                            print(f"[{C.YELLOW}{account.username}{C.RESET}] Cần bật AI Agent trước.")
+                    else:
+                        print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: aiagent train <on|off>")
+                
+                elif sub == "save":
+                    # Save current model
+                    if account.controller.ai_agent:
+                        path = account.controller.ai_agent.save_model()
+                        print(f"[{C.YELLOW}{account.username}{C.RESET}] Model saved: {C.GREEN}{path}{C.RESET}")
+                    else:
+                        print(f"[{C.YELLOW}{account.username}{C.RESET}] AI Agent chưa được khởi tạo.")
+                
+                else:
+                    print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: aiagent <on|off|status|train|save>")
+            else:
+                print(f"[{C.YELLOW}{account.username}{C.RESET}] Sử dụng: aiagent <on|off|status|train|save>")
         
         elif cmd_base == "autoattack":
             if len(parts) > 1:

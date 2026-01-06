@@ -100,24 +100,21 @@ class AutoAttack:
         
         # Send attack nếu có target - Gửi nhiều lần để đảm bảo target chết
         if mob_ids or char_ids:
-            # Attack 20 lần liên tục (giống auto_play để đảm bảo mob chết hẳn)
-            for i in range(20):
-                # Kiểm tra lại target còn sống không trước mỗi đợt attack
-                if mob_ids:
-                    mob_data = self.controller.mobs.get(mob_ids[0])
-                    if not (mob_data and mob_data.hp > -1 and mob_data.status > 1):
-                        break
+           # Kiểm tra lại target còn sống không trước mỗi đợt attack
+            if mob_ids:
+                mob_data = self.controller.mobs.get(mob_ids[0])
+                if not (mob_data and mob_data.hp > -1 and mob_data.status > 1):
+                    break
+            
+            if char_ids:
+                current_char = self.controller.chars.get(char_ids[0])
+                if not (current_char and current_char.get('hp', 0) > -1):
+                    break
                 
-                if char_ids:
-                    current_char = self.controller.chars.get(char_ids[0])
-                    if not (current_char and current_char.get('hp', 0) > -1):
-                        break
-                
-                await service.send_player_attack(
-                    mob_ids=mob_ids if mob_ids else None,
-                    char_ids=char_ids if char_ids else None
-                )
-                await asyncio.sleep(0.05)  # Delay nhỏ giữa các đợt attack
+            await service.send_player_attack(
+                mob_ids=mob_ids if mob_ids else None,
+                char_ids=char_ids if char_ids else None
+            )
             
             self.last_attack_time = time.time()
         elif need_retarget and self.auto_retarget:

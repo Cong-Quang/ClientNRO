@@ -1,0 +1,5 @@
+# PyTorch Training Dependencies
+# Install with: pip install -r requirements-train.txt
+# Runtime bot KHÔNG cần dependencies này!
+
+torch>=2.0.0

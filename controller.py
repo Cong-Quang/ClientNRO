@@ -42,6 +42,7 @@ class Controller:
         self.auto_quest = AutoQuest(self)
         self.auto_giftcode = AutoGiftcode(self)
         self.auto_boss = AutoBoss(self)
+        self.ai_agent = None  # AI Agent (will be initialized lazily)
 
     def toggle_auto_quest(self, enabled: bool):
         """Bật hoặc tắt chế độ Auto Quest."""
@@ -89,6 +90,29 @@ class Controller:
                 logger.warning("Cần chỉ định tên boss để bắt đầu Auto Boss")
         else:
             self.auto_boss.stop()
+    
+    def toggle_ai_agent(self, enabled: bool):
+        """Bật hoặc tắt AI Agent (Neural Network control)"""
+        # Lazy import to avoid circular dependency
+        if self.ai_agent is None:
+            from ai_agent import AIAgent
+            from config import Config
+            self.ai_agent = AIAgent(
+                controller=self,
+                service=self.account.service,
+                account_id=self.account.username
+            )
+            # Load weights on first initialization
+            self.ai_agent.load_weights(Config.AI_WEIGHTS_PATH)
+        
+        if enabled:
+            task = self.ai_agent.start()
+            if task:
+                self.account.tasks.append(task)
+                logger.info(f"[AI] AI Agent enabled for {self.account.username}")
+        else:
+            self.ai_agent.stop()
+            logger.info(f"[AI] AI Agent disabled for {self.account.username}")
 
     def on_message(self, msg: Message):
         """Chuyển tiếp tin nhắn theo `msg.command` đến handler tương ứng.
@@ -938,8 +962,10 @@ class Controller:
             if mob:
                 old_hp = mob.hp
                 mob.hp = current_hp
-                if mob.hp <= 0:
-                     mob.status = 0
+                # Fix: Do NOT set status = 0 here. 
+                # Let the server send NPC_DIE packet to confirm death.
+                # if mob.hp <= 0:
+                #      mob.status = 0
                 
                 logger.info(f"Cập nhật quái vật: ID={mob_id} | HP: {old_hp} -> {current_hp}/{mob.max_hp} (ST: {damage})")
             else:

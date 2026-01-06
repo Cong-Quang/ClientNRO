@@ -14,3 +14,13 @@ while int(i) < 3
   sleep 1
 endwhile
 print Loop finished
+
+[chiakhu]
+var i 0
+while int(i) < 10
+  target ${i}
+  khu ${i}
+  set i int(i) + 1
+endwhile
+target all
+show

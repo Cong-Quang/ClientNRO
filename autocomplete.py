@@ -34,9 +34,12 @@ COMMAND_TREE = {
     "hit": [],
     "proxy": ["list"],
     "finditem": [],
-    "finditem": [],
     "useitem": [],
-    "givecode": []
+    "givecode": [],
+    # AI Commands (global)
+    "ai": ["status", "info", "on", "off", "toggle", "load", "reset", "goal", "group", "zone", "team", "trainer"],
+    # AI Agent (per-account control)
+    "aiagent": ["on", "off", "status", "train", "save"]
 }
 
 COMMAND_HISTORY = []
