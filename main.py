@@ -3,6 +3,7 @@ import os
 import shutil
 from config import Config
 from account import Account
+from account_manager import AccountManager
 from logs.logger_config import logger, set_logger_status, TerminalColors, Box, print_header, print_separator
 from ui import (
     display_help, display_pet_info, display_pet_help, display_character_status,
@@ -11,9 +12,9 @@ from ui import (
     print_compact_header_autoquest, print_compact_footer, display_macro_help
 )
 from autocomplete import get_input_with_autocomplete, COMMAND_TREE
-from combo import ComboEngine
 from macro_interpreter import MacroInterpreter
 from ai_command_handler import AICommandHandler
+from commands.command_loader import load_commands
 import time
 
 MOB_NAMES = {}
@@ -56,81 +57,7 @@ def clean_pycache():
     else:
         logger.info("Không tìm thấy thư mục __pycache__ nào.")
 
-class AccountManager:
-    def __init__(self):
-        self.accounts = []
-        self.groups = {"all": []} # Predefined 'all' group
-        # The target for commands. Can be an int (index) or str (group name).
-        self.command_target = None
 
-    def load_accounts(self):
-        """Loads account credentials from Config and creates Account objects."""
-        for i, acc_data in enumerate(Config.ACCOUNTS):
-            if acc_data.get("username") and acc_data.get("password"):
-                acc = Account(
-                    username=acc_data["username"],
-                    password=acc_data["password"],
-                    version=Config.VERSION,
-                    host=Config.HOST,
-                    port=Config.PORT,
-                    proxy=acc_data.get("proxy")
-                )
-                self.accounts.append(acc)
-                self.groups["all"].append(i) # Add all account indices to 'all' group
-
-        logger.info(f"Đã tải {len(self.accounts)} tài khoản từ config.")
-        # Set initial target to the first account if available
-        if self.accounts:
-            self.command_target = 0
-
-    async def start_all(self):
-        """Starts the login process for all loaded accounts concurrently (respecting limit)."""
-        if not self.accounts:
-            logger.warning("Không có tài khoản nào để bắt đầu.")
-            return
-        
-        limit = Config.MAX_ACCOUNTS
-        accounts_to_start = self.accounts[:limit]
-        
-        logger.info(f"Bắt đầu đăng nhập {len(accounts_to_start)} tài khoản (Giới hạn: {limit})...")
-        
-        login_tasks = [acc.login() for acc in accounts_to_start]
-        await asyncio.gather(*login_tasks)
-        
-        # Set the first successfully logged-in account as the current target if none is set
-        if self.command_target is None:
-            for i, acc in enumerate(self.accounts):
-                if acc.is_logged_in:
-                    self.command_target = i
-                    break
-
-    def stop_all(self):
-        """Stops all accounts."""
-        logger.info("Đang dừng tất cả các tài khoản...")
-        for acc in self.accounts:
-            acc.stop()
-
-    def get_active_account_count(self):
-        return sum(1 for acc in self.accounts if acc.is_logged_in or (acc.session and acc.session.connected))
-
-    def get_target_accounts(self) -> list[Account]:
-        """Resolves the command_target to a list of account objects."""
-        if self.command_target is None:
-            return []
-        
-        if isinstance(self.command_target, int):
-            if 0 <= self.command_target < len(self.accounts):
-                return [self.accounts[self.command_target]]
-            else:
-                return []
-        
-        if isinstance(self.command_target, str):
-            group_indices = self.groups.get(self.command_target)
-            if group_indices is not None:
-                # Trả về cả acc offline để có thể gửi lệnh login
-                return [self.accounts[i] for i in group_indices if 0 <= i < len(self.accounts)]
-        
-        return []
 
 def load_proxies():
     """Đọc danh sách proxy từ file proxy.txt và chuyển đổi sang định dạng URL chuẩn."""
@@ -166,8 +93,10 @@ async def command_loop(manager: AccountManager):
     C = TerminalColors
     # Tải danh sách proxy khi bắt đầu
     proxy_list = load_proxies()
-    combo_engine = ComboEngine()
-    combo_engine = ComboEngine()
+    
+    # === Command Registry ===
+    commands = load_commands(manager, proxy_list, None)
+    
     current_macro: MacroInterpreter | None = None
     
     # Initialize AI Command Handler
@@ -182,8 +111,7 @@ async def command_loop(manager: AccountManager):
         COMMAND_TREE["login"] = login_suggestions
         COMMAND_TREE["logout"] = current_group_names
         COMMAND_TREE["target"] = current_group_names
-        COMMAND_TREE["combo"] = ["list", "reload", "help"] + combo_engine.list()
-
+        
         target_str = f"{C.RED}None{C.RESET}"
         if manager.command_target is not None:
             if isinstance(manager.command_target, int):
@@ -219,495 +147,17 @@ async def command_loop(manager: AccountManager):
                 continue
 
             cmd_base = parts[0]
-            
-            if parts[0] == "sleep":
-                try:
-                    await asyncio.sleep(float(parts[1]))
-                except:
-                    print("sleep <seconds>")
+
+            if cmd_base in commands:
+                result = await commands[cmd_base].execute(parts=parts)
+                if isinstance(result, bool) and result:
+                    break
+                if isinstance(result, MacroInterpreter):
+                    current_macro = result
                 continue
 
             # === AI Commands ===
             if await ai_handler.handle_ai_command(parts, manager):
-                continue
-
-            if cmd_base == "exit":
-                manager.stop_all()
-                break
-            
-            elif cmd_base == "combo":
-                if len(parts) == 1:
-                    print("combo list | combo <name> | combo reload | combo help")
-                    continue
-
-                sub = parts[1]
-
-                if sub == "help":
-                    display_macro_help()
-                    continue
-
-                if sub == "list":
-                    print("Danh sách combo:")
-                    for c in combo_engine.list():
-                        print(f"- {c}")
-                    continue
-
-                if sub == "reload":
-                    combo_engine.load()
-                    print("Đã reload combo.txt")
-                    continue
-
-                if not combo_engine.exists(sub):
-                    print(f"Không có combo '{sub}'")
-                    continue
-
-                # Nạp combo vào queue
-                # Nạp combo vào interpreter
-                raw_lines = combo_engine.get(sub)
-                current_macro = MacroInterpreter(sub, raw_lines)
-                print(f"Bắt đầu chạy combo '{sub}'")
-                continue
-
-
-            elif cmd_base in ("cls", "clear"):
-                os.system('cls' if os.name == 'nt' else 'clear')
-                continue
-
-            elif cmd_base == "help":
-                display_help()
-                continue
-
-            elif cmd_base == "autologin":
-                if len(parts) > 1 and parts[1] in ["on", "off"]:
-                    status = parts[1] == "on"
-                    Config.AUTO_LOGIN = status
-                    status_text = f"{C.GREEN}BẬT{C.RESET}" if status else f"{C.RED}TẮT{C.RESET}"
-                    print(f"Đã {status_text} tính năng tự động đăng nhập lại.")
-                else:
-                    current_status = f"{C.GREEN}BẬT{C.RESET}" if Config.AUTO_LOGIN else f"{C.RED}TẮT{C.RESET}"
-                    print(f"Tự động đăng nhập lại hiện đang {current_status}. Dùng: autoLogin <on|off>")
-                continue
-            
-            elif cmd_base == "login":
-                # login [target]
-                target = None
-                if len(parts) >= 2:
-                    target = parts[1]
-                elif manager.command_target is not None:
-                     # Use current target
-                     if isinstance(manager.command_target, int):
-                         target = str(manager.command_target)
-                     else:
-                         target = manager.command_target
-                else:
-                    # Mặc định là login default nếu không có tham số và không có target
-                    target = "default"
-                
-                # Logic xử lý danh sách acc cần login
-                accounts_to_login = []
-                
-                if target == "all":
-                    accounts_to_login = list(manager.accounts)
-
-                    # Lọc theo blacklist nếu có (áp dụng chỉ cho 'login all')
-                    if getattr(Config, 'LOGIN_BLACKLIST', None):
-                        skipped = []
-                        filtered = []
-                        for i, acc in enumerate(accounts_to_login):
-                            skip = False
-                            for b in Config.LOGIN_BLACKLIST:
-                                # Hỗ trợ cả username và index trong blacklist
-                                if isinstance(b, int) and b == i:
-                                    skip = True
-                                    break
-                                if isinstance(b, str) and b.lower() == acc.username.lower():
-                                    skip = True
-                                    break
-                            if skip:
-                                skipped.append(acc.username)
-                            else:
-                                filtered.append(acc)
-                        accounts_to_login = filtered
-                        if skipped:
-                            print(f"Bỏ qua (theo blacklist): {', '.join(skipped)}")
-
-                elif target == "default":
-                    target_indices = Config.DEFAULT_LOGIN
-                    for idx in target_indices:
-                        if 0 <= idx < len(manager.accounts):
-                            accounts_to_login.append(manager.accounts[idx])
-
-                elif target in manager.groups:
-                     # Login theo nhóm
-                     indices = manager.groups[target]
-                     for idx in indices:
-                         if 0 <= idx < len(manager.accounts):
-                             accounts_to_login.append(manager.accounts[idx])
-                             
-                elif ',' in target:
-                    try:
-                        indices = [int(i.strip()) for i in target.split(',')]
-                        for idx in indices:
-                            if 0 <= idx < len(manager.accounts):
-                                accounts_to_login.append(manager.accounts[idx])
-                    except ValueError:
-                         print("Danh sách chỉ số không hợp lệ.")
-                         continue
-                         
-                elif target.isdigit():
-                    idx = int(target)
-                    if 0 <= idx < len(manager.accounts):
-                        accounts_to_login.append(manager.accounts[idx])
-                    else:
-                        print("Chỉ số không hợp lệ.")
-                        continue
-                else:
-                    print(f"Không tìm thấy nhóm hoặc chỉ số '{target}'.")
-                    continue
-
-                # Thực hiện login
-                if not accounts_to_login:
-                    print("Không có tài khoản nào được chọn để đăng nhập.")
-                    continue
-
-                current_active_total = manager.get_active_account_count()
-                limit = Config.MAX_ACCOUNTS
-                available_slots_global = limit - current_active_total
-                
-                if available_slots_global <= 0:
-                    print(f"{C.RED}Đã đạt giới hạn {limit} tài khoản đang chạy.{C.RESET}")
-                    continue
-                
-                # --- PHÂN PHỐI PROXY ---
-                # Tính toán usage hiện tại của tất cả các account ĐANG online
-                local_ip_usage = 0
-                proxy_usage = {p: 0 for p in proxy_list}
-                
-                for acc in manager.accounts:
-                    if acc.is_logged_in:
-                        if acc.proxy is None:
-                            local_ip_usage += 1
-                        elif acc.proxy in proxy_usage:
-                            proxy_usage[acc.proxy] += 1
-                
-                tasks = []
-                stop_login_sequence = False
-
-                for acc in accounts_to_login:
-                    if stop_login_sequence:
-                        break
-
-                    if acc.is_logged_in:
-                         print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.RED}Đã online. Bỏ qua.{C.RESET}")
-                         continue
-                    
-                    if len(tasks) >= available_slots_global:
-                        print(f"{C.RED}Đã đạt giới hạn slot login toàn cục ({limit}). Dừng thêm.{C.RESET}")
-                        break
-                    
-                    # Logic gán proxy
-                    assigned_proxy = None
-
-                    if Config.USE_LOCAL_IP_FIRST:
-                        # Chế độ cũ: Ưu tiên IP máy
-                        if local_ip_usage < 5:
-                            assigned_proxy = None
-                            local_ip_usage += 1
-                            print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.GREEN}Gán IP máy{C.RESET} (Slot {C.CYAN}{local_ip_usage}/5{C.RESET})")
-                        else:
-                            # Tìm proxy còn slot
-                            found_proxy = False
-                            for p in proxy_list:
-                                if proxy_usage[p] < 4:
-                                    assigned_proxy = p
-                                    proxy_usage[p] += 1
-                                    found_proxy = True
-                                    try:
-                                        display_p = p.split('@')[-1]
-                                    except:
-                                        display_p = p
-                                    print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.PURPLE}Gán Proxy{C.RESET} {C.GREY}...{display_p[-15:]}{C.RESET} (Slot {C.CYAN}{proxy_usage[p]}/4{C.RESET})")
-                                    break
-                            if not found_proxy:
-                                print(f"{C.RED}Hết tài nguyên mạng (IP máy & Proxy đều full 4 acc).{C.RESET}")
-                                stop_login_sequence = True
-                    else:
-                        # Chế độ mới: Chỉ dùng proxy
-                        found_proxy = False
-                        if not proxy_list:
-                            print(f"{C.RED}Không có proxy nào trong danh sách để gán.{C.RESET}")
-                            stop_login_sequence = True
-                        else:
-                            for p in proxy_list:
-                                if proxy_usage[p] < 4:
-                                    assigned_proxy = p
-                                    proxy_usage[p] += 1
-                                    found_proxy = True
-                                    try:
-                                        display_p = p.split('@')[-1]
-                                    except:
-                                        display_p = p
-                                    print(f"[{C.YELLOW}{acc.username}{C.RESET}] {C.PURPLE}Gán Proxy (Bỏ qua IP Local){C.RESET} {C.GREY}...{display_p[-15:]}{C.RESET} (Slot {C.CYAN}{proxy_usage[p]}/4{C.RESET})")
-                                    break
-                        if not found_proxy and proxy_list:
-                            print(f"{C.RED}Tất cả các proxy đều đã full (4 acc/proxy).{C.RESET}")
-                            stop_login_sequence = True
-
-                    if stop_login_sequence:
-                        print(f"{C.RED}Dừng đăng nhập từ tài khoản: {acc.username}{C.RESET}")
-                        break # Thoát khỏi vòng lặp accounts_to_login
-
-                    # Cập nhật proxy cho account và login
-                    acc.proxy = assigned_proxy
-                    # Cần cập nhật lại session proxy vì session được tạo khi init Account
-                    if acc.session:
-                        acc.session.proxy = assigned_proxy
-
-                    print(f"Đang đăng nhập {C.YELLOW}{acc.username}{C.RESET}...")
-                    tasks.append(acc.login())
-                
-                if tasks:
-                    await asyncio.gather(*tasks)
-                    print(f"{C.GREEN}Đã hoàn tất quy trình đăng nhập cho {len(tasks)} tài khoản.{C.RESET}")
-                else:
-                    if not stop_login_sequence:
-                        print(f"{C.YELLOW}Không có tác vụ đăng nhập nào được khởi tạo.{C.RESET}")
-
-                continue
-
-            elif cmd_base == "logout":
-                # logout [target]
-                target = None
-                if len(parts) >= 2:
-                    target = parts[1]
-                elif manager.command_target is not None:
-                     if isinstance(manager.command_target, int):
-                         target = str(manager.command_target)
-                     else:
-                         target = manager.command_target
-                
-                if not target:
-                    print("Sử dụng: logout <index|list|all|group_name>")
-                    continue
-                
-                accounts_to_logout = []
-
-                if target == "all":
-                    accounts_to_logout = manager.accounts
-                
-                elif target in manager.groups:
-                    indices = manager.groups[target]
-                    for idx in indices:
-                         if 0 <= idx < len(manager.accounts):
-                             accounts_to_logout.append(manager.accounts[idx])
-                
-                elif ',' in target:
-                    try:
-                        indices = [int(i.strip()) for i in target.split(',')]
-                        for idx in indices:
-                            if 0 <= idx < len(manager.accounts):
-                                accounts_to_logout.append(manager.accounts[idx])
-                    except ValueError:
-                         print("Danh sách chỉ số không hợp lệ.")
-                         continue
-                
-                elif target.isdigit():
-                    idx = int(target)
-                    if 0 <= idx < len(manager.accounts):
-                        accounts_to_logout.append(manager.accounts[idx])
-                    else:
-                         print("Chỉ số tài khoản không hợp lệ.")
-                         continue
-                else:
-                    print(f"Không tìm thấy nhóm hoặc chỉ số '{target}'.")
-                    continue
-                
-                # Thực hiện logout
-                count = 0
-                for acc in accounts_to_logout:
-                    if acc.is_logged_in:
-                        print(f"Đang đăng xuất {acc.username}...")
-                        acc.stop()
-                        count += 1
-                
-                if count > 0:
-                    print(f"Đã đăng xuất {count} tài khoản.")
-                else:
-                    print("Không có tài khoản nào đang online trong danh sách chọn.")
-                continue
-
-            elif cmd_base == "proxy":
-                if len(parts) > 1 and parts[1] == "list":
-                    B = Box
-                    print()
-                    print(f"{C.PURPLE}{B.TL}{B.H * 55}{B.TR}{C.RESET}")
-                    print(f"{C.PURPLE}{B.V}{C.RESET} {C.BOLD}{'#':<6} {'Địa chỉ':<30} {'Sử dụng':>10}{C.RESET} {C.PURPLE}{B.V}{C.RESET}")
-                    print(f"{C.PURPLE}{B.LT}{B.H * 55}{B.RT}{C.RESET}")
-                    
-                    # Calculate usage
-                    usage_map = {p: 0 for p in proxy_list}
-                    local_usage = 0
-                    
-                    for acc in manager.accounts:
-                        if acc.is_logged_in:
-                            if acc.proxy:
-                                if acc.proxy in usage_map:
-                                    usage_map[acc.proxy] += 1
-                            else:
-                                local_usage += 1
-                    
-                    # Local IP row
-                    usage_bar = f"{'#' * local_usage}{'-' * (5 - local_usage)}"
-                    local_col = C.BRIGHT_GREEN if local_usage > 0 else C.DIM
-                    print(f"{C.PURPLE}{B.V}{C.RESET} {C.CYAN}Local{C.RESET}  {local_col}{'IP Máy':<30}{C.RESET} {local_col}{usage_bar} {local_usage}/5{C.RESET} {C.PURPLE}{B.V}{C.RESET}")
-
-                    # Proxy list
-                    if not proxy_list:
-                        print(f"{C.PURPLE}{B.V}{C.RESET} {C.DIM}(Không có proxy nào được tải){C.RESET}")
-                    
-                    for i, p in enumerate(proxy_list):
-                        count = usage_map.get(p, 0)
-                        try:
-                            display_p = p.split('@')[-1]
-                        except:
-                            display_p = p
-                        if len(display_p) > 28:
-                            display_p = "..." + display_p[-25:]
-                        
-                        usage_bar = f"{'#' * count}{'-' * (4 - count)}"
-                        col = C.BRIGHT_GREEN if count > 0 else C.DIM
-                        print(f"{C.PURPLE}{B.V}{C.RESET} {C.YELLOW}[{i+1:>2}]{C.RESET}   {col}{display_p:<30}{C.RESET} {col}{usage_bar} {count}/4{C.RESET} {C.PURPLE}{B.V}{C.RESET}")
-                    
-                    print(f"{C.PURPLE}{B.BL}{B.H * 55}{B.BR}{C.RESET}")
-                    print()
-                else:
-                    print(f"{C.YELLOW}Sử dụng: proxy list{C.RESET}")
-                continue
-
-            elif cmd_base == "list":
-                B = Box
-                print()
-                print(f"{C.CYAN}{B.TL}{B.H * 70}{B.TR}{C.RESET}")
-                print(f"{C.CYAN}{B.V}{C.RESET} {C.BOLD}{'#':<3} {'Tài khoản':<15} {'Trạng thái':<12} {'Kết nối':<25} {'':>5}{C.RESET} {C.CYAN}{B.V}{C.RESET}")
-                print(f"{C.CYAN}{B.LT}{B.H * 70}{B.RT}{C.RESET}")
-                
-                for i, acc in enumerate(manager.accounts):
-                    # Status with symbol
-                    if acc.status == "Logged In":
-                        status_display = f"{C.BRIGHT_GREEN}[ON] Online{C.RESET}"
-                    elif acc.status == "Reconnecting":
-                        status_display = f"{C.BRIGHT_YELLOW}[..] Reconnect{C.RESET}"
-                    else:
-                        status_display = f"{C.RED}[--] Offline{C.RESET}"
-                    
-                    # Target marker
-                    target_marker = ""
-                    if isinstance(manager.command_target, int) and i == manager.command_target:
-                        target_marker = f"{C.PURPLE}[*]{C.RESET}"
-                    
-                    # Proxy info
-                    proxy_info = f"{C.DIM}Local IP{C.RESET}"
-                    if acc.proxy:
-                        try:
-                            ip_part = acc.proxy.split('@')[-1]
-                            if len(ip_part) > 20:
-                                ip_part = "..." + ip_part[-17:]
-                            proxy_info = f"{C.PURPLE}Proxy:{C.RESET}{C.DIM}{ip_part}{C.RESET}"
-                        except:
-                            proxy_info = f"{C.PURPLE}Proxy{C.RESET}"
-
-                    print(f"{C.CYAN}{B.V}{C.RESET} {C.YELLOW}{i:<3}{C.RESET} {acc.username:<15} {status_display:<22} {proxy_info:<35} {target_marker} {C.CYAN}{B.V}{C.RESET}")
-                
-                print(f"{C.CYAN}{B.BL}{B.H * 70}{B.BR}{C.RESET}")
-                print()
-                continue
-            
-            # --- Group Management ---
-            elif cmd_base == "group":
-                if len(parts) < 2:
-                    print("Lệnh group không hợp lệ. Dùng 'group list', 'group create <name> <ids>', 'group delete <name>', ...")
-                    continue
-                
-                sub_cmd = parts[1]
-                if sub_cmd == "list":
-                    print(f"{C.CYAN}--- Danh sách nhóm ---{C.RESET}")
-                    for name, indices in manager.groups.items():
-                        members = ", ".join([manager.accounts[i].username for i in indices])
-                        print(f"- {C.CYAN}{name}{C.RESET}: [{C.YELLOW}{', '.join(map(str, indices))}{C.RESET}] ({members})")
-
-                elif sub_cmd == "create" and len(parts) >= 4:
-                    name = parts[2]
-                    if name == "all":
-                        print("Không thể tạo nhóm với tên 'all'.")
-                        continue
-                    try:
-                        indices = [int(i) for i in parts[3].split(',')]
-                        if all(0 <= i < len(manager.accounts) for i in indices):
-                            manager.groups[name] = sorted(list(set(indices)))
-                            print(f"Đã tạo nhóm '{C.YELLOW}{name}{C.RESET}' với các thành viên: {manager.groups[name]}")
-                        else:
-                            print("Một hoặc nhiều chỉ số không hợp lệ.")
-                    except ValueError:
-                        print("Chỉ số thành viên không hợp lệ. Phải là các số được phân tách bằng dấu phẩy (VD: 1,2,3).")
-
-                elif sub_cmd == "delete" and len(parts) == 3:
-                    name = parts[2]
-                    if name == "all":
-                        print("Không thể xóa nhóm 'all'.")
-                    elif name in manager.groups:
-                        del manager.groups[name]
-                        print(f"Đã xóa nhóm '{C.YELLOW}{name}{C.RESET}'.")
-                    else:
-                        print(f"Không tìm thấy nhóm '{C.YELLOW}{name}{C.RESET}'.")
-                
-                elif sub_cmd == "add" and len(parts) >= 4:
-                    name = parts[2]
-                    if name == "all": print("Không thể thêm thành viên vào nhóm 'all'."); continue
-                    if name not in manager.groups: print(f"Không tìm thấy nhóm '{C.YELLOW}{name}{C.RESET}'."); continue
-                    try:
-                        indices_to_add = {int(i) for i in parts[3].split(',')}
-                        valid_indices = {i for i in indices_to_add if 0 <= i < len(manager.accounts)}
-                        if len(valid_indices) != len(indices_to_add): print("Một vài chỉ số không hợp lệ đã bị bỏ qua.");
-                        current_members = set(manager.groups[name])
-                        current_members.update(valid_indices)
-                        manager.groups[name] = sorted(list(current_members))
-                        print(f"Đã cập nhật nhóm '{C.YELLOW}{name}{C.RESET}': {manager.groups[name]}")
-                    except ValueError: print("Chỉ số không hợp lệ.");
-
-                elif sub_cmd == "remove" and len(parts) >= 4:
-                    name = parts[2]
-                    if name == "all": print("Không thể xóa thành viên khỏi nhóm 'all'."); continue
-                    if name not in manager.groups: print(f"Không tìm thấy nhóm '{C.YELLOW}{name}{C.RESET}'."); continue
-                    try:
-                        indices_to_remove = {int(i) for i in parts[3].split(',')}
-                        current_members = set(manager.groups[name])
-                        current_members.difference_update(indices_to_remove)
-                        manager.groups[name] = sorted(list(current_members))
-                        print(f"Đã cập nhật nhóm '{C.YELLOW}{name}{C.RESET}': {manager.groups[name]}")
-                    except ValueError: print("Chỉ số không hợp lệ.");
-
-                else:
-                    print("Lệnh group không hợp lệ.")
-                continue
-
-            # --- Target Switching ---
-            elif cmd_base == "target":
-                if len(parts) != 2:
-                    print("Sử dụng: target <index|group_name|all>"); continue
-                
-                new_target = parts[1]
-                if new_target.isdigit():
-                    new_target_idx = int(new_target)
-                    if 0 <= new_target_idx < len(manager.accounts):
-                        manager.command_target = new_target_idx
-                        print(f"Đã đặt mục tiêu là tài khoản [{C.YELLOW}{new_target_idx}{C.RESET}].")
-                    else:
-                        print("Chỉ số tài khoản không hợp lệ.")
-                elif new_target in manager.groups:
-                    manager.command_target = new_target
-                    print(f"Đã đặt mục tiêu là nhóm '{C.YELLOW}{new_target}{C.RESET}'.")
-                else:
-                    print(f"Không tìm thấy tài khoản hoặc nhóm với tên/chỉ số '{new_target}'.")
                 continue
 
             # --- Pre-validation for Targetted Commands ---
