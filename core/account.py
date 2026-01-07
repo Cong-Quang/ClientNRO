@@ -6,7 +6,7 @@ from controller import Controller
 from model.game_objects import Char, Pet
 from config import Config
 from logs.logger_config import logger, TerminalColors
-from cmd import Cmd
+from constants.cmd import Cmd
 from network.message import Message
 
 class Account:

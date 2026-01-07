@@ -1,6 +1,6 @@
 from targeted_commands.base_targeted_command import TargetedCommand
 from typing import Any
-from account import Account
+from core.account import Account
 from logs.logger_config import TerminalColors
 
 class AutobossCommand(TargetedCommand):

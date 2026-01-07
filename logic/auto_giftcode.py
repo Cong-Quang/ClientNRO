@@ -1,7 +1,7 @@
 import asyncio
 import re
 from logs.logger_config import logger
-from cmd import Cmd
+from constants.cmd import Cmd
 from model.map_objects import Waypoint
 
 class AutoGiftcode:

@@ -3,7 +3,7 @@ from network.writer import Writer
 from network.message import Message
 from network.session import Session
 from model.game_objects import Char
-from cmd import Cmd
+from constants.cmd import Cmd
 
 # logger = logging.getLogger(__name__)
 

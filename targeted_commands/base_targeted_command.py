@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any
-from account import Account
+from core.account import Account
 
 class TargetedCommand(ABC):
     @abstractmethod

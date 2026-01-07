@@ -1,6 +1,6 @@
 import asyncio
 from config import Config
-from account import Account
+from core.account import Account
 from logs.logger_config import logger
 
 class AccountManager:

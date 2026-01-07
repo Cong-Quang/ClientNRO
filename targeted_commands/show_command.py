@@ -1,6 +1,6 @@
 from targeted_commands.base_targeted_command import TargetedCommand
 from typing import Any
-from account import Account
+from core.account import Account
 from logs.logger_config import TerminalColors
 from ui import display_character_status, display_character_base_stats, display_task_info, Box, display_boss_list
 import asyncio

@@ -1,19 +1,20 @@
 import asyncio
+import sys
 import os
 import shutil
 from config import Config
-from account import Account
-from account_manager import AccountManager
-from logs.logger_config import logger, set_logger_status, TerminalColors, Box, print_header, print_separator
+from core.account import Account
+from core.account_manager import AccountManager
+from logs.logger_config import logger, TerminalColors, Box, print_header, print_separator
 from ui import (
     display_help, display_pet_info, display_pet_help, display_character_status,
     display_character_base_stats, display_task_info, print_compact_header_show,
     print_compact_header_pet, print_compact_header_csgoc, print_compact_header_task,
     print_compact_header_autoquest, print_compact_footer, display_macro_help
 )
-from autocomplete import get_input_with_autocomplete, COMMAND_TREE
-from macro_interpreter import MacroInterpreter
-from ai_command_handler import AICommandHandler
+from utils.autocomplete import get_input_with_autocomplete, COMMAND_TREE
+from utils.macro_interpreter import MacroInterpreter
+from handlers.ai_command_handler import AICommandHandler
 from commands.command_loader import load_commands
 from targeted_commands.targeted_command_loader import load_targeted_commands
 import time

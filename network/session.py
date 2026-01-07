@@ -4,7 +4,7 @@ import logging
 from typing import Optional
 from network.message import Message
 from config import Config
-from cmd import Cmd
+from constants.cmd import Cmd
 
 logger = logging.getLogger(__name__)
 

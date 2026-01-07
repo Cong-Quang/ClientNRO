@@ -1,6 +1,6 @@
 from targeted_commands.base_targeted_command import TargetedCommand
 from typing import Any
-from account import Account
+from core.account import Account
 import asyncio
 from ui import display_pet_info, display_pet_help
 from logs.logger_config import TerminalColors

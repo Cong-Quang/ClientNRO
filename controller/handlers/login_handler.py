@@ -12,7 +12,7 @@ class LoginHandler(BaseHandler):
     def message_not_login(self, msg: Message):
         """Xử lý các sub-command của NOT_LOGIN (ví dụ server list, login fail...)."""
         try:
-            from cmd import Cmd
+            from constants.cmd import Cmd
             reader = msg.reader()
             sub_cmd = reader.read_byte()
             logger.info(f"NOT_LOGIN subcmd: {sub_cmd}")

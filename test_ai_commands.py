@@ -2,9 +2,13 @@
 Test AI Commands - Demo Script
 Tests all AI terminal commands without needing real game connection
 """
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import asyncio
-from ai_command_handler import AICommandHandler
+import unittest
+from unittest.mock import MagicMock, AsyncMock, patch
+from handlers.ai_command_handler import AICommandHandler
 
 
 class MockAccount:
