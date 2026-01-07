@@ -116,20 +116,3 @@ def display_pet_info():
     print("\n" + "="*40)
     print(current_pet_info)
     print("="*40 + "\n")
-
-# --- Tích hợp vào tool ---
-# 1. Trong file controller chính (ví dụ: `toolsDev/main.py`), bạn cần đăng ký `handle_pet_info_response`
-#    để xử lý message có command ID là -107.
-#    controller.register_handler(-107, handle_pet_info_response)
-
-# 2. Tạo một tùy chọn trong menu của tool để người dùng có thể gọi `request_pet_info`.
-#    def show_pet_info():
-#        session = get_current_session() # Lấy session hiện tại
-#        request_pet_info(session)
-
-#    menu_options = {
-#        "1": "Xem thông tin đệ tử",
-#        ...
-#    }
-#    if choice == "1":
-#        show_pet_info()
