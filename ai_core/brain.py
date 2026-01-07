@@ -1,6 +1,6 @@
 """
-Pure Python Neural Network Inference Engine
-Architecture: [20 -> 64 -> 64 -> 32] MLP
+Pure Python Neural Network Inference Engine with Temporal Context Support
+Architecture: [60 → 64 → 64 → 32] MLP (60D = 3 frames × 20D base features)
 Zero external dependencies - optimized with list comprehensions
 Performance target: <1ms inference time
 """
@@ -81,23 +81,25 @@ class InferenceEngine:
     def _init_random_weights(self) -> None:
         """Initialize random weights for testing (when no weights file exists)"""
         import random
-        self.architecture = [20, 64, 64, 32]
-        self.weights = []
         
-        for i in range(len(self.architecture) - 1):
-            in_size = self.architecture[i]
-            out_size = self.architecture[i + 1]
+        # Architecture: [60, 64, 64, 32] for temporal context
+        architecture = [60, 64, 64, 32]
+        
+        self.weights = []
+        for i in range(len(architecture) - 1):
+            in_dim = architecture[i]
+            out_dim = architecture[i + 1]
             
-            # Xavier initialization scaled down
-            scale = (2.0 / (in_size + out_size)) ** 0.5
-            
-            W = [[random.gauss(0, scale) for _ in range(in_size)] for _ in range(out_size)]
-            b = [random.gauss(0, 0.01) for _ in range(out_size)]
+            # Xavier initialization
+            scale = (2.0 / (in_dim + out_dim)) ** 0.5
+            W = [[random.gauss(0, scale) for _ in range(in_dim)] for _ in range(out_dim)]
+            b = [0.0] * out_dim
             
             self.weights.append({"W": W, "b": b})
         
+        self.architecture = architecture # Set the instance architecture
         self.loaded = True
-        print(f"[AI Brain] Initialized random weights: {self.architecture}")
+        print(f"[AI Brain] Initialized random weights: {architecture}")
     
     async def predict(self, state: List[float], action_mask: List[bool] = None) -> Tuple[int, float]:
         """

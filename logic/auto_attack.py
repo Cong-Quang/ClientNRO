@@ -2,30 +2,43 @@ import asyncio
 import time
 import math
 from logs.logger_config import logger
+from logic.target_utils import (
+    focus_nearest_mob,
+    focus_nearest_char,
+    focus_nearest_target,
+    focus_by_name,
+    focus_by_id,
+    clear_focus,
+    get_focused_target
+)
 
 
 class AutoAttack:
     """
     Auto Attack service - Tự động tấn công mobs VÀ chars (bosses/players)
-    Based on C# AutoAttack implementation
+    Based on C# AutoSendAttack implementation
     """
     
     def __init__(self, controller):
         self.controller = controller
         self.is_running = False
         self.task = None
-        self.interval = 0.123  # 123ms như C# code
-        self.last_attack_time = 0
+        self.interval = 0.1  # 100ms interval như C# code
         self.max_target_distance = 100  # Khoảng cách tối đa để tìm target (px)
         self.auto_retarget = True  # Tự động tìm target mới khi target chết
         self.last_target_type = "both"  # Lưu loại target cuối cùng (mob/char/both)
+        
+        # Priority targeting system
+        self.priority_mode = "nearest"  # nearest, boss_first, name_match
+        self.priority_names = []  # Danh sách tên ưu tiên (VD: ["Fide", "Android"])
+        self.prefer_boss = False  # Ưu tiên boss hơn mob khi khoảng cách tương đương
     
     def start(self):
         """Bật Auto Attack"""
         if not self.is_running:
             self.is_running = True
             self.task = asyncio.create_task(self._attack_loop())
-            logger.info("Đã bật Auto Attack (Universal)")
+            logger.info("Auto Attack: ON")
     
     def stop(self):
         """Tắt Auto Attack"""
@@ -33,7 +46,14 @@ class AutoAttack:
             self.is_running = False
             if self.task:
                 self.task.cancel()
-            logger.info("Đã tắt Auto Attack")
+            logger.info("Auto Attack: OFF")
+    
+    def toggle(self):
+        """Toggle Auto Attack on/off - giống C# toggleAutoAttack()"""
+        if self.is_running:
+            self.stop()
+        else:
+            self.start()
     
     async def _attack_loop(self):
         """Main attack loop - chạy liên tục"""
@@ -49,257 +69,213 @@ class AutoAttack:
     
     async def _update(self):
         """
-        Update logic - giống C# AutoAttack.Update()
-        Check mob_focus và char_focus, attack target nào có
+        Update logic - giống C# AutoSendAttack.update()
+        Logic:
+        1. Tạo vMob và vChar vectors
+        2. Nếu có mob_focus -> add vào vMob
+        3. Else nếu có char_focus -> add vào vChar
+        4. Nếu có target, check cooldown rồi send attack với type = -1 (auto)
         """
         my_char = self.controller.account.char
         service = self.controller.account.service
         
-        mob_focus = my_char.mob_focus
-        char_focus = my_char.char_focus
+        # Prepare vectors (lists) - giống C# MyVector
+        v_mob = []
+        v_char = []
         
-        # Kiểm tra có target không (mob hoặc char)
-        if mob_focus is None and char_focus is None:
-            # Nếu bật auto-retarget, tự động tìm target mới
-            if self.auto_retarget:
-                self.set_target_nearest(self.last_target_type)
-            return
+        # Check mob_focus first, else check char_focus (giống C# logic)
+        if my_char.mob_focus is not None:
+            v_mob.append(my_char.mob_focus)
+        elif my_char.char_focus is not None:
+            v_char.append(my_char.char_focus)
         
-        # Check cooldown (có thể attack không)
-        if not self._can_use_skill(my_char):
-            return
-        
-        # Prepare attack parameters
-        mob_ids = []
-        char_ids = []
-        need_retarget = False
-        
-        # Add mob target
-        if mob_focus:
-            # Validate mob còn sống (> -1 để đánh cho đến khi chết hoàn toàn)
-            mob_data = self.controller.mobs.get(mob_focus.mob_id)
-            if mob_data and mob_data.hp > -1 and mob_data.status > 1:
-                mob_ids.append(mob_focus.mob_id)
-            else:
-                # Mob chết hoặc không hợp lệ
-                my_char.mob_focus = None
-                need_retarget = True
-        
-        # Add char target (boss/player)
-        if char_focus:
-            char_id = char_focus.get('id')
+        # Nếu có target (mob hoặc char)
+        if len(v_mob) > 0 or len(v_char) > 0:
+            # Get current skill (myskill)
+            my_skill = self._get_current_skill(my_char)
             
-            # Validate char còn sống (> -1 để đánh cho đến khi chết hoàn toàn)
-            current_char = self.controller.chars.get(char_id)
-            if current_char and current_char.get('hp', 0) > -1:
-                char_ids.append(char_id)
-            else:
-                # Char chết hoặc không hợp lệ
-                my_char.char_focus = None
-                need_retarget = True
-        
-        # Send attack nếu có target - Gửi nhiều lần để đảm bảo target chết
-        if mob_ids or char_ids:
-           # Kiểm tra lại target còn sống không trước mỗi đợt attack
-            if mob_ids:
-                mob_data = self.controller.mobs.get(mob_ids[0])
-                if not (mob_data and mob_data.hp > -1 and mob_data.status > 1):
-                    break
+            # Get current time in milliseconds
+            current_time_millis = int(time.time() * 1000)
             
-            if char_ids:
-                current_char = self.controller.chars.get(char_ids[0])
-                if not (current_char and current_char.get('hp', 0) > -1):
-                    break
+            # Check cooldown: currentTimeMillis - lastTimeUseThisSkill > coolDown
+            if my_skill and hasattr(my_skill, 'last_time_use'):
+                time_since_last_use = current_time_millis - my_skill.last_time_use
+                if time_since_last_use <= my_skill.cool_down:
+                    return  # Still on cooldown
+            
+            # Prepare mob_ids and char_ids for attack
+            mob_ids = []
+            char_ids = []
+            
+            # Validate và add mob targets (theo logic auto_play.py)
+            for mob in v_mob:
+                # Lấy mob data mới nhất từ controller
+                mob_data = self.controller.mobs.get(mob.mob_id)
+                if mob_data:
+                    # Check khoảng cách - nếu quá xa (teleport), clear focus để tìm target mới
+                    dist = math.sqrt((mob_data.x - my_char.cx)**2 + (mob_data.y - my_char.cy)**2)
+                    if dist > self.max_target_distance:
+                        # Target quá xa (đã teleport), clear focus
+                        my_char.mob_focus = None
+                        logger.info(f"AutoAttack: Mob {mob_data.mob_id} quá xa ({dist:.1f}px), clear focus")
+                        continue
+                    
+                    # Check theo auto_play.py: hp > -1 (không phải hp > 0)
+                    # Mob chết có thể có HP = -1, không phải 0
+                    if mob_data.hp > -1:
+                        mob_ids.append(mob.mob_id)
+                    else:
+                        # Mob chết, clear focus
+                        my_char.mob_focus = None
+            
+            # Validate và add char targets
+            for char in v_char:
+                char_id = char.get('id')
+                current_char = self.controller.chars.get(char_id)
+                if current_char:
+                    # Check khoảng cách cho char
+                    char_x = current_char.get('x', 0)
+                    char_y = current_char.get('y', 0)
+                    dist = math.sqrt((char_x - my_char.cx)**2 + (char_y - my_char.cy)**2)
+                    if dist > self.max_target_distance:
+                        # Char quá xa, clear focus
+                        my_char.char_focus = None
+                        logger.info(f"AutoAttack: Char {char_id} quá xa ({dist:.1f}px), clear focus")
+                        continue
+                    
+                    # Check HP > -1 tương tự
+                    if current_char.get('hp', 0) > -1:
+                        char_ids.append(char_id)
+                    else:
+                        # Char chết, clear focus
+                        my_char.char_focus = None
+            
+            # Send attack nếu có target hợp lệ
+            if mob_ids or char_ids:
+                await service.send_player_attack(
+                    mob_ids=mob_ids if mob_ids else None,
+                    char_ids=char_ids if char_ids else None
+                )
                 
-            await service.send_player_attack(
-                mob_ids=mob_ids if mob_ids else None,
-                char_ids=char_ids if char_ids else None
-            )
-            
-            self.last_attack_time = time.time()
-        elif need_retarget and self.auto_retarget:
-            # Target chết, tự động tìm target mới
-            self.set_target_nearest(self.last_target_type)
+                # Update lastTimeUseThisSkill
+                if my_skill:
+                    my_skill.last_time_use = current_time_millis
+        else:
+            # Không có target, tự động focus theo priority mode
+            if self.auto_retarget:
+                self._auto_focus_by_priority()
     
-    def _can_use_skill(self, my_char) -> bool:
+    def _get_current_skill(self, my_char):
         """
-        Kiểm tra có thể attack không (cooldown check)
-        Tương tự C# CanUseSkill()
+        Lấy skill hiện tại (myskill trong C# code)
+        Returns: Skill object hoặc None
         """
-        # Check skill cooldown
         if not my_char.skills or len(my_char.skills) == 0:
-            return True  # Luôn cho phép đấm
+            return None
         
-        # Get current skill
-        current_skill = my_char.skills[0]  # Skill đầu tiên
-        if not current_skill:
-            return True
+        # Get current skill (skill đầu tiên hoặc skill đang chọn)
+        current_skill = my_char.skills[0]
         
-        current_time = time.time()
-        cooldown = current_skill.cool_down / 1000.0  # Convert ms to seconds
+        # Initialize last_time_use nếu chưa có
+        if not hasattr(current_skill, 'last_time_use'):
+            current_skill.last_time_use = 0
         
-        # Check nếu đã qua thời gian cooldown
-        return (current_time - self.last_attack_time) > cooldown
+        return current_skill
+    
+    def _auto_focus_by_priority(self):
+        """
+        Tự động focus target theo priority mode
+        Internal method được gọi bởi _update()
+        """
+        if self.priority_mode == "boss_first":
+            # Ưu tiên boss/char trước
+            if not focus_nearest_char(self.controller, self.max_target_distance):
+                # Không có char, tìm mob
+                focus_nearest_mob(self.controller, self.max_target_distance)
+        elif self.priority_mode == "name_match" and self.priority_names:
+            # Tìm theo tên ưu tiên
+            for name in self.priority_names:
+                if focus_by_name(self.controller, name, "both", self.max_target_distance):
+                    break
+        else:
+            # Mode "nearest" - tìm target gần nhất
+            focus_nearest_target(self.controller, self.prefer_boss, self.max_target_distance)
+    
+    def set_priority_mode(self, mode: str, names: list[str] = None, prefer_boss: bool = False):
+        """
+        Thiết lập chế độ ưu tiên target
+        
+        Args:
+            mode: Chế độ ưu tiên
+                - "nearest": Gần nhất (default)
+                - "boss_first": Ưu tiên boss/char trước, không có mới tìm mob
+                - "name_match": Tìm theo tên trong priority_names
+            names: Danh sách tên ưu tiên (dùng cho mode "name_match")
+            prefer_boss: Ưu tiên boss khi khoảng cách tương đương (dùng cho mode "nearest")
+        """
+        self.priority_mode = mode
+        if names:
+            self.priority_names = names
+        self.prefer_boss = prefer_boss
+        logger.info(f"AutoAttack: Priority mode = {mode}, names = {names}, prefer_boss = {prefer_boss}")
     
     def set_target_nearest(self, target_type: str = "both") -> bool:
         """
         Tìm và focus vào mob/char gần nhất trong khoảng cách max_target_distance
+        Wrapper method sử dụng target_utils
+        
         Args:
             target_type: "mob", "char", hoặc "both"
         Returns:
             True nếu tìm thấy target, False nếu không
         """
-        my_char = self.controller.account.char
-        nearest_mob = None
-        nearest_char = None
-        min_mob_dist = float('inf')
-        min_char_dist = float('inf')
-        
-        # Lưu loại target để dùng cho auto-retarget
         self.last_target_type = target_type
         
-        # Tìm mob gần nhất
-        if target_type in ["mob", "both"]:
-            for mob_id, mob in self.controller.mobs.items():
-                if mob.hp > 0 and mob.status > 1:
-                    dist = math.sqrt((mob.x - my_char.cx)**2 + (mob.y - my_char.cy)**2)
-                    if dist <= self.max_target_distance and dist < min_mob_dist:
-                        min_mob_dist = dist
-                        nearest_mob = mob
-        
-        # Tìm char gần nhất
-        if target_type in ["char", "both"]:
-            for char_id, char_data in self.controller.chars.items():
-                if char_data.get('hp', 0) > 0:
-                    char_x = char_data.get('x', 0)
-                    char_y = char_data.get('y', 0)
-                    dist = math.sqrt((char_x - my_char.cx)**2 + (char_y - my_char.cy)**2)
-                    if dist <= self.max_target_distance and dist < min_char_dist:
-                        min_char_dist = dist
-                        nearest_char = char_data
-        
-        # Set focus vào target gần nhất
-        if target_type == "mob" and nearest_mob:
-            my_char.mob_focus = nearest_mob
-            logger.info(f"AutoAttack: Target Mob {nearest_mob.mob_id} (khoảng cách: {min_mob_dist:.1f}px)")
-            return True
-        elif target_type == "char" and nearest_char:
-            my_char.char_focus = nearest_char
-            logger.info(f"AutoAttack: Target Char {nearest_char.get('id')} (khoảng cách: {min_char_dist:.1f}px)")
-            return True
-        elif target_type == "both":
-            # Ưu tiên target gần hơn
-            if nearest_mob and (not nearest_char or min_mob_dist <= min_char_dist):
-                my_char.mob_focus = nearest_mob
-                logger.info(f"AutoAttack: Auto-target Mob {nearest_mob.mob_id} (khoảng cách: {min_mob_dist:.1f}px)")
-                return True
-            elif nearest_char:
-                my_char.char_focus = nearest_char
-                logger.info(f"AutoAttack: Auto-target Char {nearest_char.get('id')} (khoảng cách: {min_char_dist:.1f}px)")
-                return True
-        
-        return False
+        if target_type == "mob":
+            return focus_nearest_mob(self.controller, self.max_target_distance)
+        elif target_type == "char":
+            return focus_nearest_char(self.controller, self.max_target_distance)
+        else:  # "both"
+            return focus_nearest_target(self.controller, self.prefer_boss, self.max_target_distance)
     
     def set_target_mob(self, mob_id: int) -> bool:
         """
         Focus vào mob cụ thể bằng ID
+        Wrapper method sử dụng target_utils
+        
         Args:
             mob_id: ID của mob cần target
         Returns:
             True nếu mob tồn tại, False nếu không
         """
-        my_char = self.controller.account.char
-        mob = self.controller.mobs.get(mob_id)
-        
-        if mob and mob.hp > 0 and mob.status > 1:
-            my_char.mob_focus = mob
-            logger.info(f"AutoAttack: Target Mob {mob_id}")
-            return True
-        else:
-            logger.warning(f"AutoAttack: Mob {mob_id} không tồn tại hoặc đã chết")
-            return False
+        return focus_by_id(self.controller, mob_id=mob_id)
     
     def set_target_char(self, char_id: int) -> bool:
         """
         Focus vào char cụ thể bằng ID (boss/player)
+        Wrapper method sử dụng target_utils
+        
         Args:
             char_id: ID của char cần target
         Returns:
             True nếu char tồn tại, False nếu không
         """
-        my_char = self.controller.account.char
-        char_data = self.controller.chars.get(char_id)
-        
-        if char_data and char_data.get('hp', 0) > 0:
-            my_char.char_focus = char_data
-            logger.info(f"AutoAttack: Target Char {char_id}")
-            return True
-        else:
-            logger.warning(f"AutoAttack: Char {char_id} không tồn tại hoặc đã chết")
-            return False
+        return focus_by_id(self.controller, char_id=char_id)
     
     def clear_target(self):
-        """Xóa tất cả target hiện tại"""
-        my_char = self.controller.account.char
-        my_char.mob_focus = None
-        my_char.char_focus = None
+        """Xóa tất cả target hiện tại - Wrapper method sử dụng target_utils"""
+        clear_focus(self.controller)
         logger.info("AutoAttack: Đã xóa target")
     
     def set_target_by_name(self, name: str, target_type: str = "both") -> bool:
         """
         Focus vào mob/char theo tên (hỗ trợ fuzzy matching)
+        Wrapper method sử dụng target_utils
+        
         Args:
             name: Tên hoặc một phần tên cần tìm (case-insensitive)
             target_type: "mob", "char", hoặc "both"
         Returns:
             True nếu tìm thấy, False nếu không
         """
-        my_char = self.controller.account.char
-        name_lower = name.lower()
-        found_targets = []
-        
-        # Tìm mob theo tên
-        if target_type in ["mob", "both"]:
-            for mob_id, mob in self.controller.mobs.items():
-                if mob.hp > 0 and mob.status > 1:
-                    mob_name = mob.name.lower()
-                    if name_lower in mob_name:
-                        dist = math.sqrt((mob.x - my_char.cx)**2 + (mob.y - my_char.cy)**2)
-                        found_targets.append(("mob", mob, dist, mob.name))
-        
-        # Tìm char theo tên
-        if target_type in ["char", "both"]:
-            for char_id, char_data in self.controller.chars.items():
-                if char_data.get('hp', 0) > 0:
-                    char_name = char_data.get('name', '').lower()
-                    if name_lower in char_name:
-                        char_x = char_data.get('x', 0)
-                        char_y = char_data.get('y', 0)
-                        dist = math.sqrt((char_x - my_char.cx)**2 + (char_y - my_char.cy)**2)
-                        found_targets.append(("char", char_data, dist, char_data.get('name', 'Unknown')))
-        
-        if not found_targets:
-            logger.warning(f"AutoAttack: Không tìm thấy '{name}' trong {target_type}")
-            return False
-        
-        # Nếu có nhiều kết quả, chọn target gần nhất
-        found_targets.sort(key=lambda x: x[2])  # Sort by distance
-        target_info = found_targets[0]
-        target_kind = target_info[0]
-        target_obj = target_info[1]
-        target_dist = target_info[2]
-        target_name = target_info[3]
-        
-        if target_kind == "mob":
-            my_char.mob_focus = target_obj
-            logger.info(f"AutoAttack: Target Mob '{target_name}' ID={target_obj.mob_id} (khoảng cách: {target_dist:.1f}px)")
-        else:  # char
-            my_char.char_focus = target_obj
-            logger.info(f"AutoAttack: Target Char '{target_name}' ID={target_obj.get('id')} (khoảng cách: {target_dist:.1f}px)")
-        
-        # Hiển thị các target khác nếu có
-        if len(found_targets) > 1:
-            other_targets = [f"{t[3]} ({t[2]:.1f}px)" for t in found_targets[1:4]]  # Show max 3 more
-            logger.info(f"AutoAttack: Tìm thấy thêm {len(found_targets)-1} target khác: {', '.join(other_targets)}")
-        
-        return True
+        return focus_by_name(self.controller, name, target_type, self.max_target_distance)

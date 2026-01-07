@@ -31,35 +31,85 @@ class OnlineTrainer:
         self.steps_since_train = 0
         self.train_interval = 100  # Train every 100 steps
         
+        # Combat efficiency tracking (NEW)
+        self.last_kill_time = 0.0
+        self.in_combat = False
+        
         print(f"[Online Training] Initialized - Training: {'ON' if enable_training else 'OFF'}")
     
-    def calculate_reward(self, old_state_dict, new_state_dict) -> float:
+    def calculate_reward(self, old_state_dict, new_state_dict, action: int, state_builder=None) -> float:
         """
         Calculate reward based on state transition
         
-        Reward structure:
+        Enhanced reward structure:
+        - Base survival: +0.05 per step
+        - Aggressive action bonus: +0.1 for attack/move/skill
+        - Combat efficiency: -0.3 if no kill in 1s (VERY AGGRESSIVE!)
         - Kill mob: +1.0
-        - Take damage: -0.1
-        - Die: -1.0
+        - Damage mob: +0.2
         - Gain XP: +0.5
-        - Pick item: +0.3
-        - Idle too long: -0.1
+        - Pick gold: +0.3
+        - Take damage (fighting): -0.05
+        - Take damage (not fighting): -0.1
+        - Idle: -0.2 (4x stronger)
+        - Die: -1.0
         """
         reward = 0.0
         
         try:
+            import time
+            current_time = time.time()
+            
             old_char = old_state_dict['char']
             new_char = new_state_dict['char']
             
-            # Death penalty
+            # Death penalty (immediate return)
             if not old_char.is_die and new_char.is_die:
                 reward -= 1.0
+                self.in_combat = False
                 return reward
             
-            # HP change
-            hp_diff = new_char.c_hp - old_char.c_hp
-            if hp_diff < 0:
-                reward -= 0.1  # Took damage
+            # Base survival bonus (encourages staying alive)
+            reward += 0.05
+            
+            # Aggressive action bonus
+            if action in [1, 2, 3]:  # Attack, Move to mob, Use skill
+                reward += 0.1
+            
+            # Mob tracking for combat efficiency
+            old_mobs = old_state_dict.get('mobs', {})
+            new_mobs = new_state_dict.get('mobs', {})
+            
+            mob_killed = False
+            for mob_id, old_mob in old_mobs.items():
+                if mob_id in new_mobs:
+                    new_mob = new_mobs[mob_id]
+                    # Mob died
+                    if old_mob.hp > 0 and new_mob.hp == 0:
+                        reward += 1.0
+                        mob_killed = True
+                        # Track kill for state features
+                        if state_builder:
+                            state_builder.record_kill()
+                    # Damaged mob
+                    elif new_mob.hp < old_mob.hp:
+                        damage_dealt = old_mob.hp - new_mob.hp
+                        reward += 0.2
+                        # Track damage dealt for state features
+                        if state_builder:
+                            state_builder.record_damage_dealt(damage_dealt)
+            
+            # Combat efficiency tracking
+            if mob_killed:
+                self.last_kill_time = current_time
+                self.in_combat = False
+            elif action in [1, 2, 3]:  # Started/continuing combat
+                self.in_combat = True
+            
+            # Combat efficiency penalty (no kill in 10s while fighting)
+            time_since_kill = current_time - self.last_kill_time
+            if self.in_combat and time_since_kill > 0.2:  # Changed from 10.0 to 1.0
+                reward -= 0.3  # Heavy penalty for inefficient combat
             
             # XP gain (tiềm năng)
             xp_gain = new_char.c_tiem_nang - old_char.c_tiem_nang
@@ -71,23 +121,22 @@ class OnlineTrainer:
             if gold_gain > 0:
                 reward += 0.3
             
-            # Mob kills (check if mobs HP decreased)
-            old_mobs = old_state_dict.get('mobs', {})
-            new_mobs = new_state_dict.get('mobs', {})
-            
-            for mob_id, old_mob in old_mobs.items():
-                if mob_id in new_mobs:
-                    new_mob = new_mobs[mob_id]
-                    # Mob died
-                    if old_mob.hp > 0 and new_mob.hp == 0:
-                        reward += 1.0
-                    # Damaged mob
-                    elif new_mob.hp < old_mob.hp:
-                        reward += 0.2
-            
-            # Movement penalty if idle
+            # Idle penalty (increased 4x)
             if old_char.cx == new_char.cx and old_char.cy == new_char.cy:
-                reward -= 0.05
+                reward -= 0.2
+            
+            # Context-aware damage penalty
+            hp_diff = new_char.c_hp - old_char.c_hp
+            if hp_diff < 0:
+                damage_taken = abs(hp_diff)
+                # Track damage for state features
+                if state_builder:
+                    state_builder.record_damage_taken(damage_taken)
+                
+                if action in [1, 2, 3]:  # Was fighting
+                    reward -= 0.05  # Reduced penalty (damage is expected)
+                else:
+                    reward -= 0.1   # Full penalty if not fighting
             
         except Exception as e:
             print(f"[Online Training] Error calculating reward: {e}")
@@ -120,7 +169,12 @@ class OnlineTrainer:
                 'mobs': controller.mobs.copy()
             }
             
-            reward = self.calculate_reward(self.last_state_dict, current_state_dict)
+            reward = self.calculate_reward(
+            self.last_state_dict, 
+            current_state_dict, 
+            self.last_action,
+            state_builder=getattr(self.ai_agent, 'state_builder', None)
+        )
             
             # Check if episode done (died)
             done = controller.account.char.is_die
@@ -175,7 +229,12 @@ class OnlineTrainer:
                 'mobs': controller.mobs.copy()
             }
             
-            reward = self.calculate_reward(self.last_state_dict, current_state_dict)
+            reward = self.calculate_reward(
+            self.last_state_dict, 
+            current_state_dict, 
+            self.last_action,
+            state_builder=getattr(self.ai_agent, 'state_builder', None)
+        )
             done = controller.account.char.is_die
             
             # Push to SHARED trainer

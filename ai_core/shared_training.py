@@ -48,7 +48,8 @@ class SharedTrainer:
         if self.trainer is None:
             try:
                 from train.train_pytorch import AITrainer
-                self.trainer = AITrainer(state_dim=20, action_dim=32, lr=0.001)
+                # Updated for temporal context support (60D = 3 frames × 20D)
+                self.trainer = AITrainer(state_dim=60, action_dim=32, lr=0.001)
                 print("[SharedTrainer] PyTorch Trainer Started")
             except ImportError:
                 print("[SharedTrainer] Failed to import PyTorch trainer. Install dependencies!")

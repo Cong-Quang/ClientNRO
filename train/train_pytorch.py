@@ -15,9 +15,9 @@ import os
 
 
 class PolicyNetwork(nn.Module):
-    """PyTorch MLP for policy learning [20 → 64 → 64 → 32]"""
+    """PyTorch MLP for policy learning [60 → 64 → 64 → 32] with temporal context"""
     
-    def __init__(self, state_dim=20, action_dim=32):
+    def __init__(self, state_dim=60, action_dim=32):
         super().__init__()
         self.fc1 = nn.Linear(state_dim, 64)
         self.fc2 = nn.Linear(64, 64)
@@ -60,7 +60,7 @@ class ExperienceReplay:
 class AITrainer:
     """AI Training Manager"""
     
-    def __init__(self, state_dim=20, action_dim=32, lr=0.001):
+    def __init__(self, state_dim=60, action_dim=32, lr=0.001):
         # Auto device detection
         if torch.cuda.is_available():
             self.device = torch.device('cuda')
@@ -69,7 +69,7 @@ class AITrainer:
             self.device = torch.device('cpu')
             print(f"[Training] Using CPU")
         
-        # Model
+        # Model with temporal context support
         self.model = PolicyNetwork(state_dim, action_dim).to(self.device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
         self.criterion = nn.CrossEntropyLoss()
@@ -90,7 +90,7 @@ class AITrainer:
         self.total_steps += 1
     
     def train_step(self, batch_size=32):
-        """Single training step with mini-batch"""
+        """Single training step with mini-batch using Supervised Learning"""
         if len(self.replay_buffer) < batch_size:
             return None
         
@@ -107,12 +107,17 @@ class AITrainer:
         # Forward pass
         logits = self.model(states)
         
-        # Compute loss (supervised learning from action labels)
+        # Supervised Learning loss (STABLE for multi-agent)
+        # Learn to imitate good actions instead of maximizing rewards
         loss = self.criterion(logits, actions)
         
         # Backward pass
         self.optimizer.zero_grad()
         loss.backward()
+        
+        # Gradient clipping for safety (even though supervised is stable)
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+        
         self.optimizer.step()
         
         # Track loss
@@ -150,14 +155,14 @@ class AITrainer:
         self.model.eval()
         
         weights_data = {
-            "architecture": [20, 64, 64, 32],
+            "architecture": [60, 64, 64, 32],  # Updated for temporal context
             "layers": []
         }
         
         # Extract weights from each layer
         with torch.no_grad():
-            # Layer 1: fc1 (20 → 64)
-            W1 = self.model.fc1.weight.cpu().numpy().tolist()  # (64, 20)
+            # Layer 1: fc1 (60 → 64)
+            W1 = self.model.fc1.weight.cpu().numpy().tolist()  # (64, 60)
             b1 = self.model.fc1.bias.cpu().numpy().tolist()    # (64,)
             weights_data["layers"].append({"W": W1, "b": b1})
             
@@ -178,14 +183,14 @@ class AITrainer:
         self.model.eval()
         
         weights_data = {
-            "architecture": [20, 64, 64, 32],
+            "architecture": [60, 64, 64, 32],  # Updated for temporal context
             "layers": []
         }
         
         # Extract weights from each layer
         with torch.no_grad():
-            # Layer 1: fc1 (20 → 64)
-            W1 = self.model.fc1.weight.cpu().numpy().tolist()  # (64, 20)
+            # Layer 1: fc1 (60 → 64)
+            W1 = self.model.fc1.weight.cpu().numpy().tolist()  # (64, 60)
             b1 = self.model.fc1.bias.cpu().numpy().tolist()    # (64,)
             weights_data["layers"].append({"W": W1, "b": b1})
             
@@ -248,16 +253,16 @@ def demo_training():
     print("PYTORCH TRAINING DEMO")
     print("="*70)
     
-    # Initialize trainer
-    trainer = AITrainer(state_dim=20, action_dim=32, lr=0.001)
+    # Initialize trainer with temporal context support
+    trainer = AITrainer(state_dim=60, action_dim=32, lr=0.001)
     
-    # Generate random training data
+    # Generate random training data (60D states for temporal context)
     print("\n[Demo] Generating random training data...")
     for i in range(1000):
-        state = [random.random() for _ in range(20)]
+        state = [random.random() for _ in range(60)]  # 60D temporal state
         action = random.randint(0, 31)
         reward = random.random()
-        next_state = [random.random() for _ in range(20)]
+        next_state = [random.random() for _ in range(60)]  # 60D temporal state
         done = random.random() > 0.9
         
         trainer.collect_experience(state, action, reward, next_state, done)
