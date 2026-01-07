@@ -164,6 +164,15 @@ async def command_loop(manager: AccountManager):
 
             # --- Pre-validation for Targetted Commands ---
             if cmd_base in targeted_commands:
+                # === Xử lý đặc biệt cho lệnh "show boss" ===
+                # Lệnh này chỉ cần hiển thị 1 lần vì dữ liệu boss là chung cho tất cả tài khoản
+                if command.strip() == "show boss":
+                    from logic.boss_manager import BossManager
+                    from ui import display_boss_list
+                    bosses = BossManager().get_bosses()
+                    display_boss_list(bosses)
+                    continue
+                
                 # --- Command Execution ---
                 target_accounts = manager.get_target_accounts()
                 # Lọc chỉ gửi lệnh cho acc online, giữ lại index gốc để hiển thị đúng
