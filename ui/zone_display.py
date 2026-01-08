@@ -4,14 +4,20 @@ from datetime import datetime
 from logs.logger_config import TerminalColors as C, Box as B, print_header, print_separator
 
 
-def display_zone_list(zones_data: list, map_name: str, account_name: str, current_zone_id: int = -1):
+def display_zone_list(zones_data: list, map_name: str, account_name: str, current_zone_id: int = -1, map_id: int = -1):
     """Hiển thị danh sách khu vực và số lượng người chơi."""
     print()
-    print_header(f"[ZONE] Danh Sach Khu Vuc - {map_name} ({account_name})", width=60, color=C.CYAN)
+    # Hiển thị map_id trong header nếu có
+    if map_id != -1:
+        width = 50
+        print_header(f"[ZONE] {map_name} [ID:{map_id}] ({account_name})", width=width, color=C.CYAN)
+    else:
+        width = 40
+        print_header(f"[ZONE] {map_name} ({account_name})", width=width, color=C.CYAN)
     
     # Header
-    print(f"  {C.BOLD}{C.BRIGHT_CYAN}{'Zone':<6} {'Người Chơi':<12} {'Tối Đa':<8} {'Thông Tin Thêm'}{C.RESET}")
-    print(f"  {C.DIM}{B.H * 56}{C.RESET}")
+    print(f"  {C.BOLD}{C.BRIGHT_CYAN}{'Zone':<8} {'Người Chơi':<12}{C.RESET}")
+    print(f"  {C.DIM}{B.H * (width - 4)}{C.RESET}")
     
     # Sort zones by Zone ID (ascending) for cleaner list
     sorted_zones = sorted(zones_data, key=lambda x: x['zone_id'])
@@ -21,6 +27,9 @@ def display_zone_list(zones_data: list, map_name: str, account_name: str, curren
         curr = z['num_players']
         max_p = z['max_players']
         
+        # Format: curr/max
+        player_info = f"{curr}/{max_p}"
+        
         # Color coding for occupancy
         if curr >= max_p:
             p_color = C.RED      # Full
@@ -29,23 +38,19 @@ def display_zone_list(zones_data: list, map_name: str, account_name: str, curren
         else:
             p_color = C.GREEN    # Good
             
-        extra_info = ""
-        if z.get('rank_flag'):
-            r1 = z.get('rank1', 0)
-            r2 = z.get('rank2', 0)
-            extra_info = f"{C.DIM}({r1} vs {r2}){C.RESET}"
-            
         # Highlight current zone
         if z_id == current_zone_id:
             z_display = f"{z_id} (*)"
+            z_color = C.BRIGHT_CYAN
         else:
             z_display = f"{z_id}"
+            z_color = C.CYAN
             
-        print(f"  {C.CYAN}{z_display:<6}{C.RESET} {p_color}{curr:<12}{C.RESET} {C.GREY}{max_p:<8}{C.RESET} {extra_info}")
+        print(f"  {z_color}{z_display:<8}{C.RESET} {p_color}{player_info:<12}{C.RESET}")
 
-    print(f"  {C.DIM}{B.H * 56}{C.RESET}")
-    print(f"  {C.BRIGHT_WHITE}Tổng số khu:{C.RESET} {C.BRIGHT_YELLOW}{len(zones_data)}{C.RESET}")
-    print_separator(60, color=C.CYAN)
+    print(f"  {C.DIM}{B.H * (width - 4)}{C.RESET}")
+    print(f"  {C.BRIGHT_WHITE}Tổng:{C.RESET} {C.BRIGHT_YELLOW}{len(zones_data)}{C.RESET} khu")
+    print_separator(width, color=C.CYAN)
 
 
 def display_boss_list(bosses: list):

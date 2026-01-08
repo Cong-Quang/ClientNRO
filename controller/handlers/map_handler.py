@@ -134,7 +134,8 @@ class MapHandler(BaseHandler):
             self.controller.zone_list = zones_data
                 
             current_zone = self.controller.map_info.get('zone', -1)
-            ui.display_zone_list(zones_data, self.controller.map_info.get('name', 'Unknown'), self.account.username, current_zone)
+            map_id = self.controller.map_info.get('id', -1)
+            ui.display_zone_list(zones_data, self.controller.map_info.get('name', 'Unknown'), self.account.username, current_zone, map_id)
             
         except Exception as e:
             logger.error(f"Lỗi khi xử lý danh sách khu vực: {e}")

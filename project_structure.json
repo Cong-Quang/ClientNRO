@@ -1,0 +1,2691 @@
+{
+  "analyze_project.py": {
+    "classes": [],
+    "functions": [
+      {
+        "name": "analyze_file",
+        "docstring": "Phân tích một file Python và trích xuất cấu trúc"
+      },
+      {
+        "name": "main",
+        "docstring": ""
+      }
+    ]
+  },
+  "config.py": {
+    "classes": [
+      {
+        "name": "Config",
+        "docstring": "",
+        "methods": []
+      }
+    ],
+    "functions": []
+  },
+  "main.py": {
+    "classes": [],
+    "functions": [
+      {
+        "name": "load_mob_names",
+        "docstring": ""
+      },
+      {
+        "name": "clean_pycache",
+        "docstring": "Tìm và xóa tất cả thư mục __pycache__ trong thư mục hiện tại và thư mục con."
+      },
+      {
+        "name": "load_proxies",
+        "docstring": "Đọc danh sách proxy từ file proxy.txt và chuyển đổi sang định dạng URL chuẩn."
+      }
+    ]
+  },
+  "test_ai_commands.py": {
+    "classes": [
+      {
+        "name": "MockAccount",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      },
+      {
+        "name": "MockManager",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "test_ai_pipeline.py": {
+    "classes": [
+      {
+        "name": "MockChar",
+        "docstring": "Mock character for testing",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      },
+      {
+        "name": "MockMob",
+        "docstring": "Mock mob for testing",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      },
+      {
+        "name": "MockAccount",
+        "docstring": "Mock account for testing",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      },
+      {
+        "name": "MockController",
+        "docstring": "Mock controller with game state",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      },
+      {
+        "name": "MockService",
+        "docstring": "Mock network service for testing",
+        "methods": []
+      }
+    ],
+    "functions": []
+  },
+  "__init__.py": {
+    "classes": [],
+    "functions": []
+  },
+  "ai_core\\action_decoder.py": {
+    "classes": [
+      {
+        "name": "ActionDecoder",
+        "docstring": "Decodes AI action index into game commands.\nAction space: 32 actions organized by category.",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": "Args:\n    controller: Game controller instance\n    service: Network service for sending commands\n   "
+          },
+          {
+            "name": "_find_nearest_alive_mob",
+            "docstring": "Find nearest alive mob (helper)"
+          }
+        ]
+      },
+      {
+        "name": "MockChar",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      },
+      {
+        "name": "MockAccount",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      },
+      {
+        "name": "MockController",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      },
+      {
+        "name": "MockService",
+        "docstring": "",
+        "methods": []
+      }
+    ],
+    "functions": []
+  },
+  "ai_core\\brain.py": {
+    "classes": [
+      {
+        "name": "InferenceEngine",
+        "docstring": "Pure Python neural network inference engine.\nLoads weights from JSON and performs forward pass using",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "set_weights_from_dict",
+            "docstring": "Load weights directly from dictionary (for sharing)"
+          },
+          {
+            "name": "load_weights",
+            "docstring": "Load neural network weights from JSON file.\n\nFormat:\n{\n    \"architecture\": [20, 64, 64, 32],\n    \"la"
+          },
+          {
+            "name": "_init_random_weights",
+            "docstring": "Initialize random weights for testing (when no weights file exists)"
+          },
+          {
+            "name": "_forward_pass",
+            "docstring": "Forward pass through network (synchronous).\nOptimized with list comprehensions for speed."
+          },
+          {
+            "name": "_linear",
+            "docstring": "Linear transformation: y = Wx + b\nOptimized with list comprehension and zip.\n\nW shape: (out_features"
+          },
+          {
+            "name": "_relu",
+            "docstring": "ReLU activation: max(0, x)"
+          },
+          {
+            "name": "_softmax",
+            "docstring": "Softmax activation with numerical stability.\nexp(x - max(x)) / sum(exp(x - max(x)))"
+          },
+          {
+            "name": "_apply_mask",
+            "docstring": "Apply action mask to logits.\nMasked actions (False) get -inf logit → 0 probability after softmax."
+          },
+          {
+            "name": "get_model_info",
+            "docstring": "Return model architecture and status"
+          },
+          {
+            "name": "_count_parameters",
+            "docstring": "Count total trainable parameters"
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "ai_core\\online_training.py": {
+    "classes": [
+      {
+        "name": "OnlineTrainer",
+        "docstring": "Online training manager - Trains AI while bot is playing\nCollects experience from real gameplay and ",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": "Args:\n    ai_agent: AIAgent instance\n    enable_training: Enable background training"
+          },
+          {
+            "name": "calculate_reward",
+            "docstring": "Calculate reward based on state transition\n\nEnhanced reward structure:\n- Base survival: +0.05 per st"
+          },
+          {
+            "name": "_train_batch",
+            "docstring": "Single training batch (runs in thread pool)"
+          },
+          {
+            "name": "save_checkpoint",
+            "docstring": "Save current model weights"
+          },
+          {
+            "name": "auto_save_loop",
+            "docstring": "Auto-save model periodically"
+          },
+          {
+            "name": "get_stats",
+            "docstring": "Get training statistics"
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "ai_core\\shared_memory.py": {
+    "classes": [
+      {
+        "name": "SharedMemory",
+        "docstring": "Singleton pattern shared memory for multi-agent coordination.\nThread-safe with threading.Lock for co",
+        "methods": [
+          {
+            "name": "__new__",
+            "docstring": ""
+          },
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "broadcast_target",
+            "docstring": "Broadcast a target (boss, mob, location) to all bots"
+          },
+          {
+            "name": "get_shared_targets",
+            "docstring": "Get list of shared targets from other bots"
+          },
+          {
+            "name": "clear_targets",
+            "docstring": "Clear all shared targets"
+          },
+          {
+            "name": "set_team_leader",
+            "docstring": "Designate a team leader"
+          },
+          {
+            "name": "get_team_leader",
+            "docstring": "Get current team leader"
+          },
+          {
+            "name": "register_bot",
+            "docstring": "Register a bot with its capabilities (tank/dps/support)"
+          },
+          {
+            "name": "get_team_formation",
+            "docstring": "Get current team formation"
+          },
+          {
+            "name": "assign_to_group",
+            "docstring": "Assign bot to a group (1-5 users per group)"
+          },
+          {
+            "name": "get_group_members",
+            "docstring": "Get list of bots in a group"
+          },
+          {
+            "name": "set_active_groups",
+            "docstring": "Set which groups are AI-controlled"
+          },
+          {
+            "name": "is_bot_in_active_group",
+            "docstring": "Check if bot is in an active group"
+          },
+          {
+            "name": "assign_zone",
+            "docstring": "Manually assign bot to a zone"
+          },
+          {
+            "name": "get_zone_distribution",
+            "docstring": "Get zone distribution for a map"
+          },
+          {
+            "name": "auto_distribute_zones",
+            "docstring": "Auto distribute bots across zones using round-robin"
+          },
+          {
+            "name": "set_global_goal",
+            "docstring": "Set global goal for team.\ngoal_type: 'farm_items', 'hunt_boss', 'complete_quest'\ngoal_data: {'item_i"
+          },
+          {
+            "name": "get_current_goal",
+            "docstring": "Get current global goal"
+          },
+          {
+            "name": "update_goal_progress",
+            "docstring": "Update progress for an account"
+          },
+          {
+            "name": "clear_goal",
+            "docstring": "Clear current goal"
+          },
+          {
+            "name": "update_status",
+            "docstring": "Update bot status"
+          },
+          {
+            "name": "get_team_status",
+            "docstring": "Get status of all bots"
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "ai_core\\shared_training.py": {
+    "classes": [
+      {
+        "name": "SharedTrainer",
+        "docstring": "Singleton Trainer that collects experience from ALL agents.\nManages a central AITrainer instance (Py",
+        "methods": [
+          {
+            "name": "__new__",
+            "docstring": ""
+          },
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "enable",
+            "docstring": "Enable shared training"
+          },
+          {
+            "name": "disable",
+            "docstring": "Disable shared training"
+          },
+          {
+            "name": "register_agent",
+            "docstring": "Register an agent to contribute to shared training"
+          },
+          {
+            "name": "_train_batch",
+            "docstring": "Run training batch (sync function)"
+          },
+          {
+            "name": "get_stats",
+            "docstring": "Get shared training stats"
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "ai_core\\state_builder.py": {
+    "classes": [
+      {
+        "name": "StateBuilder",
+        "docstring": "Converts game state (from controller) into normalized feature vector with temporal context.\nOutput: ",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "build_state",
+            "docstring": "Build temporal state vector from game controller.\n\nReturns 60D vector: [frame_t-2, frame_t-1, frame_"
+          },
+          {
+            "name": "_build_single_frame",
+            "docstring": "Build single 20D state frame (internal helper)"
+          },
+          {
+            "name": "_find_nearest_mob",
+            "docstring": "Find nearest alive mob and distance"
+          },
+          {
+            "name": "_count_mobs_in_range",
+            "docstring": "Count alive mobs within range"
+          },
+          {
+            "name": "_normalize_ratio",
+            "docstring": "Normalize ratio to [0, 1]"
+          },
+          {
+            "name": "_normalize_coord",
+            "docstring": "Normalize coordinate to [0, 1]"
+          },
+          {
+            "name": "_normalize_distance",
+            "docstring": "Normalize distance to [-1, 1]"
+          },
+          {
+            "name": "_normalize_count",
+            "docstring": "Normalize count to [0, 1]"
+          },
+          {
+            "name": "_get_average_mob_hp",
+            "docstring": "Get average HP ratio of mobs in range"
+          },
+          {
+            "name": "_get_recent_damage_taken",
+            "docstring": "Get damage taken in last 1 second, normalized"
+          },
+          {
+            "name": "_get_recent_damage_dealt",
+            "docstring": "Get damage dealt in last 1 second, normalized"
+          },
+          {
+            "name": "_get_time_since_kill",
+            "docstring": "Get time since last kill, normalized to 30 seconds"
+          },
+          {
+            "name": "record_damage_taken",
+            "docstring": "Record damage taken for feature tracking"
+          },
+          {
+            "name": "record_damage_dealt",
+            "docstring": "Record damage dealt for feature tracking"
+          },
+          {
+            "name": "record_kill",
+            "docstring": "Record mob kill for feature tracking"
+          }
+        ]
+      },
+      {
+        "name": "MockChar",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      },
+      {
+        "name": "MockMob",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      },
+      {
+        "name": "MockAccount",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      },
+      {
+        "name": "MockController",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "ai_core\\__init__.py": {
+    "classes": [],
+    "functions": []
+  },
+  "commands\\autologin_command.py": {
+    "classes": [
+      {
+        "name": "AutoLoginCommand",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "commands\\base_command.py": {
+    "classes": [
+      {
+        "name": "Command",
+        "docstring": "The base class for all commands.",
+        "methods": []
+      }
+    ],
+    "functions": []
+  },
+  "commands\\clear_command.py": {
+    "classes": [
+      {
+        "name": "ClearCommand",
+        "docstring": "",
+        "methods": []
+      }
+    ],
+    "functions": []
+  },
+  "commands\\command_loader.py": {
+    "classes": [],
+    "functions": [
+      {
+        "name": "load_commands",
+        "docstring": ""
+      }
+    ]
+  },
+  "commands\\exit_command.py": {
+    "classes": [
+      {
+        "name": "ExitCommand",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "commands\\group_command.py": {
+    "classes": [
+      {
+        "name": "GroupCommand",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "_list_groups",
+            "docstring": ""
+          },
+          {
+            "name": "_create_group",
+            "docstring": ""
+          },
+          {
+            "name": "_delete_group",
+            "docstring": ""
+          },
+          {
+            "name": "_add_to_group",
+            "docstring": ""
+          },
+          {
+            "name": "_remove_from_group",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "commands\\help_command.py": {
+    "classes": [
+      {
+        "name": "HelpCommand",
+        "docstring": "",
+        "methods": []
+      }
+    ],
+    "functions": []
+  },
+  "commands\\list_command.py": {
+    "classes": [
+      {
+        "name": "ListCommand",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "commands\\login_command.py": {
+    "classes": [
+      {
+        "name": "LoginCommand",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "commands\\logout_command.py": {
+    "classes": [
+      {
+        "name": "LogoutCommand",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "commands\\proxy_command.py": {
+    "classes": [
+      {
+        "name": "ProxyCommand",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "_list_proxies",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "commands\\sleep_command.py": {
+    "classes": [
+      {
+        "name": "SleepCommand",
+        "docstring": "",
+        "methods": []
+      }
+    ],
+    "functions": []
+  },
+  "commands\\target_command.py": {
+    "classes": [
+      {
+        "name": "TargetCommand",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "commands\\__init__.py": {
+    "classes": [],
+    "functions": []
+  },
+  "constants\\cmd.py": {
+    "classes": [
+      {
+        "name": "Cmd",
+        "docstring": "",
+        "methods": []
+      }
+    ],
+    "functions": []
+  },
+  "constants\\__init__.py": {
+    "classes": [],
+    "functions": []
+  },
+  "controller\\controller.py": {
+    "classes": [
+      {
+        "name": "Controller",
+        "docstring": "Quản lý xử lý tin nhắn và trạng thái game cho một tài khoản.\n\nThuộc tính chính:\n  - account: đối tượ",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": "Khởi tạo Controller cho `account`: thiết lập trạng thái và các dịch vụ liên quan."
+          },
+          {
+            "name": "toggle_auto_quest",
+            "docstring": "Bật hoặc tắt chế độ Auto Quest."
+          },
+          {
+            "name": "toggle_autoplay",
+            "docstring": "Bật hoặc tắt chế độ AutoPlay; khi bật, thêm task AutoPlay vào `account.tasks` nếu có."
+          },
+          {
+            "name": "toggle_auto_pet",
+            "docstring": "Bật hoặc tắt chế độ AutoPet; khi bật, thêm task AutoPet vào `account.tasks` nếu có."
+          },
+          {
+            "name": "toggle_auto_attack",
+            "docstring": "Bật hoặc tắt Auto Attack (Universal - cho cả mobs và chars)"
+          },
+          {
+            "name": "toggle_auto_boss",
+            "docstring": "Bật hoặc tắt chế độ Auto Boss."
+          },
+          {
+            "name": "toggle_ai_agent",
+            "docstring": "Bật hoặc tắt AI Agent (Neural Network control)"
+          },
+          {
+            "name": "on_message",
+            "docstring": "Chuyển tiếp tin nhắn theo `msg.command` đến handler tương ứng."
+          },
+          {
+            "name": "find_item_in_bag",
+            "docstring": "Tìm item trong hành trang và trả về danh sách kết quả."
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "controller\\__init__.py": {
+    "classes": [],
+    "functions": []
+  },
+  "controller\\handlers\\base_handler.py": {
+    "classes": [
+      {
+        "name": "BaseHandler",
+        "docstring": "Base class cho tất cả message handlers.\n\nCung cấp access đến controller và các thuộc tính thường dùn",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": "Khởi tạo handler với controller reference.\n\nArgs:\n    controller: Controller instance chứa state và "
+          },
+          {
+            "name": "handle",
+            "docstring": "Xử lý message - phải được override bởi subclass.\n\nArgs:\n    msg: Message object cần xử lý\n    \nRaise"
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "controller\\handlers\\character_handler.py": {
+    "classes": [
+      {
+        "name": "CharacterHandler",
+        "docstring": "Handler xử lý character stats, power, exp updates.",
+        "methods": [
+          {
+            "name": "process_me_load_point",
+            "docstring": "Đọc thông tin chỉ số nhân vật khi vào map hoặc load point và cập nhật thuộc tính `char`."
+          },
+          {
+            "name": "process_sub_command",
+            "docstring": "Xử lý SUB_COMMAND với nhiều trường hợp con (tải thông tin nhân vật, cập nhật HP/MP, tài sản, items)."
+          },
+          {
+            "name": "process_power_info",
+            "docstring": "Xử lý thông tin sức mạnh (POWER_INFO -115)."
+          },
+          {
+            "name": "process_player_up_exp",
+            "docstring": "Xử lý cập nhật EXP/Sức mạnh theo loại gói tin PLAYER_UP_EXP."
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "controller\\handlers\\combat_handler.py": {
+    "classes": [
+      {
+        "name": "CombatHandler",
+        "docstring": "Handler xử lý mob HP, death, respawn, attacks.",
+        "methods": [
+          {
+            "name": "process_mob_hp",
+            "docstring": "Cập nhật HP của mob (MOB_HP), xử lý các dữ liệu bổ sung nếu có."
+          },
+          {
+            "name": "process_npc_die",
+            "docstring": "Xử lý sự kiện mob chết (NPC_DIE) và cập nhật trạng thái trong `self.mobs`."
+          },
+          {
+            "name": "process_npc_live",
+            "docstring": "Xử lý NPC_LIVE: cập nhật HP và trạng thái khi quái vật hồi sinh."
+          },
+          {
+            "name": "process_player_attack_npc",
+            "docstring": "Xử lý sự kiện người chơi tấn công NPC (PLAYER_ATTACK_NPC)."
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "controller\\handlers\\inventory_handler.py": {
+    "classes": [
+      {
+        "name": "InventoryHandler",
+        "docstring": "Handler xử lý bag, pet info, item usage.",
+        "methods": [
+          {
+            "name": "process_bag_info",
+            "docstring": "Cập nhật dữ liệu túi đồ (BAG): xử lý danh sách ô, cập nhật số lượng hoặc thay đổi ô trong túi."
+          },
+          {
+            "name": "process_pet_info",
+            "docstring": "Đọc thông tin đệ tử (PET_INFO) và cập nhật đối tượng pet trong account."
+          },
+          {
+            "name": "find_item_in_bag",
+            "docstring": "Tìm item trong hành trang và trả về danh sách kết quả."
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "controller\\handlers\\login_handler.py": {
+    "classes": [
+      {
+        "name": "LoginHandler",
+        "docstring": "Handler xử lý NOT_LOGIN và NOT_MAP messages.",
+        "methods": [
+          {
+            "name": "message_not_login",
+            "docstring": "Xử lý các sub-command của NOT_LOGIN (ví dụ server list, login fail...)."
+          },
+          {
+            "name": "message_not_map",
+            "docstring": "Xử lý NOT_MAP sub-commands (ví dụ: UPDATE_VERSION)."
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "controller\\handlers\\map_handler.py": {
+    "classes": [
+      {
+        "name": "MapHandler",
+        "docstring": "Handler xử lý map info, zones, updates.",
+        "methods": [
+          {
+            "name": "process_map_info",
+            "docstring": "Đọc MAP_INFO và cập nhật: bản đồ, tọa độ nhân vật, waypoints, mobs và NPCs."
+          },
+          {
+            "name": "process_zone_list",
+            "docstring": "Xử lý gói tin danh sách khu vực (Cmd 29)."
+          },
+          {
+            "name": "process_map_offline",
+            "docstring": "Xử lý thông báo bản đồ chuyển sang chế độ offline (MAP_OFFLINE)."
+          },
+          {
+            "name": "process_update_data",
+            "docstring": "Xử lý gói tin UPDATE_DATA (-87)."
+          },
+          {
+            "name": "process_update_map",
+            "docstring": "Xử lý gói tin UPDATE_MAP (6) để cập nhật MobTemplate."
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "controller\\handlers\\misc_handler.py": {
+    "classes": [
+      {
+        "name": "MiscHandler",
+        "docstring": "Handler xử lý các messages còn lại.",
+        "methods": [
+          {
+            "name": "process_game_info",
+            "docstring": "Đọc và ghi log chuỗi thông tin do server gửi (GAME_INFO)."
+          },
+          {
+            "name": "process_special_skill",
+            "docstring": "Phân tích thông tin kỹ năng đặc biệt (các kiểu khác nhau theo `special_type`)."
+          },
+          {
+            "name": "process_message_time",
+            "docstring": "Đọc thông báo thời gian (MESSAGE_TIME) và ghi log nội dung cùng thời hạn."
+          },
+          {
+            "name": "process_change_flag",
+            "docstring": "Xử lý thay đổi cờ trạng thái của nhân vật (CHANGE_FLAG)."
+          },
+          {
+            "name": "process_max_stamina",
+            "docstring": "Cập nhật giá trị thể lực tối đa của người chơi (MAXSTAMINA)."
+          },
+          {
+            "name": "process_stamina",
+            "docstring": "Cập nhật thể lực hiện tại (STAMINA)."
+          },
+          {
+            "name": "process_update_active_point",
+            "docstring": "Cập nhật điểm hoạt động/năng động của người chơi (UPDATE_ACTIVEPOINT)."
+          },
+          {
+            "name": "process_thach_dau",
+            "docstring": "Xử lý thông tin thách đấu (THACHDAU) từ server."
+          },
+          {
+            "name": "process_autoplay",
+            "docstring": "Nhận trạng thái hoặc cấu hình chế độ tự động từ server (AUTOPLAY)."
+          },
+          {
+            "name": "process_mabu",
+            "docstring": "Xử lý gói tin liên quan đến Mabu và ghi lại trạng thái (MABU)."
+          },
+          {
+            "name": "process_the_luc",
+            "docstring": "Xử lý thông tin thể lực (THELUC) nhận từ server."
+          },
+          {
+            "name": "process_create_player",
+            "docstring": "Xử lý yêu cầu tạo nhân vật từ server (Cmd 2)."
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "controller\\handlers\\notification_handler.py": {
+    "classes": [
+      {
+        "name": "NotificationHandler",
+        "docstring": "Handler xử lý server messages, chat, boss notifications.",
+        "methods": [
+          {
+            "name": "process_server_message",
+            "docstring": "Xử lý thông báo từ server (Cmd -25)."
+          },
+          {
+            "name": "process_chat_server",
+            "docstring": "Xử lý chat thế giới từ server (Cmd 92)."
+          },
+          {
+            "name": "process_chat_map",
+            "docstring": "Xử lý chat trong map (Cmd 44)."
+          },
+          {
+            "name": "process_server_alert",
+            "docstring": "Xử lý thông báo server (Cmd 94)."
+          },
+          {
+            "name": "process_chat_vip",
+            "docstring": "Xử lý chat VIP (Cmd 93) - Kênh chính thông báo Boss."
+          },
+          {
+            "name": "process_big_message",
+            "docstring": "Xử lý thông báo lớn (Cmd -70)."
+          },
+          {
+            "name": "process_big_boss",
+            "docstring": "Xử lý thông tin Big Boss (Cmd 101, 102)."
+          },
+          {
+            "name": "check_boss_notification",
+            "docstring": "Kiểm tra nội dung chat xem có phải thông báo boss xuất hiện không."
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "controller\\handlers\\npc_handler.py": {
+    "classes": [
+      {
+        "name": "NPCHandler",
+        "docstring": "Handler xử lý NPC chat, menu, add/remove.",
+        "methods": [
+          {
+            "name": "process_npc_chat",
+            "docstring": "Ghi log nội dung chat của NPC (NPC_CHAT)."
+          },
+          {
+            "name": "process_npc_add_remove",
+            "docstring": "Xử lý lệnh thêm/bớt NPC (hiện chỉ đọc template id và không hành động thêm)."
+          },
+          {
+            "name": "process_open_ui_confirm",
+            "docstring": "Xử lý menu NPC (OPEN_UI_CONFIRM): đọc template id, nội dung menu và các lựa chọn."
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "controller\\handlers\\player_handler.py": {
+    "classes": [
+      {
+        "name": "PlayerHandler",
+        "docstring": "Handler xử lý player add, move, die, list updates.",
+        "methods": [
+          {
+            "name": "process_player_add",
+            "docstring": "Đọc thông tin khi có player mới xuất hiện trên map và ghi log cơ bản."
+          },
+          {
+            "name": "read_char_info",
+            "docstring": "Đọc thông tin cơ bản của một nhân vật từ `reader` và trả về dict chứa giá trị như level, tên, vị trí"
+          },
+          {
+            "name": "process_player_move",
+            "docstring": "Cập nhật vị trí khi server gửi thông tin di chuyển của một người chơi."
+          },
+          {
+            "name": "process_player_die",
+            "docstring": "Xử lý khi một người chơi chết; nếu là nhân vật local thì thực hiện bước revive/return flow."
+          },
+          {
+            "name": "process_player_list_update",
+            "docstring": "Xử lý phản hồi REQUEST_PLAYERS (Cmd 18) - cập nhật vị trí và HP người chơi."
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "controller\\handlers\\task_handler.py": {
+    "classes": [
+      {
+        "name": "TaskHandler",
+        "docstring": "Handler xử lý task get, update, next.",
+        "methods": [
+          {
+            "name": "process_task_get",
+            "docstring": "Phân tích gói TASK_GET và lưu thông tin nhiệm vụ vào nhân vật."
+          },
+          {
+            "name": "process_task_update",
+            "docstring": "Cập nhật tiến độ nhiệm vụ (TASK_UPDATE)."
+          },
+          {
+            "name": "process_task_next",
+            "docstring": "Xử lý chuyển bước nhiệm vụ (TASK_NEXT - 41)."
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "controller\\handlers\\__init__.py": {
+    "classes": [],
+    "functions": []
+  },
+  "core\\account.py": {
+    "classes": [
+      {
+        "name": "Account",
+        "docstring": "Encapsulates all objects and data for a single game account session.",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "stop_tasks",
+            "docstring": "Stops all running asyncio tasks for this account without a full logout."
+          },
+          {
+            "name": "stop",
+            "docstring": "Stops all running tasks and disconnects the session for this account.\nThis is considered a manual st"
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "core\\account_manager.py": {
+    "classes": [
+      {
+        "name": "AccountManager",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "load_accounts",
+            "docstring": "Loads account credentials from Config and creates Account objects."
+          },
+          {
+            "name": "stop_all",
+            "docstring": "Stops all accounts."
+          },
+          {
+            "name": "get_active_account_count",
+            "docstring": ""
+          },
+          {
+            "name": "get_target_accounts",
+            "docstring": "Resolves the command_target to a list of account objects."
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "core\\__init__.py": {
+    "classes": [],
+    "functions": []
+  },
+  "handlers\\ai_command_handler.py": {
+    "classes": [
+      {
+        "name": "AICommandHandler",
+        "docstring": "Handles all AI-related terminal commands",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "load_weights",
+            "docstring": "Load AI weights from file"
+          },
+          {
+            "name": "register_account",
+            "docstring": "Register an account for AI control"
+          },
+          {
+            "name": "_handle_trainer_commands",
+            "docstring": "Handle shared trainer commands"
+          },
+          {
+            "name": "_show_ai_help",
+            "docstring": "Show AI command help"
+          },
+          {
+            "name": "_show_status",
+            "docstring": "Show AI system status"
+          },
+          {
+            "name": "_show_info",
+            "docstring": "Show AI model info"
+          },
+          {
+            "name": "_load_weights",
+            "docstring": "Load weights from file"
+          },
+          {
+            "name": "_reset_weights",
+            "docstring": "Reset to default weights"
+          },
+          {
+            "name": "_handle_goal_commands",
+            "docstring": "Handle goal management commands"
+          },
+          {
+            "name": "_parse_goal_params",
+            "docstring": "Parse goal parameters from string"
+          },
+          {
+            "name": "_handle_ai_group_commands",
+            "docstring": "Handle AI group commands"
+          },
+          {
+            "name": "_handle_zone_commands",
+            "docstring": "Handle zone distribution commands"
+          },
+          {
+            "name": "_handle_team_commands",
+            "docstring": "Handle team coordination commands"
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "handlers\\__init__.py": {
+    "classes": [],
+    "functions": []
+  },
+  "logic\\auto_attack.py": {
+    "classes": [
+      {
+        "name": "AutoAttack",
+        "docstring": "Auto Attack service - Tự động tấn công mobs VÀ chars (bosses/players)\nBased on C# AutoSendAttack imp",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "start",
+            "docstring": "Bật Auto Attack"
+          },
+          {
+            "name": "stop",
+            "docstring": "Tắt Auto Attack"
+          },
+          {
+            "name": "toggle",
+            "docstring": "Toggle Auto Attack on/off - giống C# toggleAutoAttack()"
+          },
+          {
+            "name": "_get_current_skill",
+            "docstring": "Lấy skill hiện tại (myskill trong C# code)\nReturns: Skill object hoặc None"
+          },
+          {
+            "name": "_auto_focus_by_priority",
+            "docstring": "Tự động focus target theo priority mode\nInternal method được gọi bởi _update()"
+          },
+          {
+            "name": "set_priority_mode",
+            "docstring": "Thiết lập chế độ ưu tiên target\n\nArgs:\n    mode: Chế độ ưu tiên\n        - \"nearest\": Gần nhất (defau"
+          },
+          {
+            "name": "set_target_nearest",
+            "docstring": "Tìm và focus vào mob/char gần nhất trong khoảng cách max_target_distance\nWrapper method sử dụng targ"
+          },
+          {
+            "name": "set_target_mob",
+            "docstring": "Focus vào mob cụ thể bằng ID\nWrapper method sử dụng target_utils\n\nArgs:\n    mob_id: ID của mob cần t"
+          },
+          {
+            "name": "set_target_char",
+            "docstring": "Focus vào char cụ thể bằng ID (boss/player)\nWrapper method sử dụng target_utils\n\nArgs:\n    char_id: "
+          },
+          {
+            "name": "clear_target",
+            "docstring": "Xóa tất cả target hiện tại - Wrapper method sử dụng target_utils"
+          },
+          {
+            "name": "set_target_by_name",
+            "docstring": "Focus vào mob/char theo tên (hỗ trợ fuzzy matching)\nWrapper method sử dụng target_utils\n\nArgs:\n    n"
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "logic\\auto_boss.py": {
+    "classes": [
+      {
+        "name": "BossState",
+        "docstring": "Enum cho các trạng thái của Auto Boss",
+        "methods": []
+      },
+      {
+        "name": "BossHuntCoordinator",
+        "docstring": "Singleton quản lý phối hợp giữa nhiều user khi săn boss.\nChỉ phối hợp giữa các user trong cùng group",
+        "methods": [
+          {
+            "name": "__new__",
+            "docstring": ""
+          },
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "register_hunter",
+            "docstring": "Đăng ký user vào nhóm săn boss"
+          },
+          {
+            "name": "unregister_hunter",
+            "docstring": "Hủy đăng ký user"
+          },
+          {
+            "name": "get_hunters_in_group",
+            "docstring": "Lấy danh sách hunters trong cùng group"
+          },
+          {
+            "name": "assign_zones",
+            "docstring": "Chia zone cho các hunter - ROUND-ROBIN để spread out\nReturns: Dict mapping username -> list of zone "
+          },
+          {
+            "name": "mark_ready",
+            "docstring": "Mark hunter as ready for zone assignment"
+          },
+          {
+            "name": "broadcast_boss_found",
+            "docstring": "Thông báo tìm thấy boss tới tất cả hunters trong group"
+          },
+          {
+            "name": "get_boss_location",
+            "docstring": "Lấy vị trí boss nếu đã tìm thấy (trong group)"
+          },
+          {
+            "name": "is_boss_found",
+            "docstring": "Kiểm tra boss đã được tìm thấy chưa (trong group)"
+          },
+          {
+            "name": "get_hunter_count",
+            "docstring": "Đếm số user trong group đang săn boss này"
+          }
+        ]
+      },
+      {
+        "name": "AutoBoss",
+        "docstring": "State machine quản lý quy trình săn boss cho 1 user.\nBao gồm: tìm boss, di chuyển, quét zone, tập hợ",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "start",
+            "docstring": "Bắt đầu săn boss (single mode)"
+          },
+          {
+            "name": "add_to_queue",
+            "docstring": "Thêm boss vào queue, hỗ trợ fuzzy matching"
+          },
+          {
+            "name": "clear_queue",
+            "docstring": "Xóa toàn bộ queue"
+          },
+          {
+            "name": "show_queue",
+            "docstring": "Hiển thị queue hiện tại"
+          },
+          {
+            "name": "start_queue",
+            "docstring": "Bắt đầu săn boss theo queue"
+          },
+          {
+            "name": "stop",
+            "docstring": "Dừng auto boss"
+          },
+          {
+            "name": "_get_group_id",
+            "docstring": "Xác định group_id - TẤT CẢ hunters săn cùng boss = cùng group!\nĐể enable zone distribution cooperati"
+          },
+          {
+            "name": "_find_boss_in_manager",
+            "docstring": "Tìm boss 'Sống' trong BossManager (case-insensitive)"
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "logic\\auto_giftcode.py": {
+    "classes": [
+      {
+        "name": "AutoGiftcode",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "start",
+            "docstring": ""
+          },
+          {
+            "name": "stop",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "logic\\auto_NVBoMong.py": {
+    "classes": [
+      {
+        "name": "AutoState",
+        "docstring": "",
+        "methods": []
+      },
+      {
+        "name": "QuestInfo",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "current_progress",
+            "docstring": ""
+          },
+          {
+            "name": "__str__",
+            "docstring": ""
+          }
+        ]
+      },
+      {
+        "name": "AutoQuest",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "start",
+            "docstring": ""
+          },
+          {
+            "name": "stop",
+            "docstring": ""
+          },
+          {
+            "name": "get_stats",
+            "docstring": "Trả về thống kê hiện tại"
+          },
+          {
+            "name": "parse_quest_info",
+            "docstring": ""
+          },
+          {
+            "name": "increment_kill_count",
+            "docstring": ""
+          },
+          {
+            "name": "get_quest_target_ids",
+            "docstring": ""
+          },
+          {
+            "name": "_can_access_map",
+            "docstring": "Kiểm tra xem nhân vật có thể vào map đích không dựa trên điều kiện."
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "logic\\auto_pet.py": {
+    "classes": [
+      {
+        "name": "AutoPet",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "start",
+            "docstring": "Starts the auto-pet leveling task."
+          },
+          {
+            "name": "stop",
+            "docstring": "Stops the auto-pet leveling task."
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "logic\\auto_play.py": {
+    "classes": [
+      {
+        "name": "AutoPlay",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "start",
+            "docstring": ""
+          },
+          {
+            "name": "stop",
+            "docstring": ""
+          },
+          {
+            "name": "find_best_skill",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "logic\\boss_manager.py": {
+    "classes": [
+      {
+        "name": "BossManager",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__new__",
+            "docstring": ""
+          },
+          {
+            "name": "add_boss",
+            "docstring": "Thêm boss mới vào danh sách."
+          },
+          {
+            "name": "mark_boss_dead",
+            "docstring": "Đánh dấu boss đã bị tiêu diệt."
+          },
+          {
+            "name": "get_bosses",
+            "docstring": "Trả về danh sách boss, sắp xếp mới nhất trước."
+          },
+          {
+            "name": "find_bosses_by_keyword",
+            "docstring": "Tìm tất cả boss có tên chứa keyword (case-insensitive).\nTrả về list của boss đang sống, sắp xếp theo"
+          },
+          {
+            "name": "clear_expired",
+            "docstring": "Xóa boss đã xuất hiện quá lâu."
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "logic\\map_data.py": {
+    "classes": [],
+    "functions": []
+  },
+  "logic\\target_utils.py": {
+    "classes": [],
+    "functions": [
+      {
+        "name": "focus_nearest_mob",
+        "docstring": "Focus vào mob gần nhất trong khoảng cách max_distance\n\nArgs:\n    controller: Controller instance chứ"
+      },
+      {
+        "name": "focus_nearest_char",
+        "docstring": "Focus vào char/boss gần nhất trong khoảng cách max_distance\n\nArgs:\n    controller: Controller instan"
+      },
+      {
+        "name": "focus_nearest_target",
+        "docstring": "Focus vào target gần nhất (mob hoặc char)\n\nArgs:\n    controller: Controller instance\n    prefer_boss"
+      },
+      {
+        "name": "focus_by_name",
+        "docstring": "Focus vào target theo tên (fuzzy matching, case-insensitive)\n\nArgs:\n    controller: Controller insta"
+      },
+      {
+        "name": "focus_by_id",
+        "docstring": "Focus vào target theo ID cụ thể\n\nArgs:\n    controller: Controller instance\n    mob_id: ID của mob cầ"
+      },
+      {
+        "name": "clear_focus",
+        "docstring": "Xóa tất cả focus hiện tại (mob_focus và char_focus)\n\nArgs:\n    controller: Controller instance"
+      },
+      {
+        "name": "get_focused_target",
+        "docstring": "Lấy target hiện tại đang focus\n\nArgs:\n    controller: Controller instance\n\nReturns:\n    (\"mob\", mob_"
+      }
+    ]
+  },
+  "logic\\xmap.py": {
+    "classes": [
+      {
+        "name": "NextMap",
+        "docstring": "Cấu trúc dữ liệu lưu thông tin để di chuyển sang bản đồ kế tiếp",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      },
+      {
+        "name": "XMap",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "init_map_data",
+            "docstring": "Khởi tạo dữ liệu kết nối giữa các bản đồ"
+          },
+          {
+            "name": "add_link_maps",
+            "docstring": "Tạo chuỗi liên kết 2 chiều giữa các bản đồ: map1 <-> map2 <-> map3..."
+          },
+          {
+            "name": "add_npc_link",
+            "docstring": "Thêm một liên kết chuyển map cụ thể thông qua NPC hoặc đi bộ tọa độ"
+          },
+          {
+            "name": "add_portal_group",
+            "docstring": "Hỗ trợ thêm nhanh nhóm liên kết từ một trạm tàu đến nhiều hành tinh khác"
+          },
+          {
+            "name": "get_map_direction",
+            "docstring": "Xác định hướng của bản đồ kế tiếp (Trái, Phải, hoặc Giữa) dựa trên map_groups"
+          },
+          {
+            "name": "check_has_capsule",
+            "docstring": "Kiểm tra xem nhân vật có Capsule (ID 194) không. Trả về (Has, BagIndex)."
+          },
+          {
+            "name": "get_capsule_destinations",
+            "docstring": "Trả về danh sách các điểm đến của Capsule với Index ĐỘNG.\nLogic: \n1. Lấy danh sách map chuẩn từ serv"
+          },
+          {
+            "name": "finish",
+            "docstring": "Kết thúc XMap và hiển thị lộ trình đã đi"
+          },
+          {
+            "name": "_has_item",
+            "docstring": "Kiểm tra nhân vật có vật phẩm cụ thể không."
+          },
+          {
+            "name": "_is_map_accessible",
+            "docstring": "Kiểm tra xem một bản đồ có thể truy cập được không dựa trên các yêu cầu."
+          },
+          {
+            "name": "find_path",
+            "docstring": "Thuật toán tìm đường đi ngắn nhất (Dijkstra) kết hợp đi bộ và Capsule.\n- Chi phí đi bộ/npc: 1\n- Chi "
+          },
+          {
+            "name": "handle_death",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "logic\\__init__.py": {
+    "classes": [],
+    "functions": []
+  },
+  "model\\game_objects.py": {
+    "classes": [
+      {
+        "name": "SkillTemplate",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      },
+      {
+        "name": "Skill",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      },
+      {
+        "name": "MobTemplate",
+        "docstring": "",
+        "methods": []
+      },
+      {
+        "name": "Mob",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "name",
+            "docstring": ""
+          }
+        ]
+      },
+      {
+        "name": "ItemOption",
+        "docstring": "",
+        "methods": []
+      },
+      {
+        "name": "Item",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      },
+      {
+        "name": "Task",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      },
+      {
+        "name": "Char",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "set_default_part",
+            "docstring": ""
+          },
+          {
+            "name": "is_die",
+            "docstring": "Convenience property to check if the character is dead (HP == 0)."
+          },
+          {
+            "name": "isDie",
+            "docstring": "Compatibility method matching `isDie` (C# style)."
+          }
+        ]
+      },
+      {
+        "name": "Pet",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "model\\map_objects.py": {
+    "classes": [
+      {
+        "name": "Waypoint",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "center_x",
+            "docstring": ""
+          },
+          {
+            "name": "center_y",
+            "docstring": ""
+          }
+        ]
+      },
+      {
+        "name": "TileMap",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "set_map_info",
+            "docstring": ""
+          },
+          {
+            "name": "add_waypoint",
+            "docstring": ""
+          },
+          {
+            "name": "is_tile_type_at",
+            "docstring": "Check if tile at pixel (px, py) has type t."
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "model\\pet.py": {
+    "classes": [
+      {
+        "name": "ItemOption",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "__str__",
+            "docstring": ""
+          }
+        ]
+      },
+      {
+        "name": "Item",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "__str__",
+            "docstring": ""
+          }
+        ]
+      },
+      {
+        "name": "Skill",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "__str__",
+            "docstring": ""
+          }
+        ]
+      },
+      {
+        "name": "Pet",
+        "docstring": "Lớp dữ liệu để lưu trữ tất cả thông tin về đệ tử.",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "get_status_vietnamese",
+            "docstring": "Trả về trạng thái của đệ tử bằng tiếng Việt."
+          },
+          {
+            "name": "__str__",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "model\\__init__.py": {
+    "classes": [],
+    "functions": []
+  },
+  "network\\message.py": {
+    "classes": [
+      {
+        "name": "Message",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "writer",
+            "docstring": ""
+          },
+          {
+            "name": "reader",
+            "docstring": ""
+          },
+          {
+            "name": "get_data",
+            "docstring": ""
+          },
+          {
+            "name": "cleanup",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "network\\reader.py": {
+    "classes": [
+      {
+        "name": "Reader",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "read_byte",
+            "docstring": ""
+          },
+          {
+            "name": "read_ubyte",
+            "docstring": ""
+          },
+          {
+            "name": "read_short",
+            "docstring": ""
+          },
+          {
+            "name": "read_ushort",
+            "docstring": ""
+          },
+          {
+            "name": "read_int",
+            "docstring": ""
+          },
+          {
+            "name": "read_int3",
+            "docstring": ""
+          },
+          {
+            "name": "read_long",
+            "docstring": ""
+          },
+          {
+            "name": "read_bool",
+            "docstring": ""
+          },
+          {
+            "name": "read_utf",
+            "docstring": ""
+          },
+          {
+            "name": "read_bytes",
+            "docstring": ""
+          },
+          {
+            "name": "available",
+            "docstring": ""
+          },
+          {
+            "name": "read_remaining",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "network\\service.py": {
+    "classes": [
+      {
+        "name": "Service",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "network\\session.py": {
+    "classes": [
+      {
+        "name": "Session",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "disconnect",
+            "docstring": "Closes the connection."
+          },
+          {
+            "name": "process_key_message",
+            "docstring": ""
+          },
+          {
+            "name": "read_key",
+            "docstring": ""
+          },
+          {
+            "name": "write_key",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "network\\writer.py": {
+    "classes": [
+      {
+        "name": "Writer",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "write_byte",
+            "docstring": ""
+          },
+          {
+            "name": "write_ubyte",
+            "docstring": ""
+          },
+          {
+            "name": "write_short",
+            "docstring": ""
+          },
+          {
+            "name": "write_ushort",
+            "docstring": ""
+          },
+          {
+            "name": "write_int",
+            "docstring": ""
+          },
+          {
+            "name": "write_bool",
+            "docstring": ""
+          },
+          {
+            "name": "write_utf",
+            "docstring": ""
+          },
+          {
+            "name": "get_data",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "network\\__init__.py": {
+    "classes": [],
+    "functions": []
+  },
+  "services\\movement.py": {
+    "classes": [
+      {
+        "name": "MovementService",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "stop_moving",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "services\\pet_service.py": {
+    "classes": [],
+    "functions": [
+      {
+        "name": "request_pet_info",
+        "docstring": "Gửi yêu cầu đến server để nhận thông tin đệ tử."
+      },
+      {
+        "name": "handle_pet_info_response",
+        "docstring": "Xử lý phản hồi từ server chứa thông tin đệ tử.\nHàm này sẽ được gọi bởi bộ điều khiển message chính k"
+      },
+      {
+        "name": "display_pet_info",
+        "docstring": "Hiển thị thông tin đệ tử đã được lưu trữ."
+      }
+    ]
+  },
+  "services\\__init__.py": {
+    "classes": [],
+    "functions": []
+  },
+  "targeted_commands\\aiagent_command.py": {
+    "classes": [
+      {
+        "name": "AiagentCommand",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "targeted_commands\\andau_command.py": {
+    "classes": [
+      {
+        "name": "AndauCommand",
+        "docstring": "",
+        "methods": []
+      }
+    ],
+    "functions": []
+  },
+  "targeted_commands\\autoattack_command.py": {
+    "classes": [
+      {
+        "name": "AutoattackCommand",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "targeted_commands\\autobomong_command.py": {
+    "classes": [
+      {
+        "name": "AutobomongCommand",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "targeted_commands\\autoboss_command.py": {
+    "classes": [
+      {
+        "name": "AutobossCommand",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "targeted_commands\\autopet_command.py": {
+    "classes": [
+      {
+        "name": "AutopetCommand",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "targeted_commands\\autoplay_command.py": {
+    "classes": [
+      {
+        "name": "AutoplayCommand",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "targeted_commands\\base_targeted_command.py": {
+    "classes": [
+      {
+        "name": "TargetedCommand",
+        "docstring": "",
+        "methods": []
+      }
+    ],
+    "functions": []
+  },
+  "targeted_commands\\blacklist_command.py": {
+    "classes": [
+      {
+        "name": "BlacklistCommand",
+        "docstring": "",
+        "methods": []
+      }
+    ],
+    "functions": []
+  },
+  "targeted_commands\\findmob_command.py": {
+    "classes": [
+      {
+        "name": "FindmobCommand",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "targeted_commands\\findnpc_command.py": {
+    "classes": [
+      {
+        "name": "FindnpcCommand",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "targeted_commands\\gomap_command.py": {
+    "classes": [
+      {
+        "name": "GomapCommand",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "targeted_commands\\hit_command.py": {
+    "classes": [
+      {
+        "name": "HitCommand",
+        "docstring": "",
+        "methods": []
+      }
+    ],
+    "functions": []
+  },
+  "targeted_commands\\khu_command.py": {
+    "classes": [
+      {
+        "name": "KhuCommand",
+        "docstring": "Lệnh quản lý khu vực (zone)\n- khu: Hiển thị danh sách khu vực\n- khu <id>: Chuyển đến khu vực",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "targeted_commands\\logger_command.py": {
+    "classes": [
+      {
+        "name": "LoggerCommand",
+        "docstring": "",
+        "methods": []
+      }
+    ],
+    "functions": []
+  },
+  "targeted_commands\\pet_command.py": {
+    "classes": [
+      {
+        "name": "PetCommand",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "targeted_commands\\show_command.py": {
+    "classes": [
+      {
+        "name": "ShowCommand",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "targeted_commands\\targeted_command_loader.py": {
+    "classes": [],
+    "functions": [
+      {
+        "name": "load_targeted_commands",
+        "docstring": ""
+      }
+    ]
+  },
+  "targeted_commands\\teleportnpc_command.py": {
+    "classes": [
+      {
+        "name": "TeleportnpcCommand",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "targeted_commands\\teleport_command.py": {
+    "classes": [
+      {
+        "name": "TeleportCommand",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "targeted_commands\\__init__.py": {
+    "classes": [],
+    "functions": []
+  },
+  "train\\train_pytorch.py": {
+    "classes": [
+      {
+        "name": "PolicyNetwork",
+        "docstring": "PyTorch MLP for policy learning [60 → 64 → 64 → 32] with temporal context",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "forward",
+            "docstring": ""
+          }
+        ]
+      },
+      {
+        "name": "ExperienceReplay",
+        "docstring": "Experience replay buffer for training",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "add",
+            "docstring": "Add experience to buffer"
+          },
+          {
+            "name": "sample",
+            "docstring": "Sample random batch from buffer"
+          },
+          {
+            "name": "__len__",
+            "docstring": ""
+          }
+        ]
+      },
+      {
+        "name": "AITrainer",
+        "docstring": "AI Training Manager",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "collect_experience",
+            "docstring": "Add experience to replay buffer"
+          },
+          {
+            "name": "train_step",
+            "docstring": "Single training step with mini-batch using Supervised Learning"
+          },
+          {
+            "name": "train_episode",
+            "docstring": "Train for multiple steps"
+          },
+          {
+            "name": "export_weights_to_dict",
+            "docstring": "Export model weights to dictionary for in-memory sync"
+          },
+          {
+            "name": "export_weights",
+            "docstring": "Export model weights to JSON format for Pure Python inference"
+          },
+          {
+            "name": "load_weights",
+            "docstring": "Load weights from JSON"
+          },
+          {
+            "name": "get_stats",
+            "docstring": "Get training statistics"
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "ui\\character_display.py": {
+    "classes": [],
+    "functions": [
+      {
+        "name": "display_character_base_info",
+        "docstring": "Hiển thị thông tin cơ bản của tài khoản."
+      },
+      {
+        "name": "display_character_status",
+        "docstring": "Hiển thị thông tin trạng thái của một tài khoản."
+      },
+      {
+        "name": "display_character_base_stats",
+        "docstring": "Hiển thị thông tin chỉ số GỐC của nhân vật."
+      }
+    ]
+  },
+  "ui\\formatters.py": {
+    "classes": [],
+    "functions": [
+      {
+        "name": "short_number",
+        "docstring": "Định dạng số ngắn gọn (VD: 1.2tr, 5.5tỷ)."
+      }
+    ]
+  },
+  "ui\\help_display.py": {
+    "classes": [],
+    "functions": [
+      {
+        "name": "display_help",
+        "docstring": "Hiển thị menu trợ giúp với định dạng đẹp."
+      },
+      {
+        "name": "display_macro_help",
+        "docstring": "Hiển thị hướng dẫn sử dụng hệ thống Macro mới."
+      }
+    ]
+  },
+  "ui\\item_display.py": {
+    "classes": [],
+    "functions": [
+      {
+        "name": "display_found_items",
+        "docstring": "Hiển thị kết quả tìm kiếm item."
+      }
+    ]
+  },
+  "ui\\pet_display.py": {
+    "classes": [],
+    "functions": [
+      {
+        "name": "display_pet_info",
+        "docstring": "Hiển thị thông tin chi tiết của đệ tử."
+      },
+      {
+        "name": "display_pet_help",
+        "docstring": "Hiển thị các lệnh có sẵn cho đệ tử."
+      }
+    ]
+  },
+  "ui\\pet_status.py": {
+    "classes": [],
+    "functions": [
+      {
+        "name": "get_pet_status_vietnamese",
+        "docstring": "Trả về trạng thái của đệ tử bằng tiếng Việt có màu."
+      },
+      {
+        "name": "get_pet_status_short",
+        "docstring": "Trả về trạng thái ngắn gọn có màu."
+      },
+      {
+        "name": "get_pet_status_short_raw",
+        "docstring": "Trả về trạng thái ngắn gọn không màu (dùng để căn chỉnh)."
+      }
+    ]
+  },
+  "ui\\table_headers.py": {
+    "classes": [],
+    "functions": [
+      {
+        "name": "print_compact_header_show",
+        "docstring": "Print header for compact 'show' command."
+      },
+      {
+        "name": "print_compact_header_pet",
+        "docstring": "Print header for compact 'pet info' command."
+      },
+      {
+        "name": "print_compact_header_csgoc",
+        "docstring": "Print header for compact 'show csgoc' command."
+      },
+      {
+        "name": "print_compact_header_task",
+        "docstring": "Print header for compact 'show nhiemvu' command."
+      },
+      {
+        "name": "print_compact_header_autoquest",
+        "docstring": "Print header for compact 'autoquest status' command."
+      },
+      {
+        "name": "print_compact_footer",
+        "docstring": "Print footer line for compact tables."
+      }
+    ]
+  },
+  "ui\\table_utils.py": {
+    "classes": [],
+    "functions": [
+      {
+        "name": "pad_colored",
+        "docstring": "Pad a colored string based on its raw (uncolored) length."
+      },
+      {
+        "name": "print_table_header",
+        "docstring": "Print a formatted table header with box drawing."
+      },
+      {
+        "name": "print_compact_divider",
+        "docstring": "Print a subtle divider line."
+      }
+    ]
+  },
+  "ui\\task_display.py": {
+    "classes": [],
+    "functions": [
+      {
+        "name": "display_task_info",
+        "docstring": "Hiển thị thông tin nhiệm vụ."
+      }
+    ]
+  },
+  "ui\\zone_display.py": {
+    "classes": [],
+    "functions": [
+      {
+        "name": "display_zone_list",
+        "docstring": "Hiển thị danh sách khu vực và số lượng người chơi."
+      },
+      {
+        "name": "display_boss_list",
+        "docstring": "Hiển thị danh sách Boss đã xuất hiện."
+      }
+    ]
+  },
+  "ui\\__init__.py": {
+    "classes": [],
+    "functions": []
+  },
+  "utils\\autocomplete.py": {
+    "classes": [],
+    "functions": [
+      {
+        "name": "common_prefix",
+        "docstring": "Tìm tiền tố chung dài nhất."
+      },
+      {
+        "name": "get_candidates",
+        "docstring": "Xác định danh sách gợi ý dựa trên bộ đệm hiện tại.\nTrả về: (list_candidates, prefix_current_word)"
+      },
+      {
+        "name": "get_input_with_autocomplete",
+        "docstring": ""
+      },
+      {
+        "name": "completer",
+        "docstring": ""
+      }
+    ]
+  },
+  "utils\\macro_interpreter.py": {
+    "classes": [
+      {
+        "name": "MacroInterpreter",
+        "docstring": "",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": ""
+          },
+          {
+            "name": "is_running",
+            "docstring": ""
+          },
+          {
+            "name": "substitute_variables",
+            "docstring": "Replaces ${var} with variable values."
+          },
+          {
+            "name": "evaluate_expression",
+            "docstring": "Evaluates a python-like expression with variables substituted."
+          },
+          {
+            "name": "next_command",
+            "docstring": "Executes logic until a game command (yieldable) is found or end of script."
+          },
+          {
+            "name": "skip_block",
+            "docstring": "Skips lines until matching end_keyword, handling nesting."
+          }
+        ]
+      }
+    ],
+    "functions": []
+  },
+  "utils\\__init__.py": {
+    "classes": [],
+    "functions": []
+  }
+}

@@ -43,7 +43,8 @@ def display_help():
     print_section_header("Di Chuyển", width=70, color=C.PURPLE)
     cmds = [
         ("gomap <id|home>", "Di chuyển đến bản đồ ID hoặc về nhà"),
-        ("khu <id>", "Chuyển nhanh đến khu vực"),
+        ("khu", "Hiển thị danh sách khu vực"),
+        ("khu <id>", "Chuyển đến khu vực"),
         ("teleport <x> <y>", "Dịch chuyển đến tọa độ"),
         ("teleportnpc <id>", "Dịch chuyển đến NPC"),
         ("findnpc", "Liệt kê NPC trong map hiện tại"),
