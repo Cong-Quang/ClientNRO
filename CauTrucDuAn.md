@@ -93,6 +93,11 @@ ClientNRO/
 ### `default.json`
 **File:**
 - Template cấu hình mặc định (server, accounts, plugins, ai...)
+96: 
+97: ### `config/`
+98: **Directory:**
+99: - Chứa các file cấu hình override (e.g. `settings.json`) và plugin auto-generated configs.
+100: - `auto_chat.json` - Cấu hình cho Auto Chat Plugin (sinh tự động).
 
 ---
 
@@ -306,6 +311,11 @@ ClientNRO/
 **Class:**
 - `WaitCommand` - Lệnh chờ (dùng trong macro)
   - `execute(args)` - Sleep async
+309: 
+310: ### `config_command.py`
+311: **Class:**
+312: - `ConfigCommand` - Quản lý cấu hình nóng
+313:   - `execute(args)` - `reload`, `get`, `set` config mà không cần restart
 
 
 ---

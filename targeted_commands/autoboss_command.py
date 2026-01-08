@@ -57,8 +57,15 @@ class AutobossCommand(TargetedCommand):
             elif sub == "status":
                 ab = account.controller.auto_boss
                 if ab.is_running:
-                    mode = "QUEUE" if ab.use_queue_mode else "SINGLE"
-                    print(f"[{self.C.YELLOW}{account.username}{self.C.RESET}] Auto Boss: {self.C.GREEN}RUNNING{self.C.RESET} ({mode} mode)")
+                    # Logic xác định mode hiển thị
+                    if ab.use_queue_mode:
+                        mode = "QUEUE"
+                    elif ab.group_id and ab.group_id.startswith("boss_"):
+                        mode = f"GROUP ({ab.group_id})"
+                    else:
+                        mode = "SINGLE"
+                        
+                    print(f"[{self.C.YELLOW}{account.username}{self.C.RESET}] Auto Boss: {self.C.GREEN}RUNNING{self.C.RESET} [{mode}]")
                     print(f"  Target: {self.C.PURPLE}{ab.target_boss_name}{self.C.RESET}")
                     print(f"  State: {self.C.CYAN}{ab.state.value}{self.C.RESET}")
                     if ab.use_queue_mode:
@@ -74,6 +81,18 @@ class AutobossCommand(TargetedCommand):
             else:
                 # Tên boss là phần còn lại của command (single boss mode)
                 boss_name = " ".join(parts[1:])
+                
+                # Check for "on" keyword -> Quest Mode
+                if boss_name.lower().strip() == "on":
+                    success = account.controller.auto_boss.start_quest_mode()
+                    if success:
+                        print(f"[{self.C.YELLOW}{account.username}{self.C.RESET}] {self.C.GREEN}Bắt đầu Auto Boss theo Nhiệm Vụ{self.C.RESET}")
+                        return True, "OK"
+                    else:
+                        print(f"[{self.C.YELLOW}{account.username}{self.C.RESET}] {self.C.RED}Không tìm thấy boss nào trong nhiệm vụ hiện tại!{self.C.RESET}")
+                        return False, "No quest boss"
+                
+                # Normal boss name
                 account.controller.toggle_auto_boss(True, boss_name)
                 print(f"[{self.C.YELLOW}{account.username}{self.C.RESET}] {self.C.GREEN}Bắt đầu Auto Boss (Single): {self.C.PURPLE}{boss_name}{self.C.RESET}")
         else:

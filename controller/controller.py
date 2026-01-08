@@ -10,6 +10,7 @@ from model.map_objects import TileMap
 from services.movement import MovementService
 from logic.auto_play import AutoPlay
 from logic.auto_pet import AutoPet
+from logic.auto_item import AutoItem
 from logic.xmap import XMap
 from logic.auto_NVBoMong import AutoQuest
 from logic.auto_giftcode import AutoGiftcode
@@ -52,6 +53,7 @@ class Controller:
         self.auto_play = AutoPlay(self)
         self.auto_attack = None  # Will be imported lazily to avoid circular import
         self.auto_pet = AutoPet(self)
+        self.auto_item = AutoItem(self)
         self.xmap = XMap(self)
         self.auto_quest = AutoQuest(self)
         self.auto_giftcode = AutoGiftcode(self)
@@ -116,6 +118,18 @@ class Controller:
                 logger.warning("Cần chỉ định tên boss để bắt đầu Auto Boss")
         else:
             self.auto_boss.stop()
+    
+    def toggle_auto_item(self, enabled: bool, item_id: int = None):
+        """Bật hoặc tắt chế độ Auto Item."""
+        if enabled:
+            if item_id is not None:
+                task = self.auto_item.start(item_id)
+                if task:
+                    self.account.tasks.append(task)
+            else:
+                logger.warning("Cần chỉ định item ID để bắt đầu Auto Item")
+        else:
+            self.auto_item.stop()
     
     def toggle_ai_agent(self, enabled: bool):
         """Bật hoặc tắt AI Agent (Neural Network control)"""

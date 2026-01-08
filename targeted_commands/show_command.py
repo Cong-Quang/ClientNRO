@@ -32,6 +32,43 @@ class ShowCommand(TargetedCommand):
             elif sub == "boss":
                 bosses = BossManager().get_bosses()
                 display_boss_list(bosses)
+            
+            elif sub == "findboss":
+                # Request cập nhật vị trí từ server trước
+                await account.service.request_players()
+                await asyncio.sleep(0.5)
+                
+                # Hiển thị danh sách boss/chars trong map hiện tại
+                chars = account.controller.chars
+                
+                if not chars:
+                    print(f"[{self.C.YELLOW}{account.username}{self.C.RESET}] Không có character/boss nào trong map.")
+                    return
+                
+                print(f"[{self.C.YELLOW}{account.username}{self.C.RESET}] {self.C.CYAN}--- Danh sách Boss/Chars trong Map ---{self.C.RESET}")
+                print(f"{self.C.PURPLE}{'ID':<8} | {'Tên':<25} | {'HP':<18} | {'Level':<5} | {'Vị trí (X,Y)':<15}{self.C.RESET}")
+                print("-" * 90)
+                
+                for char_id, char_data in chars.items():
+                    char_name = char_data.get('name', 'Unknown')
+                    hp = char_data.get('hp', 0)
+                    max_hp = char_data.get('max_hp', 0)
+                    level = char_data.get('level', '?')
+                    x = char_data.get('x', 0)
+                    y = char_data.get('y', 0)
+                    
+                    hp_text = f"{hp}/{max_hp}"
+                    pos_text = f"({x}, {y})"
+                    
+                    # Highlight if HP is low (potential boss fight)
+                    if hp < max_hp:
+                        char_name_colored = f"{self.C.RED}{char_name}{self.C.RESET}"
+                    else:
+                        char_name_colored = f"{self.C.GREEN}{char_name}{self.C.RESET}"
+                    
+                    print(f"{char_id:<8} | {char_name_colored:<34} | {hp_text:<18} | {level:<5} | {pos_text:<15}")
+                
+                print(f"\n{self.C.CYAN}Tổng số: {len(chars)} character(s){self.C.RESET}")
 
             elif sub == "finfomap":
                 # Hiển thị danh sách tất cả người chơi trong map hiện tại
@@ -70,7 +107,7 @@ class ShowCommand(TargetedCommand):
                     else:
                         B = Box
                         print()
-                        print(f"[{self.C.YELLOW}{account.username}{C.RESET}] {self.C.CYAN}=== Danh sách người chơi trong Map ==={self.C.RESET}")
+                        print(f"[{self.C.YELLOW}{account.username}{self.C.RESET}] {self.C.CYAN}=== Danh sách người chơi trong Map ==={self.C.RESET}")
                         print(f"{self.C.PURPLE}{B.TL}{B.H * 100}{B.TR}{self.C.RESET}")
                         print(f"{self.C.PURPLE}{B.V}{self.C.RESET} {self.C.BOLD}{'ID':<10} {'Tên':<20} {'Lv':<5} {'HP':<25} {'Vị trí':<15} {'Clan ID':<10}{self.C.RESET} {self.C.PURPLE}{B.V}{self.C.RESET}")
                         print(f"{self.C.PURPLE}{B.LT}{B.H * 100}{B.RT}{self.C.RESET}")

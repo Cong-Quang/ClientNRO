@@ -53,6 +53,9 @@ class SharedMemory:
         
         self.shared_trainer_enabled = False
         
+        # Zone Density Manager (Hive Architecture)
+        self.zone_density = ZoneDensityManager()
+        
         self._initialized = True
         print("[SharedMemory] Initialized (Singleton)")
     
@@ -208,6 +211,198 @@ class SharedMemory:
         """Get status of all bots"""
         with self._lock:
             return self.bot_status.copy()
+
+
+class ZoneDensityManager:
+    """
+    Hive Architecture - Mental Map chia sẻ về mật độ zone.
+    Ngăn chặn "dẫm đạp" khi nhiều bot cùng chọn 1 zone trống.
+    """
+    
+    def __init__(self):
+        self._lock = threading.Lock()
+        
+        # Intent tracking: account -> {map_id, zone_id, timestamp}
+        self.zone_intents: Dict[str, Dict[str, Any]] = {}
+        
+        # Actual positions: account -> {map_id, zone_id, timestamp}
+        self.zone_positions: Dict[str, Dict[str, Any]] = {}
+        
+        # Scan history: (map_id, zone_id) -> {last_scan_time, scanned_by}
+        self.scan_history: Dict[tuple, Dict[str, Any]] = {}
+        
+        # Configuration
+        self.intent_timeout = 30.0  # Intent expires after 30s
+        self.scan_cooldown = 60.0   # Don't rescan same zone within 60s
+    
+    def register_intent(self, account_id: str, map_id: int, zone_id: int) -> None:
+        """Đăng ký ý định di chuyển đến zone (ngăn race condition)"""
+        import time
+        with self._lock:
+            self.zone_intents[account_id] = {
+                'map_id': map_id,
+                'zone_id': zone_id,
+                'timestamp': time.time()
+            }
+    
+    def update_real_position(self, account_id: str, map_id: int, zone_id: int) -> None:
+        """Cập nhật vị trí thực tế của bot"""
+        import time
+        with self._lock:
+            self.zone_positions[account_id] = {
+                'map_id': map_id,
+                'zone_id': zone_id,
+                'timestamp': time.time()
+            }
+            
+            # Clear intent khi đã đến nơi
+            if account_id in self.zone_intents:
+                intent = self.zone_intents[account_id]
+                if intent['map_id'] == map_id and intent['zone_id'] == zone_id:
+                    del self.zone_intents[account_id]
+    
+    def mark_zone_scanned(self, account_id: str, map_id: int, zone_id: int) -> None:
+        """Đánh dấu zone đã được quét (cho Auto Boss)"""
+        import time
+        with self._lock:
+            key = (map_id, zone_id)
+            self.scan_history[key] = {
+                'last_scan_time': time.time(),
+                'scanned_by': account_id
+            }
+    
+    def _clean_expired_intents(self) -> None:
+        """Xóa các intent đã hết hạn (internal, gọi trong lock)"""
+        import time
+        current_time = time.time()
+        expired = [
+            acc_id for acc_id, intent in self.zone_intents.items()
+            if current_time - intent['timestamp'] > self.intent_timeout
+        ]
+        for acc_id in expired:
+            del self.zone_intents[acc_id]
+    
+    def get_zone_density(self, map_id: int, zone_id: int) -> int:
+        """
+        Tính mật độ zone (số bot hiện tại + số bot dự định đến).
+        Returns: số lượng bot trong zone (thực tế + ý định)
+        """
+        import time
+        with self._lock:
+            self._clean_expired_intents()
+            
+            count = 0
+            current_time = time.time()
+            
+            # Đếm bot đang ở zone
+            for acc_id, pos in self.zone_positions.items():
+                if pos['map_id'] == map_id and pos['zone_id'] == zone_id:
+                    count += 1
+            
+            # Đếm bot dự định đến zone
+            for acc_id, intent in self.zone_intents.items():
+                if intent['map_id'] == map_id and intent['zone_id'] == zone_id:
+                    # Chỉ đếm nếu bot chưa ở zone đó
+                    pos = self.zone_positions.get(acc_id)
+                    if not (pos and pos['map_id'] == map_id and pos['zone_id'] == zone_id):
+                        count += 1
+            
+            return count
+    
+    def is_zone_recently_scanned(self, map_id: int, zone_id: int) -> bool:
+        """Kiểm tra zone đã được quét gần đây chưa"""
+        import time
+        with self._lock:
+            key = (map_id, zone_id)
+            if key not in self.scan_history:
+                return False
+            
+            scan_data = self.scan_history[key]
+            elapsed = time.time() - scan_data['last_scan_time']
+            return elapsed < self.scan_cooldown
+    
+    def get_zone_score(
+        self, 
+        map_id: int, 
+        zone_id: int,
+        current_num_players: int = 0,
+        max_players: int = 15,
+        normalize: bool = True
+    ) -> float:
+        """
+        Chấm điểm zone dựa trên nhiều yếu tố.
+        
+        Score càng CAO = zone càng TỐT để chọn.
+        
+        Factors:
+        - Mật độ bot (càng ít càng tốt)
+        - Số người chơi khác trong zone (càng ít càng tốt)
+        - Lịch sử quét (đã quét gần đây = điểm thấp)
+        """
+        # 1. Bot density penalty (0 bot = 1.0, nhiều bot = 0.0)
+        bot_density = self.get_zone_density(map_id, zone_id)
+        density_score = max(0, 1.0 - (bot_density / 5.0))  # Normalize: 5 bots = 0 score
+        
+        # 2. Player density score (ít người chơi = điểm cao)
+        if max_players > 0:
+            player_ratio = current_num_players / max_players
+            player_score = 1.0 - player_ratio
+        else:
+            player_score = 1.0
+        
+        # 3. Scan history penalty (quét gần đây = điểm thấp)
+        scan_penalty = 0.5 if self.is_zone_recently_scanned(map_id, zone_id) else 0.0
+        
+        # Công thức tổng hợp (weight: bot density 50%, player 30%, scan history 20%)
+        final_score = (
+            0.5 * density_score +
+            0.3 * player_score -
+            0.2 * scan_penalty
+        )
+        
+        return max(0.0, final_score)
+    
+    def get_best_zone(
+        self, 
+        map_id: int,
+        zone_list: List[Dict[str, Any]],
+        account_id: str = ""
+    ) -> Optional[int]:
+        """
+        Chọn zone TỐT NHẤT từ danh sách.
+        
+        zone_list format: [{'zone_id': 0, 'num_players': 5, 'max_players': 15}, ...]
+        
+        Returns: zone_id tốt nhất, hoặc None nếu không có
+        """
+        if not zone_list:
+            return None
+        
+        best_zone = None
+        best_score = -1.0
+        
+        for zone_data in zone_list:
+            zone_id = zone_data['zone_id']
+            num_players = zone_data.get('num_players', 0)
+            max_players = zone_data.get('max_players', 15)
+            
+            # Bỏ qua zone đầy
+            if num_players >= max_players:
+                continue
+            
+            score = self.get_zone_score(map_id, zone_id, num_players, max_players)
+            
+            if score > best_score:
+                best_score = score
+                best_zone = zone_id
+        
+        return best_zone
+    
+    def clear_account_data(self, account_id: str) -> None:
+        """Xóa toàn bộ dữ liệu của 1 account (khi logout)"""
+        with self._lock:
+            self.zone_intents.pop(account_id, None)
+            self.zone_positions.pop(account_id, None)
 
 
 # Example usage

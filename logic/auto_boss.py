@@ -4,6 +4,12 @@ import math
 from typing import Dict, List, Optional, Tuple, Callable
 from enum import Enum
 from logs.logger_config import logger
+from logic.quest_mapper import QuestMapper
+
+
+class BossRole(Enum):
+    HUNTER = "HUNTER"      # Người làm nhiệm vụ / chủ party
+    SUPPORTER = "SUPPORTER" # Người hỗ trợ (sẽ nhường boss khi HP thấp)
 
 
 class BossState(Enum):
@@ -242,7 +248,7 @@ class AutoBoss:
             self.stop()
         
         self.use_queue_mode = False
-        self.target_boss_name = boss_name
+        self.target_boss_name = boss_name.strip()
         self.group_id = self._get_group_id()
         self.state = BossState.SEARCHING
         self.is_running = True
@@ -253,7 +259,39 @@ class AutoBoss:
         # Start main loop
         self.loop_task = asyncio.create_task(self._main_loop())
         
-        logger.info(f"[{self.username}] 🎯 Bắt đầu Auto Boss: '{boss_name}' (Group: {self.group_id})")
+        logger.info(f"[{self.username}] Bắt đầu Auto Boss: '{boss_name}' (Group: {self.group_id})")
+
+    def start_quest_mode(self):
+        """Bắt đầu săn boss dựa trên nhiệm vụ hiện tại"""
+        task = self.controller.account.char.task
+        if not task:
+            logger.info(f"[{self.username}] Không lấy được thông tin nhiệm vụ")
+            return False
+
+        boss_name = QuestMapper.get_boss_from_task(task)
+        if not boss_name:
+            logger.info(f"[{self.username}] Nhiệm vụ '{task.name}' không yêu cầu boss hoặc chưa hỗ trợ")
+            return False
+            
+        logger.info(f"[{self.username}] 📜 Nhiệm vụ: {task.name} ({task.detail}) -> Boss mục tiêu: {boss_name}")
+        
+        # Start với role HUNTER (chủ quest)
+        self.start(boss_name)
+        self.role = BossRole.HUNTER
+        
+        # Kêu gọi hỗ trợ từ các bot khác
+        self.coordinator.request_support(boss_name, self.username)
+        return True
+
+    def start_support(self, boss_name: str, owner_name: str):
+        """Bắt đầu hỗ trợ người khác săn boss"""
+        if self.is_running:
+            return # Đang bận
+            
+        logger.info(f"[{self.username}] Chấp nhận hỗ trợ {owner_name} săn boss '{boss_name}'")
+        self.start(boss_name)
+        self.role = BossRole.SUPPORTER
+        self.supported_owner = owner_name
     
     def add_to_queue(self, boss_name: str, use_fuzzy: bool = True):
         """Thêm boss vào queue, hỗ trợ fuzzy matching"""
@@ -283,7 +321,7 @@ class AutoBoss:
                     added_count += 1
             
             if added_count > 0:
-                logger.info(f"[{self.username}] ➕ Tìm thấy {len(matching_bosses)} boss chứa '{boss_name}', thêm {added_count} boss mới vào queue")
+                logger.info(f"[{self.username}] Tìm thấy {len(matching_bosses)} boss chứa '{boss_name}', thêm {added_count} boss mới vào queue")
             else:
                 logger.info(f"[{self.username}] Tất cả {len(matching_bosses)} boss chứa '{boss_name}' đã có trong queue")
             
@@ -293,7 +331,7 @@ class AutoBoss:
         """Xóa toàn bộ queue"""
         self.boss_queue.clear()
         self.current_boss_index = 0
-        logger.info(f"[{self.username}] 🗑️ Đã xóa queue")
+        logger.info(f"[{self.username}] Đã xóa queue")
     
     def show_queue(self) -> str:
         """Hiển thị queue hiện tại"""
@@ -354,9 +392,17 @@ class AutoBoss:
         # Stop AutoPlay if running (check interval attribute)
         if self.controller.auto_play.interval:
             self.controller.toggle_autoplay(False)
+            
+        # Unregister from coordinator
+        if self.target_boss_name:
+            self.coordinator.unregister_hunter(self.target_boss_name, self)
+        
+        # Reset roles
+        self.role = BossRole.HUNTER
+        self.supported_owner = ""
         
         self.state = BossState.IDLE
-        logger.info(f"[{self.username}] ⏹️ Đã dừng Auto Boss")
+        logger.info(f"[{self.username}] Đã dừng Auto Boss")
     
     def _get_group_id(self) -> str:
         """
@@ -372,14 +418,24 @@ class AutoBoss:
             while self.is_running:
                 # Boss status monitoring
                 if not await self._check_boss_alive():
-                    logger.info(f"[{self.username}] ⚠️ Boss '{self.target_boss_name}' đã chết!")
+                    logger.info(f"[{self.username}] Boss '{self.target_boss_name}' đã chết!")
                     
+                    # Nếu đang dùng queue, chuyển boss tiếp theo
                     # Nếu đang dùng queue, chuyển boss tiếp theo
                     if self.use_queue_mode:
                         await self._next_boss_in_queue()
                         if not self.is_running:  # Hết queue
                             return
                         continue
+                        
+                    # Nếu là Quest Mode (HUNTER/SUPPORTER) -> KHÔNG STOP, cứ tiếp tục loop để SEARCHING (Wait)
+                    elif self.role in [BossRole.HUNTER, BossRole.SUPPORTER]:
+                        # Force state về SEARCHING để logic wait trong đó hoạt động
+                        if self.state != BossState.SEARCHING:
+                            self.state = BossState.SEARCHING
+                        # Continue loop để vào _state_searching
+                        pass
+                        
                     else:
                         self.stop()
                         return
@@ -424,7 +480,8 @@ class AutoBoss:
         target_name_lower = self.target_boss_name.lower()
         
         for boss in boss_manager.get_bosses():
-            if boss['name'].lower() == target_name_lower:
+            # Sử dụng IN thay vì == để hỗ trợ matching (VD: 'Số 4' in 'Số 4 Guldo')
+            if target_name_lower in boss['name'].lower():
                 if boss['status'] == 'Chết':
                     return False
                 # Boss còn sống
@@ -440,6 +497,14 @@ class AutoBoss:
         boss_info = self._find_boss_in_manager()
         
         if boss_info is None:
+            # Nếu đang trong Quest Mode hoặc Support Mode -> Đợi boss xuất hiện (không stop)
+            if self.role in [BossRole.HUNTER, BossRole.SUPPORTER]:
+                # Log periodically (mỗi 10s) để không spam
+                if int(time.time()) % 10 == 0:
+                    logger.info(f"[{self.username}] ⏳ Đang đợi boss '{self.target_boss_name}' xuất hiện...")
+                return
+            
+            # Normal mode -> Stop tìm thấy
             logger.info(f"[{self.username}] ❌ Không tìm thấy boss '{self.target_boss_name}' trong danh sách")
             self.stop()
             return
@@ -458,10 +523,21 @@ class AutoBoss:
         boss_manager = BossManager()
         
         target_name_lower = self.target_boss_name.lower()
+        print(f"[{self.username}] DEBUG: Searching for '{target_name_lower}' in BossManager...")
         
         for boss in boss_manager.get_bosses():
-            if boss['name'].lower() == target_name_lower and boss['status'] == 'Sống':
-                return boss
+            b_name = boss['name'].lower()
+            b_status = boss['status']
+            print(f"  - Check: '{b_name}' ({b_status}) vs '{target_name_lower}'")
+            
+            # Sử dụng IN thay vì ==
+            if target_name_lower in b_name:
+                if b_status == 'Sống':
+                    print("    -> MATCH & ALIVE!")
+                    return boss
+                else:
+                    print("    -> MATCH but DEAD.")
+                    pass
         
         return None
     
@@ -484,7 +560,7 @@ class AutoBoss:
         await asyncio.sleep(1)
     
     async def _state_zone_scanning(self):
-        """State: Quét các zone được assign"""
+        """State: Quét các zone được assign (với Hive coordination)"""
         # Lần đầu vào state này, cần lấy danh sách zone và assign
         if not self.assigned_zones:
             await self._initialize_zone_scanning()
@@ -503,10 +579,28 @@ class AutoBoss:
         # Scan zone tiếp theo
         if self.current_zone_index >= len(self.assigned_zones):
             logger.info(f"[{self.username}] Đã quét hết {len(self.assigned_zones)} zone, không tìm thấy boss")
+            
+            # Nếu là Quest Mode -> Quay lại SEARCHING để check lại status Boss hoặc scan lại
+            if self.role in [BossRole.HUNTER, BossRole.SUPPORTER]:
+                logger.info(f"[{self.username}] 🔄 Quest Mode: Quay lại trạng thái tìm kiếm...")
+                self.state = BossState.SEARCHING
+                self.assigned_zones = [] # Reset zones để scan lại nếu cần
+                return
+
             self.stop()
             return
         
         target_zone = self.assigned_zones[self.current_zone_index]
+        
+        # HIVE LOGIC: Skip zone nếu đã được quét gần đây bởi teammate
+        from ai_core.shared_memory import SharedMemory
+        shared_mem = SharedMemory()
+        zone_density = shared_mem.zone_density
+        
+        if zone_density.is_zone_recently_scanned(self.target_map_id, target_zone):
+            logger.info(f"[{self.username}] ⏭️ Zone {target_zone} đã được quét gần đây, SKIP!")
+            self.current_zone_index += 1
+            return
         
         logger.info(f"[{self.username}] 🔍 Quét zone {target_zone} ({self.current_zone_index + 1}/{len(self.assigned_zones)})...")
         
@@ -521,6 +615,9 @@ class AutoBoss:
         # Lưu vị trí để recovery nếu chết
         self.last_scanned_map_id = self.controller.tile_map.map_id
         self.last_scanned_zone_id = target_zone
+        
+        # HIVE: Đánh dấu zone đã được quét
+        zone_density.mark_zone_scanned(self.username, self.target_map_id, target_zone)
         
         # Check xem zone này có boss không
         logger.info(f"[{self.username}] 🔎 Kiểm tra boss trong zone {target_zone}...")
@@ -593,7 +690,7 @@ class AutoBoss:
             await self.controller.account.service.request_change_zone(zone_id)
             
             # Wait longer for zone change AND char spawn (bosses need time!)
-            await asyncio.sleep(3.0)  # Tăng lên 3s để chars (bosses) spawn
+            await asyncio.sleep(1.0)  # Tăng lên 4s để chars (bosses) spawn đầy đủ
             
             current_zone = self.controller.map_info.get('zone', -1)
             
@@ -617,18 +714,38 @@ class AutoBoss:
         boss_name = boss_info['name']
         boss_name_lower = boss_name.lower()
         
-        # Check chars in current zone (SILENT - chỉ print khi tìm thấy boss)
-        for char_id, char in self.controller.chars.items():
-            char_name = char.get('name', '')
-            char_hp = char.get('hp', 0)
-            char_type_pk = char.get('type_pk', 0)
-            
-            # Check by type_pk == 5 (BOSS) AND name match (case-insensitive) AND HP > 0
-            if char_type_pk == 5 and char_name.lower() == boss_name_lower and char_hp > 0:
+        # DIAGNOSTIC: Log số lượng chars hiện tại
+        chars_count = len(self.controller.chars)
+        logger.info(f"[{self.username}] Đang kiểm tra boss '{boss_name}' - Có {chars_count} chars trong map")
+        
+        # Đợi thêm 1s nữa để đảm bảo chars đã load đầy đủ
+        await asyncio.sleep(1.0)
+        
+        # METHOD 1: Sử dụng target_utils để tìm target theo tên (case-insensitive)
+        from logic.target_utils import focus_by_name
+        found = focus_by_name(self.controller, boss_name, target_type="char", max_distance=1000)
+        
+        if found:
+            boss_char = self.controller.account.char.char_focus
+            if boss_char:
                 current_zone = self.controller.map_info.get('zone', -1)
-                print(f"[{self.username}] Tìm thấy boss '{char_name}' tại zone {current_zone}")
+                boss_real_name = boss_char.get('name', 'Boss')
+                logger.info(f"[{self.username}] ✅ Tìm thấy boss '{boss_real_name}' tại zone {current_zone} (focus_by_name)")
                 return True
         
+        # METHOD 2: Fallback - Kiểm tra trực tiếp trong controller.chars
+        logger.info(f"[{self.username}] focus_by_name không tìm thấy, kiểm tra trực tiếp trong chars...")
+        for char_id, char_data in self.controller.chars.items():
+            char_name = char_data.get('name', '').lower()
+            # DIAGNOSTIC: Log từng char để debug
+            logger.info(f"[{self.username}]   - Char ID {char_id}: '{char_data.get('name', 'N/A')}'")
+            
+            # Kiểm tra tên boss có khớp không (partial match)
+            if boss_name_lower in char_name or char_name in boss_name_lower:
+                logger.info(f"[{self.username}] ✅ Tìm thấy boss '{char_data.get('name')}' trong chars (direct check)")
+                return True
+        
+        logger.info(f"[{self.username}] ❌ Không tìm thấy boss '{boss_name}' sau khi kiểm tra {chars_count} chars")
         return False
     
     async def _state_gathering(self):
@@ -686,9 +803,12 @@ class AutoBoss:
         
         # Kiểm tra boss còn sống không (trong zone)
         # Sequential kill: Chỉ attack 1 boss tại 1 thời điểm
-        boss_char = await self._get_target_boss_in_zone()
+        # Dùng target_utils để tìm và focus
+        from logic.target_utils import focus_by_name
         
-        if not boss_char:
+        found = focus_by_name(self.controller, self.target_boss_name, target_type="char")
+        
+        if not found:
             logger.info(f"[{self.username}] Boss '{self.target_boss_name}' đã bị tiêu diệt!")
             
             # TẮT AutoAttack khi boss chết
@@ -704,9 +824,9 @@ class AutoBoss:
                 self.stop()
                 return
         
-        # Set char_focus = boss để AutoAttack attack
+        # Lấy boss đã focus
+        boss_char = self.controller.account.char.char_focus
         my_char = self.controller.account.char
-        my_char.char_focus = boss_char
         
         boss_x = boss_char.get('x', my_char.cx)
         boss_y = boss_char.get('y', my_char.cy)
@@ -720,13 +840,33 @@ class AutoBoss:
         await self.controller.account.service.char_move()
         await asyncio.sleep(0.1)
         
-        # Bật AutoAttack nếu chưa bật và TẮT auto_retarget
-        if self.controller.auto_attack is None or not self.controller.auto_attack.is_running:
+        # Logic Nhường Boss: Nếu là SUPPORTER và Boss HP < 5% -> Dừng đánh
+        if self.role == BossRole.SUPPORTER:
+            boss_hp_percent = 0
+            if boss_char.get('max_hp', 0) > 0:
+                boss_hp_percent = (boss_char.get('hp', 0) / boss_char.get('max_hp')) * 100
+            
+            if boss_hp_percent < 5:
+                logger.info(f"[{self.username}] ✋ Boss HP {boss_hp_percent:.1f}% -> Dừng đánh nhường owner ({self.supported_owner})")
+                if self.controller.auto_attack.is_running:
+                    self.controller.toggle_auto_attack(False)
+                await asyncio.sleep(1.0)
+                return
+
+        # Bật AutoAttack bằng hàm set_priority để an toàn hơn
+        if self.controller.auto_attack is None:
+             from logic.auto_attack import AutoAttack
+             self.controller.auto_attack = AutoAttack(self.controller)
+
+        if not self.controller.auto_attack.is_running:
             logger.info(f"[{self.username}] Bật Auto Attack để tấn công boss...")
+            # Set priority mode focus vào tên boss
+            self.controller.auto_attack.set_priority_mode("name_match", names=[self.target_boss_name])
             self.controller.toggle_auto_attack(True)
-            # TẮT auto_retarget để chỉ attack boss, không attack mob khác
-            self.controller.auto_attack.auto_retarget = False
-            self.controller.auto_attack.last_target_type = "char"  # Chỉ tìm char (boss)
+        else:
+            # Update priority nếu đang chạy
+            if self.controller.auto_attack.priority_mode != "name_match":
+                self.controller.auto_attack.set_priority_mode("name_match", names=[self.target_boss_name])
         
         # Monitor trong state này
         await asyncio.sleep(1.0)

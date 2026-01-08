@@ -36,6 +36,7 @@ class AutoState(Enum):
     IDLE = "Đang nghỉ"
     GET_QUEST = "Đi nhận nhiệm vụ"
     NAVIGATE_TO_MAP = "Di chuyển đến map"
+    SELECT_ZONE = "Chọn khu vực"
     EXECUTE_QUEST = "Thực hiện nhiệm vụ"
     REPORT_QUEST = "Đi trả nhiệm vụ"
 
@@ -73,6 +74,9 @@ class AutoQuest:
         self.start_time = None
         self.quests_completed = 0
         self.total_kills = 0
+        
+        # Zone selection
+        self.zone_check_retries = 0
 
     def start(self):
         if self.is_running:
@@ -222,10 +226,27 @@ class AutoQuest:
 
     async def update(self):
         if self.account.char.is_die:
-            logger.warning(f"[{self.account.username}] Nhân vật đã chết, tạm dừng 10s.")
+            logger.warning(f"[{self.account.username}] Nhân vật đã chết (Update Loop). Thực hiện hồi sinh về nhà...")
             self.controller.toggle_autoplay(False)
-            await asyncio.sleep(10)
-            await self.transition_to(AutoState.GET_QUEST)
+            
+            # 1. Hồi sinh về nhà
+            await self.controller.account.service.return_town_from_dead()
+            await asyncio.sleep(1.0) # Đợi server xử lý và chuyển map
+            
+            # 2. Đợi đến khi sống lại
+            for _ in range(10):
+                if not self.account.char.is_die:
+                    break
+                await asyncio.sleep(1.0)
+            
+            if self.account.char.is_die:
+                 logger.warning(f"[{self.account.username}] Vẫn chưa hồi sinh được. Thử lại...")
+                 return
+            
+            logger.info(f"[{self.account.username}] Đã hồi sinh. Quay lại làm nhiệm vụ...")
+            
+            # 3. Quay lại nhiệm vụ
+            await self.transition_to(AutoState.NAVIGATE_TO_MAP)
             return
 
         state_handler = getattr(self, f"handle_{self.current_state.name.lower()}", None)
@@ -273,7 +294,58 @@ class AutoQuest:
         if self.account.char.map_id != map_id:
             await self.go_to_map(map_id)
         else:
+            await self.transition_to(AutoState.SELECT_ZONE)
+
+    async def handle_select_zone(self):
+        """Chọn khu vực tối ưu dựa trên Hive Scoring"""
+        # Nếu đang ở map Bò Mộng (nhận/trả quest) thì không cần chọn zone
+        if self.account.char.map_id == BO_MONG_MAP_ID:
             await self.transition_to(AutoState.EXECUTE_QUEST)
+            return 
+        
+        logger.info(f"[{self.account.username}] Đang tìm khu vực tối ưu (Hive Scoring)...")
+        
+        # 1. Request List Zone
+        await self.controller.account.service.open_zone_ui()
+        await asyncio.sleep(1.5)
+        
+        # 2. Get Zone List
+        zone_list = getattr(self.controller, 'zone_list', None)
+        if not zone_list:
+            logger.warning(f"[{self.account.username}] Không lấy được danh sách khu vực. Bỏ qua chọn zone.")
+            await self.transition_to(AutoState.EXECUTE_QUEST)
+            return
+        
+        # 3. Sử dụng ZoneDensityManager để chọn zone TỐT NHẤT
+        from ai_core.shared_memory import SharedMemory
+        shared_mem = SharedMemory()
+        zone_density = shared_mem.zone_density
+        
+        current_map = self.account.char.map_id
+        best_zone = zone_density.get_best_zone(current_map, zone_list, self.account.username)
+        
+        if best_zone is not None:
+            current_zone = self.controller.map_info.get('zone', -1)
+            
+            # Đăng ký INTENT trước khi di chuyển (ngăn race condition)
+            zone_density.register_intent(self.account.username, current_map, best_zone)
+            
+            if best_zone == current_zone:
+                logger.info(f"[{self.account.username}] Khu vực hiện tại ({current_zone}) đã tối ưu.")
+                # Cập nhật vị trí thực tế
+                zone_density.update_real_position(self.account.username, current_map, current_zone)
+            else:
+                logger.info(f"[{self.account.username}] Chuyển sang khu vực {best_zone} (Hive Score cao nhất)...")
+                await self.controller.account.service.request_change_zone(best_zone)
+                await asyncio.sleep(2.0)
+                
+                # Xác nhận đã đến zone
+                actual_zone = self.controller.map_info.get('zone', -1)
+                zone_density.update_real_position(self.account.username, current_map, actual_zone)
+        else:
+            logger.warning(f"[{self.account.username}] Không tìm thấy zone phù hợp.")
+            
+        await self.transition_to(AutoState.EXECUTE_QUEST)
 
     async def handle_execute_quest(self):
         # Kiểm tra nếu đã đủ số quái cần giết thì chuyển sang trả nhiệm vụ
