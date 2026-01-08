@@ -9,6 +9,8 @@ class AccountManager:
         self.groups = {"all": []} # Predefined 'all' group
         # The target for commands. Can be an int (index) or str (group name).
         self.command_target = None
+        # Plugin hooks (will be injected by main.py)
+        self.plugin_hooks = None
 
     def load_accounts(self):
         """Loads account credentials from Config and creates Account objects."""
@@ -22,6 +24,7 @@ class AccountManager:
                     port=Config.PORT,
                     proxy=acc_data.get("proxy")
                 )
+                acc.manager = self  # Set manager reference for plugin hooks
                 self.accounts.append(acc)
                 self.groups["all"].append(i) # Add all account indices to 'all' group
 

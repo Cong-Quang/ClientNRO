@@ -1,0 +1,44 @@
+# Macro chia khu tu dong
+# Tu dong chuyen moi account sang mot khu khac nhau
+
+var i 0
+# So luong tai khoan muon chia
+var count online_count
+
+# Lay thong tin khu vuc hien tai
+print [Macro] Dang lay thong tin khu vuc...
+khu
+wait 2.0
+
+# Tong so khu vuc trong map
+var total_zones map_zone_count
+print [Macro] Tim thay ${total_zones} khu vuc.
+
+# Khu vuc bat dau (mac dinh khu 0)
+var start_zone 0
+
+print Bat dau chia khu cho ${count} tai khoan...
+
+while int(i) < int(count)
+    # Chon muc tieu la tai khoan thu i
+    target ${i}
+    
+    # Tinh toan khu vuc (acc 0 -> khu 0, acc 1 -> khu 1...)
+    # Su dung phep chia lay du (%) de quay vong neu het khu
+    var zone (int(i) + int(start_zone)) % int(total_zones)
+    
+    print [Macro] Chuyen Acc ${i} sang Khu ${zone}
+    
+    # Thuc hien lenh
+    khu ${zone}
+    
+    # Cho 1 xiu de server xu ly
+    wait 1.0
+    
+    # Tang bien dem
+    set i int(i) + 1
+endwhile
+
+print Hoan tat chia khu!
+# Reset target ve tat ca
+target all

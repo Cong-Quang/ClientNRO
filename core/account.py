@@ -26,6 +26,7 @@ class Account:
         self._should_auto_reconnect = False
         self.login_event = asyncio.Event()
         self.last_opennpc_compact = False
+        self.manager = None  # Will be set by AccountManager
 
         # Each account has its own instance of major components
         self.char = Char()
@@ -104,6 +105,13 @@ class Account:
         self._should_auto_reconnect = True
         logger.info(f"[{self.username}] Login successful! Account is running.")
         
+        # Trigger plugin hook
+        if self.manager and self.manager.plugin_hooks:
+            try:
+                self.manager.plugin_hooks.on_account_login(self)
+            except Exception as e:
+                logger.error(f"Error in plugin hook on_account_login: {e}")
+        
         # Proactive notification to user
         sys.stdout.flush()
         sys.stderr.write(f"\r\033[K{TerminalColors.GREEN}[{self.username}] Đã đăng nhập thành công.{TerminalColors.RESET}\n")
@@ -162,5 +170,13 @@ class Account:
         self.stop_tasks()
         if self.session and self.session.connected:
             self.session.disconnect()
+        
+        # Trigger plugin hook before marking as offline
+        if self.is_logged_in and self.manager and self.manager.plugin_hooks:
+            try:
+                self.manager.plugin_hooks.on_account_logout(self)
+            except Exception as e:
+                logger.error(f"Error in plugin hook on_account_logout: {e}")
+        
         self.is_logged_in = False
         self.status = "Offline"

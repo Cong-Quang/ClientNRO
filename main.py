@@ -19,6 +19,15 @@ from commands.command_loader import load_commands
 from targeted_commands.targeted_command_loader import load_targeted_commands
 import time
 
+# Plugin System imports
+try:
+    from plugins.plugin_manager import PluginManager
+    from plugins.plugin_hooks import PluginHooks
+    PLUGINS_AVAILABLE = True
+except ImportError:
+    PLUGINS_AVAILABLE = False
+    logger.warning("Plugin system not available")
+
 MOB_NAMES = {}
 
 def load_mob_names():
@@ -143,13 +152,18 @@ async def command_loop(manager: AccountManager):
             else:
                 command = await asyncio.to_thread(get_input_with_autocomplete, prompt)
 
-            command = command.strip().lower()
-
+            command = command.strip()
+            
+            # Split first to preserve case for arguments
             parts = command.split()
             if not command:
                 continue
 
-            cmd_base = parts[0]
+            # Only lowercase the command base, keep arguments as-is
+            cmd_base = parts[0].lower()
+            
+            # Update parts[0] to be lowercase for consistency
+            parts[0] = cmd_base
 
             if cmd_base in commands:
                 result = await commands[cmd_base].execute(parts=parts)
@@ -240,7 +254,11 @@ async def main():
             kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
         except (ImportError, AttributeError, OSError):
             logger.warning("Không thể kích hoạt hỗ trợ màu ANSI cho Windows.")
-
+    
+    # ========== Initialize Config System ==========
+    logger.info("Đang khởi tạo hệ thống cấu hình...")
+    Config.init()  # Load from JSON if available
+    
     # Check if accounts are configured
     if not Config.ACCOUNTS or not Config.ACCOUNTS[0].get("username") or "your_username" in Config.ACCOUNTS[0].get("username"):
         C = TerminalColors
@@ -252,6 +270,64 @@ async def main():
 
     manager = AccountManager()
     manager.load_accounts()
+    
+    # ========== Initialize Plugin System ==========
+    plugin_manager = None
+    plugin_hooks = None
+    
+    if PLUGINS_AVAILABLE:
+        try:
+            logger.info("Đang khởi tạo hệ thống plugin...")
+            
+            # Create plugin manager
+            from config_system.config_loader import ConfigLoader
+            config_loader = ConfigLoader.get_instance()
+            
+            # Initialize even if no JSON config exists
+            plugin_manager = PluginManager(config_loader, manager, logger)
+            plugin_hooks = PluginHooks(plugin_manager)
+            
+            # Inject hooks into manager
+            manager.plugin_hooks = plugin_hooks
+            manager._plugin_manager = plugin_manager  # For plugin command access
+            
+            # Load plugins (check config for auto_load)
+            plugins_enabled = Config.get('plugins.enabled', True)
+            auto_load = Config.get('plugins.auto_load', True)
+            
+            # Load plugins (checking auto_load is handled inside load_all_plugins)
+            plugin_manager.load_all_plugins()
+            
+            enabled_count = len(plugin_manager.get_enabled_plugins())
+            total_count = len(plugin_manager.get_all_plugins())
+            logger.info(f"✅ Plugin system initialized: {total_count} loaded, {enabled_count} enabled")
+                
+            # Register autocomplete callback
+            from utils.autocomplete import set_plugin_list_callback, set_macro_list_callback
+            set_plugin_list_callback(lambda: list(plugin_manager.get_all_plugins().keys()))
+            
+            # Register macro callback
+            # import os # removed to fix UnboundLocalError
+            def get_macro_list():
+                if not os.path.exists("macros"):
+                    return []
+                files = os.listdir("macros")
+                # Support .txt and .macro extensions
+                macros = []
+                for f in files:
+                   if f.endswith(".txt") or f.endswith(".macro"):
+                       macros.append(os.path.splitext(f)[0])
+                return macros
+
+            set_macro_list_callback(get_macro_list)
+            
+        except Exception as e:
+            logger.error(f"❌ Error initializing plugin system: {e}")
+            import traceback
+            traceback.print_exc()
+            plugin_manager = None
+            plugin_hooks = None
+    
     # Không tự động login nữa
     # await manager.start_all()
 

@@ -1,4 +1,13 @@
 import random
+import os
+
+# Try to import new config system
+try:
+    from config_system.config_loader import ConfigLoader
+    _CONFIG_LOADER_AVAILABLE = True
+except ImportError:
+    _CONFIG_LOADER_AVAILABLE = False
+
 class Config:
     
     # tạo account
@@ -66,4 +75,82 @@ class Config:
     
     # AI_DECISION_INTERVAL: Seconds between AI decisions (float)
     AI_DECISION_INTERVAL = 0.5
+    
+    # ========== New Config System Integration ==========
+    _loader = None
+    _initialized = False
+    
+    @classmethod
+    def init(cls):
+        """Initialize config loader from JSON if available"""
+        if cls._initialized:
+            return
+        
+        cls._initialized = True
+        
+        if not _CONFIG_LOADER_AVAILABLE:
+            return
+        
+        # Try to load from JSON config
+        # Try to load from JSON config
+        cls._loader = ConfigLoader.get_instance()
+        
+        # Priority: config/settings.json > config_system/default.json
+        config_path = "config/settings.json"
+        if not os.path.exists(config_path):
+            config_path = "config_system/default.json"
+            
+        if os.path.exists(config_path):
+            try:
+                cls._loader.load(config_path)
+                
+                # Override class attributes with JSON values
+                cls.HOST = cls._loader.get('server.host', cls.HOST)
+                cls.PORT = cls._loader.get('server.port', cls.PORT)
+                cls.MAX_ACCOUNTS = cls._loader.get('accounts.max_concurrent', cls.MAX_ACCOUNTS)
+                cls.AUTO_LOGIN = cls._loader.get('accounts.auto_login', cls.AUTO_LOGIN)
+                cls.DEFAULT_LOGIN = cls._loader.get('accounts.default_login', cls.DEFAULT_LOGIN)
+                cls.LOGIN_BLACKLIST = cls._loader.get('accounts.login_blacklist', cls.LOGIN_BLACKLIST)
+                cls.USE_LOCAL_IP_FIRST = cls._loader.get('proxy.use_local_ip_first', cls.USE_LOCAL_IP_FIRST)
+                cls.DEFAULT_CHAR_GENDER = cls._loader.get('character.default_gender', cls.DEFAULT_CHAR_GENDER)
+                cls.DEFAULT_CHAR_HAIR = cls._loader.get('character.default_hair', cls.DEFAULT_CHAR_HAIR)
+                cls.AI_ENABLED = cls._loader.get('ai.enabled', cls.AI_ENABLED)
+                cls.AI_WEIGHTS_PATH = cls._loader.get('ai.weights_path', cls.AI_WEIGHTS_PATH)
+                cls.AI_STATE_DIM = cls._loader.get('ai.state_dim', cls.AI_STATE_DIM)
+                cls.AI_ACTION_COUNT = cls._loader.get('ai.action_count', cls.AI_ACTION_COUNT)
+                cls.AI_DECISION_INTERVAL = cls._loader.get('ai.decision_interval', cls.AI_DECISION_INTERVAL)
+                
+                print(f"✅ Loaded configuration from {config_path}")
+            except Exception as e:
+                print(f"⚠️ Error loading JSON config, using defaults: {e}")
+        else:
+            print(f"ℹ️ No configuration file found (checked {config_path}). Using hardcoded defaults.")
+    
+    @classmethod
+    def get(cls, key: str, default=None):
+        """
+        Get config value from new system (with fallback to class attributes)
+        
+        Args:
+            key: Configuration key (dot notation, e.g., 'server.host')
+            default: Default value if not found
+            
+        Returns:
+            Configuration value
+        """
+        if cls._loader:
+            return cls._loader.get(key, default)
+        return default
+    
+    @classmethod
+    def set(cls, key: str, value):
+        """
+        Set config value in new system
+        
+        Args:
+            key: Configuration key (dot notation)
+            value: Value to set
+        """
+        if cls._loader:
+            cls._loader.set(key, value)
 

@@ -1,0 +1,20 @@
+# Sample Macro
+# Usage: combo test
+
+print Chuan bi test combo...
+set delay 1.5
+
+# Chat sequence
+print Chatting...
+tapchat Xin chao
+wait ${delay}
+tapchat Toi dang dung macro
+wait ${delay}
+
+# Move around (example)
+print Moving...
+# gomap 5
+# wait 5.0
+# hit
+
+print Done!

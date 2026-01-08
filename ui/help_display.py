@@ -67,12 +67,24 @@ def display_help():
         print(f"  {C.GREEN}{cmd:<26}{C.RESET} {C.DIM}-{C.RESET} {desc}")
     print()
     
+    # Section: Plugin & Macro
+    print_section_header("Plugin & Macro", width=70, color=C.PURPLE)
+    cmds = [
+        ("plugin list", "Xem danh sách plugin"),
+        ("plugin enable/disable <name>", "Bật/Tắt plugin"),
+        ("combo <name>", "Chạy combo/macro từ file"),
+        ("tapchat <msg>", "Chat nội dung (hỗ trợ target)"),
+        ("plugin info <name>", "Xem thông tin chi tiết plugin"),
+    ]
+    for cmd, desc in cmds:
+        print(f"  {C.GREEN}{cmd:<26}{C.RESET} {C.DIM}-{C.RESET} {desc}")
+    print()
+
     # Section: Other
     print_section_header("Khác", width=70, color=C.PURPLE)
     cmds = [
         ("congcs <hp> <mp> <sd>", "Tự động cộng tiềm năng"),
         ("opennpc <id> [menu...]", "Mở NPC và chọn menu"),
-        ("combo <name>", "Chạy combo/macro"),
         ("cls / clear", "Xóa màn hình"),
         ("exit", "Thoát chương trình"),
     ]

@@ -4,7 +4,7 @@ import random
 from logs.logger_config import logger
 
 class MacroInterpreter:
-    def __init__(self, name: str, lines: list[str]):
+    def __init__(self, name: str, lines: list[str], manager=None):
         self.name = name
         # Store lines removing comments and stripping whitespace
         self.lines = [line.split('#')[0].strip() for line in lines]
@@ -12,6 +12,7 @@ class MacroInterpreter:
         self.variables = {}
         self.loop_stack = []  # Stores (start_pc, type, condition/params)
         self.finished = False
+        self.manager = manager
 
     def is_running(self):
         return not self.finished
@@ -23,6 +24,20 @@ class MacroInterpreter:
         
         def replace(match):
             key = match.group(1)
+            if self.manager:
+                if key == "online_count":
+                    return str(len([a for a in self.manager.accounts if a.is_logged_in]))
+                if key == "total_count":
+                    return str(len(self.manager.accounts))
+                if key == "map_zone_count":
+                    # Try to get zone count
+                    zone_count = 20
+                    for acc in [a for a in self.manager.accounts if a.is_logged_in]:
+                        if hasattr(acc, 'controller') and acc.controller.zone_list:
+                            zone_count = len(acc.controller.zone_list)
+                            break
+                    return str(zone_count)
+                    
             return str(self.variables.get(key, ""))
         
         # Simple substitution ${var}
@@ -53,6 +68,21 @@ class MacroInterpreter:
                 "abs": abs,
                 "round": round
             }
+            
+            # System variables
+            if self.manager:
+                online_accs = [a for a in self.manager.accounts if a.is_logged_in]
+                context["online_count"] = len(online_accs)
+                context["total_count"] = len(self.manager.accounts)
+                
+                # Try to get zone count from any online account that has zone info
+                zone_count = 20 # Default fallback
+                for acc in online_accs:
+                    if hasattr(acc, 'controller') and acc.controller.zone_list:
+                        zone_count = len(acc.controller.zone_list)
+                        break
+                context["map_zone_count"] = zone_count
+            
             # Add variables to context so expressions can use 'a' instead of '${a}'
             context.update(self.variables)
             

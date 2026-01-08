@@ -363,6 +363,10 @@ class Service:
         except Exception as e:
             logger.error(f"Lỗi khi gửi tin nhắn chat: {e}")
 
+    # Alias for compatibility
+    async def send_chat(self, text: str):
+        await self.chat(text)
+
     async def create_character(self, name: str, gender: int, hair: int):
         """
         Tạo nhân vật mới (Cmd -28, sub 2).

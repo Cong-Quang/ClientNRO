@@ -16,13 +16,12 @@ def load_commands(manager, proxy_list, combo_engine):
                         command_name = filename[:-11]  # remove _command.py
                         
                         # Instantiate with the correct arguments
-                        if command_name in ["list", "group", "target", "logout", "exit"]:
+                        if command_name in ["list", "group", "target", "logout", "exit", "plugin"]:
                             commands[command_name] = attr(manager)
                         elif command_name in ["login", "proxy"]:
                             commands[command_name] = attr(manager, proxy_list)
                         elif command_name == "combo":
-                            # combo_engine is removed
-                            pass
+                            commands[command_name] = attr(manager)
                         elif command_name == "help":
                             commands[command_name] = attr()
                         elif command_name == "clear":
@@ -30,6 +29,8 @@ def load_commands(manager, proxy_list, combo_engine):
                         elif command_name == "sleep":
                              commands[command_name] = attr()
                         elif command_name == "autologin":
+                             commands[command_name] = attr()
+                        elif command_name == "wait":
                              commands[command_name] = attr()
                         else:
                             commands[command_name] = attr()
