@@ -1,0 +1,13 @@
+{
+    "enabled": true,
+    "login_message": "Binh đoàn da xanh",
+    "use_combo": true,
+    "combo_delay": 1.0,
+    "loop_chat": true,
+    "loop_delay": 3.0,
+    "combo_messages": [
+        "Binh đoàn da xanh",
+        "Con C",
+        "Da Xanh"
+    ]
+}

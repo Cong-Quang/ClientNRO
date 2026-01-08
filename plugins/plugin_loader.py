@@ -98,6 +98,7 @@ class PluginLoader:
             
             # Instantiate plugin
             plugin = plugin_class()
+            plugin.file_path = plugin_path
             
             # Validate plugin
             if not self.validate_plugin(plugin):

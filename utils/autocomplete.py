@@ -39,6 +39,7 @@ COMMAND_TREE = {
     "givecode": [],
     "tapchat": [],
     "wait": [],
+    "config": ["reload", "get", "set"],
     # Plugin Commands
     "plugin": ["list", "enable", "disable", "reload", "info"],
     # AI Commands (global)

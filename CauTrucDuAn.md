@@ -18,16 +18,17 @@ ClientNRO/
 ├── mob_data.txt                 # Dữ liệu quái vật
 ├── ai_core/                     # Module AI (Neural Network)
 ├── commands/                    # Lệnh điều khiển chung
-├── targeted_commands/           # Lệnh điều khiển theo target
+├── config_system/               # Hệ thống cấu hình (JSON, validation)
 ├── constants/                   # Hằng số
 ├── controller/                  # Controller và message handlers
 ├── core/                        # Core classes (Account, AccountManager)
 ├── handlers/                    # AI command handler
 ├── logic/                       # Game logic (auto play, auto boss, etc.)
 ├── logs/                        # Logger configuration
+├── macros/                      # Thư mục chứa macro scripts
 ├── model/                       # Game objects models
 ├── network/                     # Network layer (Session, Message, Service)
-├── services/                    # Game services (Movement, Pet)
+├── plugins/                     # Plugin system
 ├── train/                       # AI training
 ├── ui/                          # UI display components
 ├── utils/                       # Utilities
@@ -49,7 +50,7 @@ ClientNRO/
 - `main()` - Hàm main khởi tạo và chạy ứng dụng
 
 ### `config.py`
-**Mô tả:** Cấu hình toàn cục cho ứng dụng
+**Mô tả:** Cấu hình toàn cục cho ứng dụng (Wrapper cho ConfigLoader)
 
 **Class:**
 - `Config` - Chứa tất cả cấu hình:
@@ -69,6 +70,58 @@ ClientNRO/
   - `AI_STATE_DIM` - Số chiều state vector
   - `AI_ACTION_COUNT` - Số lượng actions
   - `AI_DECISION_INTERVAL` - Khoảng thời gian giữa các quyết định AI
+  - `init()` - Khởi tạo config loader và load settings từ file JSON
+  - `get(key, default)` - Lấy giá trị config
+  - `set(key, value)` - Đặt giá trị config
+
+---
+
+## 📁 config_system/ - Configuration Management
+
+### `config_loader.py`
+**Class:**
+- `ConfigLoader` - Singleton tải và quản lý cấu hình từ JSON
+  - `load(path)` - Load cấu hình từ file
+  - `get(key, default)` - Lấy giá trị theo dot-notation (e.g. 'server.host')
+  - `reload()` - Tải lại cấu hình nóng
+
+### `config_validator.py`
+**Class:**
+- `ConfigValidator` - Validate cấu hình theo schema
+  - `validate(config)` - Kiểm tra tính hợp lệ
+
+### `default.json`
+**File:**
+- Template cấu hình mặc định (server, accounts, plugins, ai...)
+
+---
+
+## 📁 plugins/ - Plugin System
+
+### `plugin_manager.py`
+**Class:**
+- `PluginManager` - Quản lý vòng đời plugins
+  - `load_all_plugins()` - Scan và load plugins từ thư mục
+  - `enable_plugin(name)` - Bật plugin
+  - `disable_plugin(name)` - Tắt plugin
+  - `trigger_hook(hook_name, args)` - Gọi hook cho các enabled plugins
+
+### `base_plugin.py`
+**Class:**
+- `BasePlugin` - Lớp cơ sở cho mọi plugin
+  - Hooks: `on_load`, `on_enable`, `on_disable`, `on_unload`
+  - Event Hooks: `on_account_login`, `on_account_logout`, etc.
+
+### `plugin_api.py`
+**Class:**
+- `PluginAPI` - Interface an toàn cho plugin tương tác với bot core
+  - `get_accounts()`, `get_online_accounts()`
+  - `register_command()`, `subscribe_event()`
+  - `log_info()`, `log_error()`
+
+### `user_plugins/`
+**Directory:**
+- Nơi chứa các plugins do người dùng tạo (ví dụ `auto_chat_plugin.py`)
 
 ---
 
@@ -239,6 +292,22 @@ ClientNRO/
 **Functions:**
 - `load_commands()` - Load tất cả commands và trả về dictionary
 
+### `plugin_command.py`
+**Class:**
+- `PluginCommand` - Quản lý plugins
+  - `execute(args)` - enable/disable/list/reload/info plugins
+
+### `combo_command.py`
+**Class:**
+- `ComboCommand` - Chạy macro scripts
+  - `execute(args)` - Chạy file macro từ folder `macros/`
+
+### `wait_command.py`
+**Class:**
+- `WaitCommand` - Lệnh chờ (dùng trong macro)
+  - `execute(args)` - Sleep async
+
+
 ---
 
 ## 📁 targeted_commands/ - Lệnh Điều Khiển Theo Target
@@ -337,6 +406,11 @@ ClientNRO/
 **Class:**
 - `TeleportNPCCommand` - Teleport đến NPC
   - `execute(accounts, args)` - Thực thi lệnh
+
+### `tapchat_command.py`
+**Class:**
+- `TapChatCommand` - Gửi chat nhưng không in ra console (dùng cho macro/spam)
+  - `execute(accounts, args)` - Gửi chat packet
 
 ### `targeted_command_loader.py`
 **Functions:**
@@ -763,6 +837,10 @@ ClientNRO/
 - `MacroInterpreter` - Thông dịch macro commands
   - `parse()` - Parse macro
   - `execute()` - Thực thi macro
+  - **Hỗ trợ biến hệ thống:**
+    - `online_count`: Số account đang online
+    - `total_count`: Tổng số account
+    - `map_zone_count`: Tổng số khu vực hiện tại (cần lệnh `khu` trước đó)
 
 ---
 

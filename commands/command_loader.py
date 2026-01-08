@@ -32,6 +32,8 @@ def load_commands(manager, proxy_list, combo_engine):
                              commands[command_name] = attr()
                         elif command_name == "wait":
                              commands[command_name] = attr()
+                        elif command_name == "config":
+                             commands[command_name] = attr(manager)
                         else:
                             commands[command_name] = attr()
 

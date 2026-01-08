@@ -231,17 +231,33 @@ class PluginManager:
             self.logger.error(f"Plugin '{name}' not found")
             return False
         
-        # Store plugin path before unloading
+        # Store plugin path/state before unloading
         plugin = self.plugins[name]
+        file_path = getattr(plugin, 'file_path', None)
+        was_enabled = plugin.enabled
         
         # Unload
         if not self.unload_plugin(name):
             return False
-        
-        # Reload would require storing the original file path
-        # For now, just log that manual reload is needed
-        self.logger.info(f"Plugin '{name}' unloaded. Restart application to reload.")
-        return True
+            
+        if not file_path:
+            self.logger.warning(f"Cannot reload plugin '{name}': file path not found. Only unloaded.")
+            return True
+            
+        # Re-load from file
+        try:
+            new_plugin = self.loader.load_plugin(file_path)
+            if new_plugin:
+                # Register
+                if self.register_plugin(new_plugin):
+                    # Restore state
+                    if was_enabled:
+                        return self.enable_plugin(new_plugin.name)
+                    return True
+            return False
+        except Exception as e:
+            self.logger.error(f"Error reloading plugin '{name}': {e}")
+            return False
     
     def list_plugins(self) -> str:
         """
