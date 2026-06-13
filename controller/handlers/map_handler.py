@@ -188,17 +188,27 @@ class MapHandler(BaseHandler):
                 reader.read_utf()
                 
             # Npc Templates
-            num_npcs = reader.read_ubyte()
-            for _ in range(num_npcs):
-                reader.read_utf() # name
-                reader.read_short() # head
-                reader.read_short() # body
-                reader.read_short() # leg
-                num_menu = reader.read_ubyte()
-                for _ in range(num_menu):
-                    num_str = reader.read_ubyte()
-                    for _ in range(num_str):
-                        reader.read_utf()
+            try:
+                num_npcs = reader.read_ubyte()
+                for _ in range(num_npcs):
+                    if reader.available() < 2: break
+                    reader.read_utf() # name
+                    if reader.available() < 2: break
+                    reader.read_short() # head
+                    if reader.available() < 2: break
+                    reader.read_short() # body
+                    if reader.available() < 2: break
+                    reader.read_short() # leg
+                    if reader.available() < 1: break
+                    num_menu = reader.read_ubyte()
+                    for _ in range(num_menu):
+                        if reader.available() < 1: break
+                        num_str = reader.read_ubyte()
+                        for _ in range(num_str):
+                            if reader.available() < 2: break
+                            reader.read_utf()
+            except struct.error:
+                logger.warning(f"UPDATE_MAP: Dữ liệu Npc không đầy đủ. Bỏ qua.")
             
             # Mob Templates
             from model.game_objects import MOB_TEMPLATES, MobTemplate

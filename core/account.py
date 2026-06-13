@@ -65,7 +65,7 @@ class Account:
         writer.write_int(600)             # Height
         writer.write_bool(True)           # isQwerty
         writer.write_bool(True)           # isTouch
-        writer.write_utf(f"client 1|{self.version}") # Platform | Version
+        writer.write_utf(f"PC|{self.version}") # Platform | Version
         await self.session.send_message(msg_client)
         await asyncio.sleep(0.5)
 
@@ -85,7 +85,9 @@ class Account:
         writer.write_utf(self.username)
         writer.write_utf(self.password)
         writer.write_utf(self.version)
-        writer.write_byte(1)              # Type (1 for isLogin2/Standard)
+        writer.write_byte(0)              # Type (0 for standard)
+        writer.write_byte(0)              # Random byte
+        writer.write_utf("0")             # Random string
         await self.session.send_message(msg_login)
         
         try:

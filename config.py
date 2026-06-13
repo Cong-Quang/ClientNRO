@@ -20,10 +20,10 @@ class Config:
     HOST = "103.245.255.222"
     
     # PORT: cổng server (int)
-    PORT = 12451
+    PORT = 12455
 
      # VERSION: phiên bản công cụ (tự sinh, không cần sửa)
-    VERSION = f"2.{random.randint(1, 100)}.{random.randint(1, 100)}"
+    VERSION = "1.2.0"
 
     #MAX_ACCOUNTS: số tối đa tài khoản chạy đồng thời (int)
     MAX_ACCOUNTS = 1000

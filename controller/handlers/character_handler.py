@@ -164,7 +164,8 @@ class CharacterHandler(BaseHandler):
                 char.luong = reader.read_int()
                 char.c_hp = reader.read_int()
                 char.c_mp = reader.read_int()
-                char.luong_khoa = reader.read_int()
+                if reader.available() >= 4:
+                    char.luong_khoa = reader.read_int()
                 logger.info(f"Cập nhật tài sản: Vàng={char.xu}, Ngọc={char.luong}, HP={char.c_hp}, MP={char.c_mp}")
 
             elif sub_cmd == 5:

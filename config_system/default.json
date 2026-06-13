@@ -1,8 +1,8 @@
 {
     "server": {
         "host": "103.245.255.222",
-        "port": 12451,
-        "version": "2.0.0"
+        "port": 12455,
+        "version": "1.2.0"
     },
     "accounts": {
         "max_concurrent": 1000,
@@ -22,7 +22,7 @@
         "default_hair": 4
     },
     "proxy": {
-        "use_local_ip_first": false,
+        "use_local_ip_first": true,
         "proxy_file": "proxy.txt"
     },
     "ai": {
