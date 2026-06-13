@@ -26,6 +26,7 @@ class PetCommand(TargetedCommand):
             elif sub_cmd in {"follow", "protect", "attack", "home"}:
                 status_map = {"follow": 0, "protect": 1, "attack": 2, "home": 3}
                 await account.service.pet_status(status_map[sub_cmd])
+                print(f"[{self.C.YELLOW}{account.username}{self.C.RESET}] {self.C.GREEN}Đã ra lệnh cho đệ tử: {sub_cmd.upper()}{self.C.RESET}")
             else:
                 print(f"[{self.C.YELLOW}{account.username}{self.C.RESET}] Lệnh đệ tử không xác định: '{sub_cmd}'.")
         return True, "OK"

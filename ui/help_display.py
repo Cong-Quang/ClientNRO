@@ -28,6 +28,7 @@ def display_help():
     print_section_header("Lệnh Nhân Vật", width=70, color=C.PURPLE)
     cmds = [
         ("show", "Hiển thị thông tin nhân vật"),
+        ("show balo", "Hiển thị item trong hành trang và rương"),
         ("show boss", "Hiển thị danh sách Boss xuất hiện"),
         ("show mobs", "Hiển thị danh sách quái trong map"),
         ("show csgoc", "Hiển thị chỉ số GỐC (chưa cộng đồ)"),
@@ -35,6 +36,7 @@ def display_help():
         ("pet", "Xem các lệnh đệ tử"),
         ("andau", "Sử dụng đậu thần hồi HP/MP"),
         ("hit", "Tấn công quái vật gần nhất"),
+        ("useitem <id> [số lượng]", "Dùng item trong hành trang"),
     ]
     for cmd, desc in cmds:
         print(f"  {C.GREEN}{cmd:<26}{C.RESET} {C.DIM}-{C.RESET} {desc}")
@@ -65,6 +67,8 @@ def display_help():
         ("autoplay list", "Xem danh sách quái đang đánh"),
         ("autopet <on|off>", "Bật/tắt tự động đệ tử"),
         ("autobomong <on|off|status>", "Quản lý tự động nhiệm vụ"),
+        ("autoquest <on|off>", "Bật/tắt tự động làm nhiệm vụ chính"),
+        ("scanmap <start> <end> | stop", "Quét quái vật và lưu vào maps_config"),
     ]
     for cmd, desc in cmds:
         print(f"  {C.GREEN}{cmd:<26}{C.RESET} {C.DIM}-{C.RESET} {desc}")

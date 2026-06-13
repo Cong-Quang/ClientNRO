@@ -218,6 +218,8 @@ class Controller:
             # Inventory
             elif cmd == Cmd.BAG:
                 self.inventory_handler.process_bag_info(msg)
+            elif cmd == Cmd.BOX:
+                self.inventory_handler.process_box_info(msg)
             elif cmd == Cmd.PET_INFO:
                 self.inventory_handler.process_pet_info(msg)
                 

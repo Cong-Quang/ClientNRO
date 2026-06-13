@@ -162,6 +162,44 @@ class ShowCommand(TargetedCommand):
                             print(f"{self.C.DIM}(+ {len(chars) - len(real_players)} entity khác - có thể là boss/NPC){self.C.RESET}")
                         print()
             
+            elif sub == "balo":
+                char = account.char
+                B = Box
+                print()
+                print(f"[{self.C.YELLOW}{account.username}{self.C.RESET}] {self.C.CYAN}=== Hành Trang & Rương ==={self.C.RESET}")
+                
+                # Hàm helper in danh sách item
+                def print_items(items_list, title):
+                    print(f"{self.C.PURPLE}{B.TL}{B.H * 85}{B.TR}{self.C.RESET}")
+                    print(f"{self.C.PURPLE}{B.V}{self.C.RESET} {self.C.BOLD}{title:<84}{self.C.RESET}{self.C.PURPLE}{B.V}{self.C.RESET}")
+                    print(f"{self.C.PURPLE}{B.V}{self.C.RESET} {self.C.BOLD}{'Ô':<5} {'ID':<8} {'Tên Item':<25} {'Số lượng':<12} {'Thông tin (Info)':<31}{self.C.RESET} {self.C.PURPLE}{B.V}{self.C.RESET}")
+                    print(f"{self.C.PURPLE}{B.LT}{B.H * 85}{B.RT}{self.C.RESET}")
+                    
+                    count = 0
+                    if items_list:
+                        from model.game_objects import ITEM_TEMPLATES
+                        for i, item in enumerate(items_list):
+                            if item is not None:
+                                count += 1
+                                item_name = ITEM_TEMPLATES.get(item.item_id, "")
+                                if len(item_name) > 23:
+                                    item_name = item_name[:20] + "..."
+                                info_str = getattr(item, 'info', '').replace('\n', ' | ')
+                                if len(info_str) > 30:
+                                    info_str = info_str[:27] + "..."
+                                qty_str = f"{item.quantity:,}"
+                                print(f"{self.C.PURPLE}{B.V}{self.C.RESET} {self.C.CYAN}{i:<5}{self.C.RESET} {self.C.YELLOW}{item.item_id:<8}{self.C.RESET} {self.C.BRIGHT_GREEN}{item_name:<25}{self.C.RESET} {self.C.GREEN}{qty_str:<12}{self.C.RESET} {info_str:<31} {self.C.PURPLE}{B.V}{self.C.RESET}")
+                    
+                    if count == 0:
+                        print(f"{self.C.PURPLE}{B.V}{self.C.RESET} {self.C.DIM}{'Trống':<84}{self.C.RESET}{self.C.PURPLE}{B.V}{self.C.RESET}")
+                        
+                    print(f"{self.C.PURPLE}{B.BL}{B.H * 85}{B.BR}{self.C.RESET}")
+
+                print_items(char.arr_item_bag, f"Hành Trang (Bag) - {len([i for i in getattr(char, 'arr_item_bag', []) if i])} món")
+                print()
+                print_items(getattr(char, 'arr_item_box', []), f"Rương Đồ (Box) - {len([i for i in getattr(char, 'arr_item_box', []) if i])} món")
+                print()
+
             else:
                 print(f"[{self.C.YELLOW}{account.username}{self.C.RESET}] Lệnh show con không xác định: {sub}")
         else:

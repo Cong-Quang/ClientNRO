@@ -8,6 +8,8 @@ from config import Config
 from logs.logger_config import logger, TerminalColors
 from constants.cmd import Cmd
 from network.message import Message
+from logic.auto_main_quest import AutoMainQuest
+from logic.auto_scanmap import AutoScanMap
 
 class Account:
     """
@@ -36,6 +38,10 @@ class Account:
         self.session = Session(self.controller, proxy=self.proxy)
         # The service is now a regular object, instantiated per account
         self.service = Service(self.session, self.char)
+        
+        # Modules
+        self.auto_main_quest = AutoMainQuest(self)
+        self.auto_scanmap = AutoScanMap(self)
 
 
     async def login(self):
@@ -172,6 +178,12 @@ class Account:
         self.stop_tasks()
         if self.session and self.session.connected:
             self.session.disconnect()
+            
+        # Dừng các module tự động
+        if hasattr(self, 'auto_main_quest'):
+            asyncio.create_task(self.auto_main_quest.stop())
+        if hasattr(self, 'auto_scanmap'):
+            asyncio.create_task(self.auto_scanmap.stop())
         
         # Trigger plugin hook before marking as offline
         if self.is_logged_in and self.manager and self.manager.plugin_hooks:

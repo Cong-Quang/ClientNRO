@@ -1,0 +1,16 @@
+target all
+login
+autopet on
+useitem 595
+target 1
+khu 1
+target 2
+khu 2
+target 3
+khu 3
+target 4
+khu 4
+target all
+pet attack
+show
+pet info

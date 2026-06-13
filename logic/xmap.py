@@ -338,6 +338,9 @@ class XMap:
 
     async def start(self, map_id: int, keep_dangerous: bool = False):
         """Bắt đầu tiến trình XMap đến bản đồ mục tiêu với thuật toán tối ưu (Dijkstra + Capsule)"""
+        if getattr(self, 'is_xmapping', False) and self.target_map_id == map_id:
+            return  # Tránh spam start nếu đang trên đường tới map đó rồi
+            
         char = self.controller.account.char
         gender = char.gender
         home_map_ids = {0: 21, 1: 22, 2: 23} # TD, NM, XD

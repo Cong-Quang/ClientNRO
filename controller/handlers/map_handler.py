@@ -185,6 +185,7 @@ class MapHandler(BaseHandler):
             # Map Names
             num_maps = reader.read_ubyte()
             for _ in range(num_maps):
+                if reader.available() < 2: break
                 reader.read_utf()
                 
             # Npc Templates
@@ -212,9 +213,9 @@ class MapHandler(BaseHandler):
             
             # Mob Templates
             from model.game_objects import MOB_TEMPLATES, MobTemplate
+            count = 0
             try:
                 num_mobs = reader.read_ubyte()
-                count = 0
                 for i in range(num_mobs):
                     t = MobTemplate()
                     t.mob_template_id = i

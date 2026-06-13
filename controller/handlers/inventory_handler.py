@@ -83,6 +83,79 @@ class InventoryHandler(BaseHandler):
             import traceback
             traceback.print_exc()
 
+    def process_box_info(self, msg: Message):
+        """Cập nhật dữ liệu rương đồ (BOX): xử lý danh sách ô, cập nhật số lượng hoặc thay đổi ô trong rương."""
+        try:
+            reader = msg.reader()
+            action = reader.read_byte()
+            logger.info(f"Thông tin rương đồ (Cmd {msg.command}): Hành động={action}")
+
+            if action == 0:
+                from model.game_objects import Item, ItemOption
+                my_char = self.account.char
+
+                if reader.available() < 1: return
+                box_size = reader.read_ubyte()
+                my_char.arr_item_box = [None] * box_size
+                logger.info(f"Đang xử lý {box_size} ô trong rương đồ.")
+
+                for i in range(box_size):
+                    if reader.available() < 2: break 
+                    template_id = reader.read_short()
+                    if template_id == -1:
+                        continue
+
+                    item = Item()
+                    item.item_id = template_id
+                    
+                    if reader.available() < 4: break
+                    item.quantity = reader.read_int()
+
+                    if reader.available() < 2: break
+                    item.info = reader.read_utf()
+                    
+                    if reader.available() < len(item.info.encode('utf-8')) + 1: break
+
+                    if reader.available() < 2: break
+                    item.content = reader.read_utf()
+                    
+                    if reader.available() < len(item.content.encode('utf-8')) + 1: break
+                    
+                    item.index_ui = i
+                    
+                    if reader.available() < 1: break
+                    num_options = reader.read_ubyte()
+                    if num_options > 0:
+                        item.item_option = []
+                        for _ in range(num_options):
+                            if reader.available() < 3: break
+                            option_id = reader.read_ubyte()
+                            param = reader.read_ushort()
+                            if option_id != 255:
+                                item.item_option.append(ItemOption(option_id, param))
+                    
+                    my_char.arr_item_box[i] = item
+                
+                logger.info(f"Đã cập nhật thành công rương đồ với {sum(1 for i in my_char.arr_item_box if i is not None)} vật phẩm.")
+
+            elif action == 2:
+                if reader.available() < 5: return
+                index = reader.read_byte()
+                quantity = reader.read_int()
+                logger.info(f"Cập nhật số lượng vật phẩm tại vị trí {index} trong rương thành {quantity}.")
+                my_char = self.account.char
+                if index < len(my_char.arr_item_box) and my_char.arr_item_box[index] is not None:
+                    my_char.arr_item_box[index].quantity = quantity
+                    if quantity == 0:
+                        my_char.arr_item_box[index] = None
+                else:
+                    logger.warning(f"Nhận được cập nhật số lượng cho vật phẩm không hợp lệ tại vị trí {index} trong rương.")
+
+        except Exception as e:
+            logger.error(f"Lỗi khi phân tích BOX_INFO (Cmd -35): {e}")
+            import traceback
+            traceback.print_exc()
+
     def process_pet_info(self, msg: Message):
         """Đọc thông tin đệ tử (PET_INFO) và cập nhật đối tượng pet trong account."""
         try:

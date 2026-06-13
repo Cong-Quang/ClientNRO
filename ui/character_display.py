@@ -124,9 +124,10 @@ def display_character_status(account, compact=False, idx: int = None):
         print_section_header("Chức năng", width=55, color=C.CYAN)
         ap_status = f"{C.BRIGHT_GREEN}[ON]{C.RESET}" if account.controller.auto_play.interval else f"{C.RED}[OFF]{C.RESET}"
         apet_status = f"{C.BRIGHT_GREEN}[ON]{C.RESET}" if account.controller.auto_pet.is_running else f"{C.RED}[OFF]{C.RESET}"
-        aquest_status = f"{C.BRIGHT_GREEN}[ON]{C.RESET}" if getattr(account.controller.auto_quest, 'is_running', False) else f"{C.RED}[OFF]{C.RESET}"
+        abm_status = f"{C.BRIGHT_GREEN}[ON]{C.RESET}" if getattr(account.controller.auto_quest, 'is_running', False) else f"{C.RED}[OFF]{C.RESET}"
+        aquest_status = f"{C.BRIGHT_GREEN}[ON]{C.RESET}" if getattr(account, 'auto_main_quest', None) and account.auto_main_quest.is_running else f"{C.RED}[OFF]{C.RESET}"
         
-        print(f"  {C.DIM}AutoPlay :{C.RESET} {ap_status}    {C.DIM}AutoPet:{C.RESET} {apet_status}    {C.DIM}AutoQuest:{C.RESET} {aquest_status}")
+        print(f"  {C.DIM}AutoPlay :{C.RESET} {ap_status}    {C.DIM}AutoPet:{C.RESET} {apet_status}    {C.DIM}AutoBM:{C.RESET} {abm_status}    {C.DIM}AutoQuest:{C.RESET} {aquest_status}")
 
         # Pet info if available
         pet = account.pet

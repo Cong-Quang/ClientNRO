@@ -14,14 +14,12 @@ class CombatHandler(BaseHandler):
         try:
             reader = msg.reader()
             mob_id = reader.read_ubyte() 
-            current_hp = reader.read_int3() 
-            damage = reader.read_int3() 
-            
-            if reader.available() > 0:
-                try:
-                    reader.read_bool()
-                    reader.read_byte()
-                except: pass
+            current_hp = reader.read_int() 
+            damage = reader.read_int() 
+            # Đọc thêm boolean byte nếu có
+            try:
+                reader.read_byte()
+            except: pass
 
             mob = self.controller.mobs.get(mob_id)
             if mob:
@@ -33,6 +31,8 @@ class CombatHandler(BaseHandler):
                 
         except Exception as e:
             logger.error(f"Lỗi khi phân tích MOB_HP: {e}")
+            import traceback
+            traceback.print_exc()
 
     def process_npc_die(self, msg: Message):
         """Xử lý sự kiện mob chết (NPC_DIE) và cập nhật trạng thái trong `self.mobs`."""

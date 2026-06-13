@@ -30,7 +30,8 @@ class Skill:
         self.last_time_use_this_skill = 0
         self.paint_can_not_use_skill = False
 
-MOB_TEMPLATES = {}
+MOB_TEMPLATES = {} # Dict[int, MobTemplate]
+ITEM_TEMPLATES = {} # Dict[int, str]
 
 @dataclass
 class MobTemplate:
@@ -135,6 +136,7 @@ class Char:
         self.bag = 0
         self.arr_item_body = [] # List[Item]
         self.arr_item_bag = [] # List[Item]
+        self.arr_item_box = [] # List[Item]
         self.curr_str_level = ""
         self.c_power = 0
         self.c_tiem_nang = 0

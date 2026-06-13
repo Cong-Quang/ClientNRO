@@ -1,0 +1,83 @@
+{
+  "maps": [
+    {
+      "map_id": 68,
+      "map_name": "Thung lũng Nappa",
+      "mobs": [
+        {
+          "mob_id": 39,
+          "mob_name": "Nappa",
+          "count": 7
+        },
+        {
+          "mob_id": 25,
+          "mob_name": "Tambourine",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "map_id": 69,
+      "map_name": "Vực cấm",
+      "mobs": [
+        {
+          "mob_id": 39,
+          "mob_name": "Nappa",
+          "count": 4
+        },
+        {
+          "mob_id": 40,
+          "mob_name": "Soldier",
+          "count": 2
+        },
+        {
+          "mob_id": 25,
+          "mob_name": "Tambourine",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "map_id": 70,
+      "map_name": "Núi Appule",
+      "mobs": [
+        {
+          "mob_id": 39,
+          "mob_name": "Nappa",
+          "count": 3
+        },
+        {
+          "mob_id": 40,
+          "mob_name": "Soldier",
+          "count": 6
+        },
+        {
+          "mob_id": 41,
+          "mob_name": "Appule",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "map_id": 72,
+      "map_name": "Thung lũng Raspberry",
+      "mobs": [
+        {
+          "mob_id": 41,
+          "mob_name": "Appule",
+          "count": 6
+        },
+        {
+          "mob_id": 42,
+          "mob_name": "Raspberry",
+          "count": 1
+        },
+        {
+          "mob_id": 43,
+          "mob_name": "Thằn lằn xanh",
+          "count": 3
+        }
+      ]
+    }
+  ]
+}

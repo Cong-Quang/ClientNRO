@@ -54,6 +54,24 @@ def load_mob_names():
     except Exception as e:
         logger.error(f"Error loading mob_data.txt: {e}")
 
+def load_item_names():
+    try:
+        from model.game_objects import ITEM_TEMPLATES
+        with open("item_data.txt", "r", encoding="utf-8") as f:
+            for line in f:
+                parts = line.strip().split(",")
+                if len(parts) >= 2:
+                    try:
+                        item_id = int(parts[0])
+                        item_name = parts[1].strip()
+                        ITEM_TEMPLATES[item_id] = item_name
+                    except ValueError:
+                        continue
+    except FileNotFoundError:
+        logger.warning("File item_data.txt not found.")
+    except Exception as e:
+        logger.error(f"Error loading item_data.txt: {e}")
+
 def clean_pycache():
     """Tìm và xóa tất cả thư mục __pycache__ trong thư mục hiện tại và thư mục con."""
     root_dir = os.getcwd()
@@ -345,6 +363,7 @@ if __name__ == "__main__":
     # Clean pycache first
     clean_pycache()
     load_mob_names()
+    load_item_names()
     
     # Setup logger
     # logger is already imported and configured in logger_config
