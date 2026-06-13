@@ -68,6 +68,7 @@ def display_help():
         ("autopet <on|off>", "Bật/tắt tự động đệ tử"),
         ("autobomong <on|off|status>", "Quản lý tự động nhiệm vụ"),
         ("autoquest <on|off>", "Bật/tắt tự động làm nhiệm vụ chính"),
+        ("automsm <banthan|detu|stop>", "Tự động nâng giới hạn sức mạnh"),
         ("scanmap <start> <end> | stop", "Quét quái vật và lưu vào maps_config"),
     ]
     for cmd, desc in cmds:

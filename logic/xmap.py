@@ -143,8 +143,8 @@ class XMap:
         self.add_link_maps(5, 29)  # Đảo Kame <-> Name Kamê
         self.add_link_maps(5, 217) # Đảo Kame <-> Rừng nhiệt đới
         self.add_link_maps(5, 6)   # Đảo Kame <-> Đông Karin
-        self.add_link_maps(43, 22, 7, 8, 9, 11, 12, 13, 10)
-        self.add_link_maps(52, 44, 14, 15, 16, 17, 18, 20, 19)
+        self.add_link_maps(43, 7, 8, 9, 11, 12, 13, 10)
+        self.add_link_maps(44, 14, 15, 16, 17, 18, 20, 19)
         self.add_link_maps(53, 58, 59, 60, 61, 62, 55, 56, 54, 57)
         self.add_link_maps(68, 69, 70, 71, 72, 64, 65, 63, 66, 67, 73, 74, 75, 76, 77, 81, 82, 83, 79, 80)
         self.add_link_maps(102, 92, 93, 94, 96, 97, 98, 99, 100, 103)
@@ -271,12 +271,20 @@ class XMap:
         return "Center" # Mặc định ở giữa
         
     def check_has_capsule(self) -> Tuple[bool, int]:
-        """Kiểm tra xem nhân vật có Capsule (ID 194) không. Trả về (Has, BagIndex)."""
+        """Kiểm tra xem nhân vật có Capsule (ID 194 hoặc 193) không. Trả về (Has, BagIndex)."""
+        # TẠM THỜI TẮT CAPSULE VÌ MENU CAPSULE LÀ DYNAMIC THEO MAP ĐÃ MỞ (NẾU DÙNG INDEX CỨNG SẼ BỊ TELEPORT LUNG TUNG)
+        return False, -1
+        
         char = self.controller.account.char
         if not char.arr_item_bag:
             return False, -1
+        # Ưu tiên Capsule VIP (194)
         for i, item in enumerate(char.arr_item_bag):
             if item and item.item_id == 194:
+                return True, i
+        # Fallback về Capsule thường (193)
+        for i, item in enumerate(char.arr_item_bag):
+            if item and item.item_id == 193:
                 return True, i
         return False, -1
 
@@ -486,6 +494,12 @@ class XMap:
             if map_id == 160:
                 if not self._has_item(992):
                     return False
+
+            # 5. Ngăn chặn việc đi qua nhà của hành tinh khác
+            home_map_ids = {0: 21, 1: 22, 2: 23}
+            if map_id in home_map_ids.values():
+                if map_id != home_map_ids.get(char.gender):
+                    return False
                 
         except Exception as e:
             logger.error(f"Lỗi khi kiểm tra map {map_id}: {e}")
@@ -528,16 +542,18 @@ class XMap:
                     if not self._is_map_accessible(neighbor_node, char):
                         continue
 
-                    new_cost = current_cost + 1
+                    # Cỗ máy thời gian (NPC 38) có cost = 100 giống Mod.Xmap
+                    cost = 100.0 if next_map_obj.npc_id == 38 else 1.0
+                    new_cost = current_cost + cost
                     if new_cost < costs.get(neighbor_node, float('inf')):
                         costs[neighbor_node] = new_cost
                         came_from[neighbor_node] = current_node
                         heapq.heappush(pq, (new_cost, neighbor_node))
 
             # 2. Khám phá các đường đi bằng Capsule (nếu có)
-            # Chi phí = 5.0 để chỉ dùng khi đường đi bộ dài hơn 5 bước
+            # Mod.Xmap dùng cost = 1 cho Capsule để ưu tiên hơn đi bộ
             if has_capsule:
-                CAPSULE_COST = 5.0
+                CAPSULE_COST = 1.0
                 for dest_map in capsule_dests:
                     if dest_map == current_node:
                         continue
@@ -777,74 +793,115 @@ class XMap:
 
         current_map_id = self.controller.tile_map.map_id
         next_map_id = next_map.map_id
-        direction = self.get_map_direction(current_map_id, next_map_id)
         
-        if (current_map_id, next_map_id) in self.direction_overrides:
-            direction = self.direction_overrides[(current_map_id, next_map_id)]
-        
-        sorted_wps = sorted(waypoints, key=lambda w: w.center_x)
+        from logic.map_data import MAP_ID_TO_NAME
+        expected_name = MAP_ID_TO_NAME.get(next_map_id, "")
         target_wp = None
         
-        # Xử lý đặc biệt map 7 (Làng Mori) đi map 197
-        if current_map_id == 7 and next_map_id == 197 and len(waypoints) >= 3:
-            target_wp = waypoints[2] 
-        
-        # Xử lý đặc biệt map 5 (Đảo Kame) có 4 waypoint
-        # Thứ tự waypoint (sorted by x): [Rừng Xương(4)] [Name Kamê(29)] [Rừng nhiệt đới(217)] [Đông Karin(6)]
-        if current_map_id == 5 and len(waypoints) >= 4:
-            kame_waypoint_map = {
-                4: 0,    # Rừng Xương -> waypoint index 0 (ngoài cùng bên trái)
-                29: 1,   # Name Kamê -> waypoint index 1
-                217: 2,  # Rừng nhiệt đới -> waypoint index 2
-                6: 3,    # Đông Karin -> waypoint index 3 (ngoài cùng bên phải)
-            }
-            if next_map_id in kame_waypoint_map:
-                wp_idx = kame_waypoint_map[next_map_id]
-                target_wp = sorted_wps[wp_idx]
-                logger.info(f"Map Kame: Chọn waypoint {wp_idx} để đến map {next_map_id}") 
-
+        # 1. Tìm chính xác gateway dựa trên tên bản đồ đích từ popup text
+        if expected_name:
+            for wp in waypoints:
+                if wp.name and expected_name.lower() in wp.name.lower():
+                    target_wp = wp
+                    break
+                    
+        # 2. Fallback về cơ chế dự đoán theo hướng nếu không tìm thấy tên
         if target_wp is None:
-            BASE_MAPS = {42, 43, 44}
-            if next_map_id in BASE_MAPS:
-                 for wp in sorted_wps:
-                     if wp.is_enter or wp.is_offline:
-                         target_wp = wp
-                         break
+            direction = self.get_map_direction(current_map_id, next_map_id)
+            if (current_map_id, next_map_id) in self.direction_overrides:
+                direction = self.direction_overrides[(current_map_id, next_map_id)]
             
-            if target_wp is None:
-                if direction == "Left": target_wp = sorted_wps[0] 
-                elif direction == "Right": target_wp = sorted_wps[-1] 
-                elif direction == "Up": target_wp = sorted(waypoints, key=lambda w: w.center_y)[0]
-                elif direction == "Down": target_wp = sorted(waypoints, key=lambda w: w.center_y)[-1]
-                elif direction == "Center": target_wp = sorted_wps[len(sorted_wps) // 2] if len(sorted_wps) > 1 else sorted_wps[0]
-        
-        if target_wp is None and waypoints: target_wp = waypoints[0]
+            sorted_wps = sorted(waypoints, key=lambda w: w.center_x)
+            
+            if current_map_id == 7 and next_map_id == 197 and len(waypoints) >= 3:
+                target_wp = waypoints[2] 
+            
+            if current_map_id == 5 and len(waypoints) >= 4:
+                kame_waypoint_map = {4: 0, 29: 1, 217: 2, 6: 3}
+                if next_map_id in kame_waypoint_map:
+                    target_wp = sorted_wps[kame_waypoint_map[next_map_id]]
 
+            if target_wp is None:
+                BASE_MAPS = {42, 43, 44}
+                if next_map_id in BASE_MAPS:
+                     for wp in sorted_wps:
+                         if wp.is_enter or wp.is_offline:
+                             target_wp = wp
+                             break
+                
+                if target_wp is None:
+                    if direction == "Left": target_wp = sorted_wps[0] 
+                    elif direction == "Right": target_wp = sorted_wps[-1] 
+                    elif direction == "Up": target_wp = sorted(waypoints, key=lambda w: w.center_y)[0]
+                    elif direction == "Down": target_wp = sorted(waypoints, key=lambda w: w.center_y)[-1]
+                    elif direction == "Center": target_wp = sorted_wps[len(sorted_wps) // 2] if len(sorted_wps) > 1 else sorted_wps[0]
+            
+            if target_wp is None and waypoints: target_wp = waypoints[0]
+
+        logger.info(f"Waypoint lookup cho map {next_map_id}: Found target_wp name='{target_wp.name}'")
         await self.controller.movement.enter_waypoint(waypoint_index=waypoints.index(target_wp))
 
     async def handle_npc_move(self, next_map: NextMap) -> bool:
-        """Xử lý tương tác với NPC để chuyển map (Tối ưu)"""
+        """Xử lý tương tác với NPC để chuyển map (Sử dụng cả tên text để né Boss)"""
         
         # 1. Đợi NPC load (nếu mới vào map)
-        for _ in range(10):  # 10 lần * 0.01s = 0.1s
+        for _ in range(10):
             await asyncio.sleep(0.01)
             found = any(npc['template_id'] == next_map.npc_id for npc in self.controller.npcs.values())
             if found:
                 break
         
-        # 2. Teleport đến NPC (dùng teleport_to_npc để đảm bảo mở được menu)
+        # 2. Teleport đến NPC
         success = await self.controller.movement.teleport_to_npc(next_map.npc_id)
         if not success:
             logger.warning(f"Không tìm thấy NPC {next_map.npc_id} để teleport.")
             return False
         
-        # 3. Mở menu NPC
+        # Hàm hỗ trợ tìm index theo text
+        def find_idx(name, fallback_idx, options):
+            if not name: return fallback_idx
+            search_name = name.lower().replace("\n", " ").strip()
+            for i, opt in enumerate(options):
+                opt_clean = opt.lower().replace("\n", " ").strip()
+                if search_name in opt_clean:
+                    return i
+            return fallback_idx
+
+        # 3. Mở menu NPC lần 1
+        self.controller.ui_menu_event.clear()
         await self.controller.account.service.open_menu_npc(next_map.npc_id)
         
-        if next_map.index_npc != -1:
-             await self.controller.account.service.confirm_menu_npc(next_map.npc_id, next_map.index_npc)
-             if next_map.index_npc2 != -1:
-                 await self.controller.account.service.confirm_menu_npc(next_map.npc_id, next_map.index_npc2)
+        try:
+            # Đợi phản hồi menu
+            await asyncio.wait_for(self.controller.ui_menu_event.wait(), timeout=2.0)
+            options = self.controller.last_ui_options
+            idx1 = find_idx(next_map.select_name, next_map.index_npc, options)
+            
+            if idx1 != -1:
+                # Nếu có menu tiếp theo cần bấm (select_name2), phải đợi menu mới
+                if next_map.select_name2 or next_map.index_npc2 != -1:
+                    self.controller.ui_menu_event.clear()
+                    await self.controller.account.service.confirm_menu_npc(next_map.npc_id, idx1)
+                    try:
+                        await asyncio.wait_for(self.controller.ui_menu_event.wait(), timeout=2.0)
+                        options2 = self.controller.last_ui_options
+                        idx2 = find_idx(next_map.select_name2, next_map.index_npc2, options2)
+                        if idx2 != -1:
+                            await self.controller.account.service.confirm_menu_npc(next_map.npc_id, idx2)
+                    except asyncio.TimeoutError:
+                        logger.warning("Timeout chờ menu 2 của NPC. Fallback index.")
+                        if next_map.index_npc2 != -1:
+                            await self.controller.account.service.confirm_menu_npc(next_map.npc_id, next_map.index_npc2)
+                else:
+                    # Chỉ bấm 1 menu
+                    await self.controller.account.service.confirm_menu_npc(next_map.npc_id, idx1)
+                    
+        except asyncio.TimeoutError:
+            logger.warning("Timeout chờ menu NPC. Fallback dùng index cứng.")
+            if next_map.index_npc != -1:
+                 await self.controller.account.service.confirm_menu_npc(next_map.npc_id, next_map.index_npc)
+                 if next_map.index_npc2 != -1:
+                     await self.controller.account.service.confirm_menu_npc(next_map.npc_id, next_map.index_npc2)
         
         return True
 

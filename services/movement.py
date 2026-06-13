@@ -134,7 +134,7 @@ class MovementService:
             logger.info("Arrived at waypoint. Sending Change Map request just in case.")
             await self.controller.account.service.request_change_map()
 
-    async def teleport_to_npc(self, npc_id: int) -> bool:
+    async def teleport_to_npc(self, npc_id: int, search_by_template: bool = False) -> bool:
         """
         Finds an NPC by its map ID or template ID and teleports to them.
         Returns True if successful, False otherwise.
@@ -143,20 +143,28 @@ class MovementService:
         npc_map_id_log = None
         npc_template_id_log = None
 
-        # 1. Try to find by NPC map ID (dictionary key)
-        if npc_id in self.controller.npcs:
-            target_npc = self.controller.npcs[npc_id]
-            npc_map_id_log = npc_id
-            npc_template_id_log = target_npc.get('template_id', 'N/A')
-
-        # 2. If not found by map ID, search by template ID
-        if not target_npc:
+        if search_by_template:
             for map_id, npc_data in self.controller.npcs.items():
                 if npc_data.get('template_id') == npc_id:
                     target_npc = npc_data
                     npc_map_id_log = map_id
                     npc_template_id_log = npc_id
                     break
+        else:
+            # 1. Try to find by NPC map ID (dictionary key)
+            if npc_id in self.controller.npcs:
+                target_npc = self.controller.npcs[npc_id]
+                npc_map_id_log = npc_id
+                npc_template_id_log = target_npc.get('template_id', 'N/A')
+
+            # 2. If not found by map ID, search by template ID
+            if not target_npc:
+                for map_id, npc_data in self.controller.npcs.items():
+                    if npc_data.get('template_id') == npc_id:
+                        target_npc = npc_data
+                        npc_map_id_log = map_id
+                        npc_template_id_log = npc_id
+                        break
         
         if target_npc:
             logger.info(f"Teleporting to NPC (MapID: {npc_map_id_log}, TemplateID: {npc_template_id_log}) at ({target_npc['x']}, {target_npc['y']})")

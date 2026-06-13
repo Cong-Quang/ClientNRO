@@ -16,6 +16,11 @@ class NotificationHandler(BaseHandler):
             text = reader.read_utf()
             logger.info(f"SERVER MESSAGE: {text}")
             self.check_boss_notification(text, source="SERVER_MESSAGE")
+            
+            # Hook cho AutoMsm
+            if hasattr(self.controller, 'auto_msm') and self.controller.auto_msm:
+                self.controller.auto_msm.on_server_message(text)
+                
         except Exception as e:
             logger.error(f"Error parsing SERVER_MESSAGE: {e}")
 
@@ -45,6 +50,10 @@ class NotificationHandler(BaseHandler):
             text = reader.read_utf()
             logger.info(f"SERVER ALERT: {text}")
             self.check_boss_notification(text, source="SERVER_ALERT")
+            
+            # Hook cho AutoMsm
+            if hasattr(self.controller, 'auto_msm') and self.controller.auto_msm:
+                self.controller.auto_msm.on_server_message(text)
         except Exception as e:
             logger.error(f"Error parsing SERVER_ALERT: {e}")
 
@@ -63,6 +72,10 @@ class NotificationHandler(BaseHandler):
             reader = msg.reader()
             text = reader.read_utf()
             self.check_boss_notification(text, source="BIG_MESSAGE")
+            
+            # Hook cho AutoMsm
+            if hasattr(self.controller, 'auto_msm') and self.controller.auto_msm:
+                self.controller.auto_msm.on_server_message(text)
         except Exception as e:
             logger.error(f"Error parsing BIG_MESSAGE: {e}")
 

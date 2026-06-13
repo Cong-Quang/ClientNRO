@@ -114,12 +114,12 @@ def display_character_status(account, compact=False, idx: int = None):
         print(f"  {C.GREEN}MP      :{C.RESET} {C.BLUE}{char.c_mp:,}{C.RESET} / {char.c_mp_full:,}")
         print(f"  {C.GREEN}Sức mạnh:{C.RESET} {C.YELLOW}{char.c_power:,}{C.RESET}")
         print(f"  {C.GREEN}Sức đánh:{C.RESET} {C.PURPLE}{getattr(char, 'c_dam_full', 0):,}{C.RESET}")
-        print(f"  {C.GREEN}Tiềm năng:{C.RESET} {C.CYAN}{getattr(char, 'c_tiem_nang', 0):,}{C.RESET}")
+        print(f"  {C.GREEN}Tiềm năng:{C.RESET} {C.CYAN}{short_number(getattr(char, 'c_tiem_nang', 0))}{C.RESET}")
 
         print_section_header("Tài sản", width=55, color=C.CYAN)
-        print(f"  {C.GREEN}Vàng    :{C.RESET} {C.YELLOW}{getattr(char, 'xu', 0):,}{C.RESET}")
-        print(f"  {C.GREEN}Ngọc    :{C.RESET} {C.BRIGHT_GREEN}{getattr(char, 'luong', 0):,}{C.RESET}")
-        print(f"  {C.GREEN}Ngọc khóa:{C.RESET} {C.PURPLE}{getattr(char, 'luong_khoa', 0):,}{C.RESET}")
+        print(f"  {C.GREEN}Vàng    :{C.RESET} {C.YELLOW}{short_number(getattr(char, 'xu', 0))}{C.RESET}")
+        print(f"  {C.GREEN}Ngọc    :{C.RESET} {C.BRIGHT_GREEN}{short_number(getattr(char, 'luong', 0))}{C.RESET}")
+        print(f"  {C.GREEN}Ngọc khóa:{C.RESET} {C.PURPLE}{short_number(getattr(char, 'luong_khoa', 0))}{C.RESET}")
         
         print_section_header("Chức năng", width=55, color=C.CYAN)
         ap_status = f"{C.BRIGHT_GREEN}[ON]{C.RESET}" if account.controller.auto_play.interval else f"{C.RED}[OFF]{C.RESET}"
@@ -135,7 +135,7 @@ def display_character_status(account, compact=False, idx: int = None):
             print_section_header(f"Đệ tử: {pet.name}", width=55, color=C.CYAN)
             print(f"  {C.GREEN}HP:{C.RESET} {C.RED}{pet.c_hp:,}{C.RESET}/{pet.c_hp_full:,} "
                   f"{C.DIM}│{C.RESET} {C.GREEN}MP:{C.RESET} {C.BLUE}{pet.c_mp:,}{C.RESET}/{pet.c_mp_full:,} "
-                  f"{C.DIM}│{C.RESET} {C.GREEN}SM:{C.RESET} {C.YELLOW}{pet.c_power:,}{C.RESET}")
+                  f"{C.DIM}│{C.RESET} {C.GREEN}SM:{C.RESET} {C.YELLOW}{short_number(pet.c_power)}{C.RESET}")
         
         print_separator(55, color=C.CYAN)
 

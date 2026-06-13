@@ -15,6 +15,7 @@ from logic.xmap import XMap
 from logic.auto_NVBoMong import AutoQuest
 from logic.auto_giftcode import AutoGiftcode
 from logic.auto_boss import AutoBoss
+from logic.auto_msm import AutoMsm
 
 # Import handlers
 from .handlers import (
@@ -30,6 +31,8 @@ from .handlers import (
     MiscHandler,
 )
 
+
+import asyncio
 
 class Controller:
     """Quản lý xử lý tin nhắn và trạng thái game cho một tài khoản.
@@ -58,7 +61,12 @@ class Controller:
         self.auto_quest = AutoQuest(self)
         self.auto_giftcode = AutoGiftcode(self)
         self.auto_boss = AutoBoss(self)
+        self.auto_msm = AutoMsm(self)
         self.ai_agent = None  # AI Agent (will be initialized lazily)
+        
+        # UI Events
+        self.ui_menu_event = asyncio.Event()
+        self.last_ui_options = []
         
         # Initialize handlers
         self.login_handler = LoginHandler(self)

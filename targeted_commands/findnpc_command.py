@@ -12,15 +12,26 @@ class FindnpcCommand(TargetedCommand):
         if not npcs:
             print(f"[{self.C.YELLOW}{account.username}{self.C.RESET}] Không tìm thấy NPC nào trên bản đồ hiện tại.")
         else:
+            try:
+                from logic.npc_names import NPC_NAMES
+            except ImportError:
+                NPC_NAMES = {}
+
             print(f"[{self.C.YELLOW}{account.username}{self.C.RESET}] Các NPC trên bản đồ:")
             for npc_id, npc_data in npcs.items():
-                # thêm màu sắc cho npc id map
                 template_id = npc_data.get('template_id', 'N/A')
                 raw_name = npc_data.get('name')
+                
+                # Ưu tiên name có sẵn từ npc_data, nếu không thì lấy từ NPC_NAMES
                 if raw_name:
                     name = f"{raw_name} ({template_id})"
                 else:
-                    name = f"NPC {template_id}"
+                    real_name = NPC_NAMES.get(template_id)
+                    if real_name:
+                        name = f"{real_name} ({template_id})"
+                    else:
+                        name = f"NPC {template_id}"
+                        
                 x = npc_data.get('x', 'N/A')
                 y = npc_data.get('y', 'N/A')
                 print(f" - ID: {self.C.CYAN}{npc_id + 1}{self.C.RESET}, Tên: {self.C.GREEN}{name}{self.C.RESET}, Vị trí: ({x}, {y})")

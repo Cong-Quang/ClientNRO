@@ -49,6 +49,12 @@ class Reader:
         self.pos += 8
         return val
 
+    def read_double(self) -> float:
+        # logger.debug(f"Reading 8 bytes (double) at position {self.pos}")
+        val = struct.unpack_from('>d', self.data, self.pos)[0]
+        self.pos += 8
+        return val
+
     def read_bool(self) -> bool:
         return self.read_byte() != 0
 

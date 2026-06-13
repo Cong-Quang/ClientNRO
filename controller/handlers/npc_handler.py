@@ -46,6 +46,11 @@ class NPCHandler(BaseHandler):
             for _ in range(num_options):
                 options.append(reader.read_utf())
 
+            # Store in controller and trigger event for XMap/AutoQuest
+            self.controller.last_ui_options = options
+            self.controller.last_ui_chat = menu_chat
+            self.controller.ui_menu_event.set()
+
             # Common formatting for the chat content
             formatted_chat = re.sub(r'\|\d+\|', '\n- ', menu_chat)
 

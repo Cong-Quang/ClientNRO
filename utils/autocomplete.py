@@ -1,5 +1,6 @@
 import sys
 import os
+from logic.npc_names import NPC_NAMES
 
 # Cấu trúc lệnh gợi ý: { "lệnh_chính": ["sub1", "sub2", ...] }
 COMMAND_TREE = {
@@ -34,13 +35,14 @@ COMMAND_TREE = {
     "opennpc": [],
     "findnpc": [],
     "findmob": [],
-    "teleport": [],
+    "teleport": ["npc"],
     "teleportnpc": [],
-    "congcs": [],
+    "congcs": ["stop", "100 0 0", "0 100 0", "0 0 100", "10 10 10"],
     "andau": [],
     "hit": [],
     "proxy": ["list"],
     "finditem": [],
+    "automsm": ["banthan", "detu", "stop"],
     "useitem": [],
     "givecode": [],
     "tapchat": [],
@@ -147,6 +149,31 @@ def get_candidates(buffer_str):
             return sorted(candidates), current_macro_prefix
     # --- End Macro Autocomplete ---
 
+    # --- NPC Dynamic Autocomplete ---
+    if cmd_base in ["opennpc", "teleportnpc"] or (cmd_base == "teleport" and len(parts) >= 2 and parts[1] == "npc"):
+        should_suggest_npc = False
+        current_npc_prefix = ""
+        
+        if cmd_base in ["opennpc", "teleportnpc"]:
+            if len(parts) == 1 and buffer_str.endswith(' '):
+                should_suggest_npc = True
+            elif len(parts) == 2 and not buffer_str.endswith(' '):
+                should_suggest_npc = True
+                current_npc_prefix = parts[1]
+        elif cmd_base == "teleport":
+            if len(parts) == 2 and buffer_str.endswith(' '):
+                should_suggest_npc = True
+            elif len(parts) == 3 and not buffer_str.endswith(' '):
+                should_suggest_npc = True
+                current_npc_prefix = parts[2]
+                
+        if should_suggest_npc:
+            # Tạo list ID từ dict (chỉ lấy các ID phổ biến có trong map)
+            npc_ids = [str(k) for k in NPC_NAMES.keys()]
+            candidates = [i for i in npc_ids if i.startswith(current_npc_prefix)]
+            return sorted(candidates), current_npc_prefix
+    # --- End NPC Autocomplete ---
+
     sub_commands = COMMAND_TREE[cmd_base]
     if not sub_commands:
         return [], ""
@@ -173,7 +200,7 @@ def get_candidates(buffer_str):
 def get_input_with_autocomplete(prompt, commands=None):
     # commands được giữ lại để tương thích nhưng logic chính dùng COMMAND_TREE
     
-    if os.name == 'nt':
+    if os.name == 'nt' and sys.stdin.isatty():
         import msvcrt
         sys.stdout.write(prompt)
         sys.stdout.flush()

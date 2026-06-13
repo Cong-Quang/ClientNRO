@@ -34,30 +34,32 @@ def load_mob_names():
     global MOB_NAMES
     try:
         from model.game_objects import MOB_TEMPLATES, MobTemplate
-        with open("mob_data.txt", "r", encoding="utf-8") as f:
+        with open("data/mob_data.txt", "r", encoding="utf-8") as f:
             for line in f:
                 parts = line.strip().split(",")
                 if len(parts) >= 2:
+                    mob_id_str = parts[0].strip()
+                    name = parts[1].strip()
                     try:
-                        mob_id = int(parts[0])
-                        mob_name = parts[1].strip()
-                        MOB_NAMES[mob_id] = mob_name
-                        
+                        mob_id = int(mob_id_str)
+                        MOB_NAMES[mob_id] = name
+                        # Init template với tên tiếng Việt luôn cũng được
                         if mob_id not in MOB_TEMPLATES:
-                            MOB_TEMPLATES[mob_id] = MobTemplate(mob_template_id=mob_id, name=mob_name)
-                        else:
-                            MOB_TEMPLATES[mob_id].name = mob_name
+                            t = MobTemplate()
+                            t.mob_template_id = mob_id
+                            t.name = name
+                            MOB_TEMPLATES[mob_id] = t
                     except ValueError:
                         continue
     except FileNotFoundError:
-        logger.warning("File mob_data.txt not found.")
+        logger.warning("File data/mob_data.txt not found.")
     except Exception as e:
-        logger.error(f"Error loading mob_data.txt: {e}")
+        logger.error(f"Error loading data/mob_data.txt: {e}")
 
 def load_item_names():
     try:
         from model.game_objects import ITEM_TEMPLATES
-        with open("item_data.txt", "r", encoding="utf-8") as f:
+        with open("data/item_data.txt", "r", encoding="utf-8") as f:
             for line in f:
                 parts = line.strip().split(",")
                 if len(parts) >= 2:

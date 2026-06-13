@@ -69,17 +69,21 @@ class CharacterHandler(BaseHandler):
                 char.c_pk = reader.read_byte()
                 char.c_type_pk = reader.read_byte()
                 char.c_power = reader.read_long()
-                
                 char.eff5BuffHp = reader.read_short()
                 char.eff5BuffMp = reader.read_short()
-                
                 nClass_id = reader.read_byte() 
-                
                 num_skills = reader.read_byte()
-                for _ in range(num_skills):
-                    reader.read_short()
+                skills = []
+                for i in range(num_skills):
+                    s = reader.read_short()
+                    skills.append(s)
                 
                 char.xu = reader.read_long()
+                unsigned_xu = char.xu & 0xffffffffffffffff
+                if unsigned_xu > 1_000_000_000_000:
+                    unsigned_xu >>= 32
+                char.xu = unsigned_xu
+                
                 char.luong_khoa = reader.read_int()
                 char.luong = reader.read_int()
 
@@ -161,12 +165,15 @@ class CharacterHandler(BaseHandler):
 
             elif sub_cmd == 4:
                 char.xu = reader.read_long()
+                unsigned_xu = char.xu & 0xffffffffffffffff
+                if unsigned_xu > 1_000_000_000_000:
+                    unsigned_xu >>= 32
+                char.xu = unsigned_xu
                 char.luong = reader.read_int()
                 char.c_hp = reader.read_int()
                 char.c_mp = reader.read_int()
                 if reader.available() >= 4:
                     char.luong_khoa = reader.read_int()
-                logger.info(f"Cập nhật tài sản: Vàng={char.xu}, Ngọc={char.luong}, HP={char.c_hp}, MP={char.c_mp}")
 
             elif sub_cmd == 5:
                 old_hp = char.c_hp
