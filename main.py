@@ -33,6 +33,7 @@ MOB_NAMES = {}
 def load_mob_names():
     global MOB_NAMES
     try:
+        from model.game_objects import MOB_TEMPLATES, MobTemplate
         with open("mob_data.txt", "r", encoding="utf-8") as f:
             for line in f:
                 parts = line.strip().split(",")
@@ -41,6 +42,11 @@ def load_mob_names():
                         mob_id = int(parts[0])
                         mob_name = parts[1].strip()
                         MOB_NAMES[mob_id] = mob_name
+                        
+                        if mob_id not in MOB_TEMPLATES:
+                            MOB_TEMPLATES[mob_id] = MobTemplate(mob_template_id=mob_id, name=mob_name)
+                        else:
+                            MOB_TEMPLATES[mob_id].name = mob_name
                     except ValueError:
                         continue
     except FileNotFoundError:

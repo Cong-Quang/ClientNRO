@@ -29,6 +29,7 @@ def display_help():
     cmds = [
         ("show", "Hiển thị thông tin nhân vật"),
         ("show boss", "Hiển thị danh sách Boss xuất hiện"),
+        ("show mobs", "Hiển thị danh sách quái trong map"),
         ("show csgoc", "Hiển thị chỉ số GỐC (chưa cộng đồ)"),
         ("show nhiemvu", "Hiển thị thông tin nhiệm vụ"),
         ("pet", "Xem các lệnh đệ tử"),
@@ -56,6 +57,8 @@ def display_help():
     # Section: Automation
     print_section_header("Tự Động", width=70, color=C.PURPLE)
     cmds = [
+        ("tansat <start|off|clear|list>", "Quản lý tàn sát"),
+        ("tansat <id>", "Thêm ID loại quái ưu tiên tàn sát"),
         ("autoplay <on|off>", "Bật/tắt tự động đánh quái"),
         ("autoplay add <id>", "Thêm ID quái vào danh sách"),
         ("autoplay remove <id>", "Xóa ID quái khỏi danh sách"),

@@ -70,6 +70,35 @@ class ShowCommand(TargetedCommand):
                 
                 print(f"\n{self.C.CYAN}Tổng số: {len(chars)} character(s){self.C.RESET}")
 
+            elif sub == "mobs":
+                mobs = account.controller.mobs
+                if not mobs:
+                    print(f"[{self.C.YELLOW}{account.username}{self.C.RESET}] Không có quái nào trong map.")
+                else:
+                    B = Box
+                    print()
+                    print(f"[{self.C.YELLOW}{account.username}{self.C.RESET}] {self.C.CYAN}=== Danh sách Quái trong Map ==={self.C.RESET}")
+                    print(f"{self.C.PURPLE}{B.TL}{B.H * 75}{B.TR}{self.C.RESET}")
+                    print(f"{self.C.PURPLE}{B.V}{self.C.RESET} {self.C.BOLD}{'ID (Type/Mob)':<15} {'Tên quái':<20} {'HP':<20} {'Trạng thái':<15}{self.C.RESET} {self.C.PURPLE}{B.V}{self.C.RESET}")
+                    print(f"{self.C.PURPLE}{B.LT}{B.H * 75}{B.RT}{self.C.RESET}")
+                    
+                    for mob_id, mob_data in mobs.items():
+                        name = mob_data.name if getattr(mob_data, 'name', None) else f"Quái {mob_data.template_id}"
+                        hp = getattr(mob_data, 'hp', 0)
+                        max_hp = getattr(mob_data, 'max_hp', 0)
+                        status = getattr(mob_data, 'status', 0)
+                        template_id = getattr(mob_data, 'template_id', 0)
+                        
+                        id_display = f"{template_id}/{mob_id}"
+                        hp_display = f"{hp:,}/{max_hp:,}" if max_hp > 0 else str(hp)
+                        status_str = "Sống" if status > 1 else ("Chết" if status <= 1 else str(status))
+                        
+                        print(f"{self.C.PURPLE}{B.V}{self.C.RESET} {self.C.CYAN}{id_display:<15}{self.C.RESET} {self.C.GREEN}{name:<20}{self.C.RESET} {self.C.RED}{hp_display:<20}{self.C.RESET} {self.C.YELLOW}{status_str:<15}{self.C.RESET} {self.C.PURPLE}{B.V}{self.C.RESET}")
+                    
+                    print(f"{self.C.PURPLE}{B.BL}{B.H * 75}{B.BR}{self.C.RESET}")
+                    print(f"Tổng số quái: {self.C.BRIGHT_GREEN}{len(mobs)}{self.C.RESET}")
+                    print()
+
             elif sub == "finfomap":
                 # Hiển thị danh sách tất cả người chơi trong map hiện tại
                 chars = account.controller.chars
