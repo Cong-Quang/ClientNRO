@@ -2,7 +2,7 @@
     "server": {
         "host": "103.245.255.222",
         "port": 12455,
-        "version": "1.2.0"
+        "version": "2.1.4"
     },
     "accounts": {
         "max_concurrent": 1000,

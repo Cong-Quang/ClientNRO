@@ -198,9 +198,10 @@ class AutoPlay:
         # Di chuyển nếu quá xa (> 60px)
         if dist > 60:
             logger.info(f"Auto: Dịch chuyển tới Boss/Char {char_name}")
+            # Tính hướng TRƯỚC KHI cập nhật cx
+            my_char.cdir = 1 if char_x > my_char.cx else -1
             my_char.cx = char_x
             my_char.cy = char_y
-            my_char.cdir = 1 if char_x > my_char.cx else -1
             await service.char_move()
             await asyncio.sleep(0.01)
         
@@ -214,7 +215,7 @@ class AutoPlay:
                 # Check HP từ controller.chars để xem còn sống không
                 current_char = self.controller.chars.get(char_id)
                 if current_char and current_char.get('hp', 0) > 0:
-                    await service.send_player_attack(mob_ids=None, char_ids=[char_id])
+                    await service.attack_player(char_id)
                     await asyncio.sleep(0.02)
                 else:
                     # Target đã chết
@@ -254,7 +255,7 @@ class AutoPlay:
             # Kiểm tra năng lượng (Mana)
             mana_use = s.mana_use
             if mt == 1: # % MP (Năng lượng tối đa)
-                mana_use = int(mana_use * my_char.max_mp / 100)
+                mana_use = int(mana_use * my_char.c_mp_full / 100)
             elif mt == 2:
                 mana_use = 1
             
@@ -263,9 +264,10 @@ class AutoPlay:
                 if best_skill is None or best_skill.cool_down < s.cool_down:
                     best_skill = s
         
-        # Nếu không tìm thấy kỹ năng nào (ví dụ: hết mana), trả về kỹ năng đầu tiên (đấm)
+        # Nếu không tìm thấy kỹ năng nào (ví dụ: hết mana), trả về kỹ năng đầu tiên hợp lệ
         if best_skill is None:
              for s in my_char.skills:
-                 return s
+                 if s is not None:
+                     return s
         
         return best_skill

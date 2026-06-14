@@ -101,26 +101,28 @@ class Service:
         await self.session.send_message(msg)
         logger.info("Gửi yêu cầu tải bản đồ ngoại tuyến (Cmd -33)")
 
-    async def send_player_attack(self, mob_ids: list[int] = None, char_ids: list[int] = None, cdir: int = 1):
+    async def send_player_attack(self, mob_ids: list[int] = None, cdir: int = 1):
         """
-        Gửi lệnh tấn công (Cmd 54)
+        Gửi lệnh tấn công quái (Cmd 54 - PLAYER_ATTACK_NPC)
         - mob_ids: Danh sách ID của mobs cần tấn công
-        - char_ids: Danh sách ID của chars (bosses/players) cần tấn công
-        - cdir: Hướng nhân vật (1 = phải, -1 = trái)
         """
         msg = Message(54)
         writer = msg.writer()
         
-        # Ghi mob IDs
         if mob_ids:
             for mob_id in mob_ids:
                 writer.write_byte(mob_id)
         
-        if char_ids:
-            for char_id in char_ids:
-                writer.write_int(char_id)
-        
-        # writer.write_byte(cdir) # Fix: GameGoc does NOT send cdir in Cmd 54 (PLAYER_ATTACK_NPC)
+        await self.session.send_message(msg)
+
+    async def attack_player(self, player_id: int):
+        """
+        Gửi lệnh tấn công người chơi/boss (Cmd -60 - PLAYER_ATTACK_PLAYER)
+        - player_id: ID của player/boss cần tấn công
+        """
+        msg = Message(-60)
+        writer = msg.writer()
+        writer.write_int(player_id)
         await self.session.send_message(msg)
 
     async def select_skill(self, skill_template_id: int):

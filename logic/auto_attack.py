@@ -151,11 +151,11 @@ class AutoAttack:
                         my_char.char_focus = None
             
             # Send attack nếu có target hợp lệ
-            if mob_ids or char_ids:
-                await service.send_player_attack(
-                    mob_ids=mob_ids if mob_ids else None,
-                    char_ids=char_ids if char_ids else None
-                )
+            if mob_ids:
+                await service.send_player_attack(mob_ids=mob_ids)
+                
+            for char_id in char_ids:
+                await service.attack_player(char_id)
                 
                 # Update lastTimeUseThisSkill
                 if my_skill:

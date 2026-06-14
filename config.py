@@ -22,8 +22,8 @@ class Config:
     # PORT: cổng server (int)
     PORT = 12455
 
-     # VERSION: phiên bản công cụ (tự sinh, không cần sửa)
-    VERSION = "1.2.0"
+    # VERSION: phiên bản client gửi lên server (>= 214 để server gửi writeLong cho vàng)
+    VERSION = "2.1.4"
 
     #MAX_ACCOUNTS: số tối đa tài khoản chạy đồng thời (int)
     MAX_ACCOUNTS = 1000
@@ -107,6 +107,7 @@ class Config:
                 # Override class attributes with JSON values
                 cls.HOST = cls._loader.get('server.host', cls.HOST)
                 cls.PORT = cls._loader.get('server.port', cls.PORT)
+                cls.VERSION = cls._loader.get('server.version', cls.VERSION)
                 cls.MAX_ACCOUNTS = cls._loader.get('accounts.max_concurrent', cls.MAX_ACCOUNTS)
                 cls.AUTO_LOGIN = cls._loader.get('accounts.auto_login', cls.AUTO_LOGIN)
                 cls.DEFAULT_LOGIN = cls._loader.get('accounts.default_login', cls.DEFAULT_LOGIN)
