@@ -126,7 +126,13 @@ class MiscHandler(BaseHandler):
         """Xử lý yêu cầu tạo nhân vật từ server (Cmd 2)."""
         try:
             logger.info("Server yêu cầu tạo nhân vật mới (Cmd 2).")
-            
+
+            # Nếu đang trong quá trình setup (suppress_auto_create = True),
+            # bỏ qua auto-creation để tránh race condition với setup step.
+            if getattr(self.account, '_suppress_auto_create', False):
+                logger.info("Auto-create bị ức chế (account._suppress_auto_create = True).")
+                return
+
             # Trích xuất số đuôi từ username (vd: poopooi06 -> 06 -> 006)
             match = re.search(r'(\d+)$', self.account.username)
             if match:

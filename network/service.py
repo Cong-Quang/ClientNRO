@@ -400,4 +400,23 @@ class Service:
         except Exception as e:
             logger.error(f"Lỗi khi gửi yêu cầu tạo nhân vật: {e}")
 
-    
+    async def send_combine_items(self, indices: list[int]):
+        """
+        Gửi item indices lên giao diện combine/ép sao (Cmd -81 - COMBINNE).
+        :param indices: Danh sách vị trí item trong bag (byte mỗi index)
+        Packet format:
+          - byte: 0 (ignored by server)
+          - byte: count
+          - bytes: item bag indices
+        """
+        try:
+            msg = Message(Cmd.COMBINNE)
+            writer = msg.writer()
+            writer.write_byte(0)  # ignored byte
+            writer.write_byte(len(indices))
+            for idx in indices:
+                writer.write_byte(idx)
+            await self.session.send_message(msg)
+            logger.info(f"Đã gửi combine items: indices={indices}")
+        except Exception as e:
+            logger.error(f"Lỗi khi gửi combine items: {e}")

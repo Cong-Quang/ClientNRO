@@ -67,6 +67,8 @@ class Controller:
         # UI Events
         self.ui_menu_event = asyncio.Event()
         self.last_ui_options = []
+        self.last_ui_chat = ""
+        self.last_npc_template_id = 0
 
         # Magic Tree state
         self.magic_tree_menu = asyncio.Event()
@@ -74,6 +76,14 @@ class Controller:
 
         # Input form state
         self.input_form_received = asyncio.Event()
+
+        # Server message tracking (for giftcode response checking, etc.)
+        self.server_message_event = asyncio.Event()
+        self.last_server_message = ""
+
+        # Combine tracking (for ép sao / pha lê hóa trang bị)
+        self.combine_event = asyncio.Event()
+        self.combine_result = ""  # 'success' | 'fail' | 'open' | 'reopen' | ''
         
         # Initialize handlers
         self.login_handler = LoginHandler(self)
@@ -293,6 +303,8 @@ class Controller:
                 self.misc_handler.process_the_luc(msg)
             elif cmd == Cmd.CREATE_PLAYER:
                 self.misc_handler.process_create_player(msg)
+            elif cmd == Cmd.COMBINNE:  # Server sends combine info (-81)
+                self._handle_combine_msg(msg)
             elif cmd == -34:  # MAGIC_TREE
                 self._handle_magic_tree(msg)
             elif cmd == Cmd.CLIENT_INPUT:  # Server sends input form (-125)
@@ -357,6 +369,40 @@ class Controller:
             self.input_form_received.set()
         except Exception as e:
             logger.error(f"Error parsing INPUT_FORM: {e}")
+
+    def _handle_combine_msg(self, msg: Message):
+        """Xử lý server combine message (Cmd -81).
+        Sub-types:
+          0 = OPEN_TAB_COMBINE (mở tab combine)
+          1 = REOPEN_TAB_COMBINE (mở lại tab combine)
+          2 = COMBINE_SUCCESS (ép thành công)
+          3 = COMBINE_FAIL (ép thất bại)
+          5 = COMBINE_DRAGON_BALL
+          6 = OPEN_ITEM
+        """
+        try:
+            reader = msg.reader()
+            sub_cmd = reader.read_byte() if reader.available() > 0 else 0
+            if sub_cmd == 0:
+                self.combine_result = "open"
+                self.combine_event.set()
+                logger.info("COMBINE: Tab opened.")
+            elif sub_cmd == 1:
+                self.combine_result = "reopen"
+                self.combine_event.set()
+                logger.info("COMBINE: Tab reopened.")
+            elif sub_cmd == 2:
+                self.combine_result = "success"
+                self.combine_event.set()
+                logger.info("COMBINE: Success!")
+            elif sub_cmd == 3:
+                self.combine_result = "fail"
+                self.combine_event.set()
+                logger.info("COMBINE: Failed.")
+            else:
+                logger.info(f"COMBINE: unhandled sub_cmd={sub_cmd}, data len={len(msg.get_data())}")
+        except Exception as e:
+            logger.error(f"Error parsing COMBINE message: {e}")
 
     async def eat_pea(self):
         """Tìm và ăn đậu trong hành trang khi HP/MP thấp."""

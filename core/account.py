@@ -28,6 +28,7 @@ class Account:
         self._should_auto_reconnect = False
         self.login_event = asyncio.Event()
         self.last_opennpc_compact = False
+        self._suppress_auto_create = False  # Suppress auto character creation (used by setup)
         self.manager = None  # Will be set by AccountManager
 
         # Each account has its own instance of major components

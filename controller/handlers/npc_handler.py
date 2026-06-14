@@ -49,6 +49,7 @@ class NPCHandler(BaseHandler):
             # Store in controller and trigger event for XMap/AutoQuest
             self.controller.last_ui_options = options
             self.controller.last_ui_chat = menu_chat
+            self.controller.last_npc_template_id = npc_template_id
             self.controller.ui_menu_event.set()
 
             logger.info(f"NPC Menu (template={npc_template_id}): Chat='{menu_chat.replace(chr(10), ' ')}' Options={options}")

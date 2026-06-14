@@ -17,6 +17,10 @@ class NotificationHandler(BaseHandler):
             logger.info(f"SERVER MESSAGE: {text}")
             self.check_boss_notification(text, source="SERVER_MESSAGE")
             
+            # Track server response (for giftcode checking, etc.)
+            self.controller.last_server_message = text
+            self.controller.server_message_event.set()
+            
             # Hook cho AutoMsm
             if hasattr(self.controller, 'auto_msm') and self.controller.auto_msm:
                 self.controller.auto_msm.on_server_message(text)
@@ -50,6 +54,10 @@ class NotificationHandler(BaseHandler):
             text = reader.read_utf()
             logger.info(f"SERVER ALERT: {text}")
             self.check_boss_notification(text, source="SERVER_ALERT")
+            
+            # Track server response (for giftcode checking, etc.)
+            self.controller.last_server_message = text
+            self.controller.server_message_event.set()
             
             # Hook cho AutoMsm
             if hasattr(self.controller, 'auto_msm') and self.controller.auto_msm:
