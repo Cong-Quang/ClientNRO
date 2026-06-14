@@ -241,7 +241,7 @@ class InventoryHandler(BaseHandler):
 
     async def eat_pea(self):
         """Tìm và ăn đậu trong hành trang khi HP/MP thấp."""
-        PEAN_IDS = [595]
+        PEAN_IDS = [13, 60, 61, 62, 63, 64, 65, 352, 523, 595]
         char = self.account.char
         needs_eat = False
         reasons = []

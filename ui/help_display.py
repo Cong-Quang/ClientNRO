@@ -70,6 +70,7 @@ def display_help():
         ("autoquest <on|off>", "Bật/tắt tự động làm nhiệm vụ chính"),
         ("automsm <banthan|detu|stop>", "Tự động nâng giới hạn sức mạnh"),
         ("scanmap <start> <end> | stop", "Quét quái vật và lưu vào maps_config"),
+        ("setup_accounts <start> <end> [force]", "Auto setup acc mới (Gems/Giftcode/Đậu/Bùa, force để setup lại)"),
     ]
     for cmd, desc in cmds:
         print(f"  {C.GREEN}{cmd:<26}{C.RESET} {C.DIM}-{C.RESET} {desc}")

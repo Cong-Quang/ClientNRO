@@ -6,7 +6,8 @@ class Writer:
 
     def write_byte(self, value: int):
         # sbyte in C# is -128 to 127
-        self.buffer.extend(struct.pack('>b', value))
+        packed_val = (value + 128) % 256 - 128
+        self.buffer.extend(struct.pack('>b', packed_val))
 
     def write_ubyte(self, value: int):
         # byte in C# is 0 to 255

@@ -51,6 +51,8 @@ class NPCHandler(BaseHandler):
             self.controller.last_ui_chat = menu_chat
             self.controller.ui_menu_event.set()
 
+            logger.info(f"NPC Menu (template={npc_template_id}): Chat='{menu_chat.replace(chr(10), ' ')}' Options={options}")
+
             # Common formatting for the chat content
             formatted_chat = re.sub(r'\|\d+\|', '\n- ', menu_chat)
 

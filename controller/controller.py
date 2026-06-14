@@ -63,10 +63,17 @@ class Controller:
         self.auto_boss = AutoBoss(self)
         self.auto_msm = AutoMsm(self)
         self.ai_agent = None  # AI Agent (will be initialized lazily)
-        
+
         # UI Events
         self.ui_menu_event = asyncio.Event()
         self.last_ui_options = []
+
+        # Magic Tree state
+        self.magic_tree_menu = asyncio.Event()
+        self.magic_tree_options = []
+
+        # Input form state
+        self.input_form_received = asyncio.Event()
         
         # Initialize handlers
         self.login_handler = LoginHandler(self)
@@ -286,6 +293,10 @@ class Controller:
                 self.misc_handler.process_the_luc(msg)
             elif cmd == Cmd.CREATE_PLAYER:
                 self.misc_handler.process_create_player(msg)
+            elif cmd == -34:  # MAGIC_TREE
+                self._handle_magic_tree(msg)
+            elif cmd == Cmd.CLIENT_INPUT:  # Server sends input form (-125)
+                self._handle_input_form(msg)
                 
             # Ignored/Logged only
             elif cmd == Cmd.GET_SESSION_ID:
@@ -313,6 +324,40 @@ class Controller:
             traceback.print_exc()
 
     # Helper methods delegated to handlers
+    def _handle_magic_tree(self, msg: Message):
+        """Xử lý magic tree menu (Cmd -34 sub_cmd 1)."""
+        try:
+            reader = msg.reader()
+            sub_cmd = reader.read_byte()
+            if sub_cmd == 1:  # openMenuTree
+                self.magic_tree_options = []
+                while reader.available() > 0:
+                    self.magic_tree_options.append(reader.read_utf())
+                logger.info(f"Magic Tree menu: {self.magic_tree_options}")
+                self.magic_tree_menu.set()
+            elif sub_cmd == 0:  # loadMagicTree
+                logger.info("Magic Tree loaded.")
+            elif sub_cmd == 2:  # harvestPea response
+                logger.info("Magic Tree: harvested peas.")
+        except Exception as e:
+            logger.error(f"Error parsing MAGIC_TREE: {e}")
+
+    def _handle_input_form(self, msg: Message):
+        """Xử lý input form từ server (Cmd -125)."""
+        try:
+            reader = msg.reader()
+            title = reader.read_utf()
+            num_fields = reader.read_byte()
+            fields = []
+            for _ in range(num_fields):
+                field_name = reader.read_utf()
+                field_type = reader.read_byte()
+                fields.append({'name': field_name, 'type': field_type})
+            logger.info(f"Input form received: title='{title}', fields={fields}")
+            self.input_form_received.set()
+        except Exception as e:
+            logger.error(f"Error parsing INPUT_FORM: {e}")
+
     async def eat_pea(self):
         """Tìm và ăn đậu trong hành trang khi HP/MP thấp."""
         return await self.inventory_handler.eat_pea()

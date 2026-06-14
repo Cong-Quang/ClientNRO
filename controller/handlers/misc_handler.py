@@ -127,13 +127,20 @@ class MiscHandler(BaseHandler):
         try:
             logger.info("Server yêu cầu tạo nhân vật mới (Cmd 2).")
             
-            clean_username = re.sub(r'[^a-zA-Z0-9]', '', self.account.username)
-            suffix = clean_username[-3:] if len(clean_username) >= 3 else clean_username
-            clean_name = f"hentaz{suffix}"
+            # Trích xuất số đuôi từ username (vd: poopooi06 -> 06 -> 006)
+            match = re.search(r'(\d+)$', self.account.username)
+            if match:
+                num = int(match.group(1))
+                suffix = f"{num:03d}"
+            else:
+                suffix = "001"
+            clean_name = f"henzt{suffix}"
 
             from config import Config
             gender = Config.DEFAULT_CHAR_GENDER
-            hair = Config.DEFAULT_CHAR_HAIR
+            # Head ID theo hành tinh: TD=64, Namek=9, Xayda=6
+            HAIR_BY_GENDER = {0: 64, 1: 9, 2: 6}
+            hair = HAIR_BY_GENDER.get(gender, Config.DEFAULT_CHAR_HAIR)
             
             logger.info(f"Tự động tạo nhân vật: Name={clean_name}, Gender={gender}, Hair={hair}")
             asyncio.create_task(self.account.service.create_character(clean_name, gender, hair))

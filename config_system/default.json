@@ -19,7 +19,7 @@
     },
     "character": {
         "default_gender": 1,
-        "default_hair": 4
+        "default_hair": 9
     },
     "proxy": {
         "use_local_ip_first": true,

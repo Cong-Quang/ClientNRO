@@ -3,7 +3,7 @@ from logs.logger_config import logger
 from model.game_objects import Char
 from network.service import Service
 
-BEAN_ITEM_ID = 595  # Template ID for "đậu thần" (magic bean)
+BEAN_ITEM_IDS = [13, 60, 61, 62, 63, 64, 65, 352, 523, 595]  # Template IDs for "đậu thần" (magic bean)
 STAMINA_THRESHOLD = 50  # Use bean when stamina is below this value
 CHECK_INTERVAL = 2  # Seconds to wait between checks
 
@@ -82,7 +82,7 @@ class AutoPet:
                 logger.warning(f"[{self.controller.account.username}] AutoPet: Không thể tìm thấy đậu vì túi đồ trống.")
             else:
                 for index, item in enumerate(inventory):
-                    if item and item.item_id == BEAN_ITEM_ID:
+                    if item and item.item_id in BEAN_ITEM_IDS:
                         found_bean = True
                         bean_inventory_index = index
                         logger.info(f"[{self.controller.account.username}] AutoPet: Đã tìm thấy đậu thần tại vị trí túi đồ: {index}")

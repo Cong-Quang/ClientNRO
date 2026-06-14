@@ -48,6 +48,8 @@ COMMAND_TREE = {
     "tapchat": [],
     "wait": [],
     "config": ["reload", "get", "set"],
+    # Setup Accounts Command
+    "setup_accounts": ["<start_idx> <end_idx>", "<start_idx> <end_idx> force"],
     # Plugin Commands
     "plugin": ["list", "enable", "disable", "reload", "info"],
     # AI Commands (global)

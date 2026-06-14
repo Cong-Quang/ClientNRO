@@ -282,6 +282,18 @@ class Service:
         except Exception as e:
             logger.error(f"Lỗi khi gửi input client: {e}")
 
+    async def buy_item(self, shop_type: int, item_id: int):
+        """Mua item từ shop (Cmd 6 - ITEM_BUY)"""
+        try:
+            msg = Message(Cmd.ITEM_BUY)
+            writer = msg.writer()
+            writer.write_byte(shop_type)
+            writer.write_short(item_id)
+            await self.session.send_message(msg)
+            logger.info(f"Mua item: shop_type={shop_type} item_id={item_id}")
+        except Exception as e:
+            logger.error(f"Lỗi khi mua item: {e}")
+
     async def open_menu_npc(self, npc_id: int):
         """Mở menu NPC (Cmd 33 - OPEN_MENU)"""
         try:

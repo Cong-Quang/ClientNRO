@@ -13,8 +13,11 @@ class Config:
     # tạo account
     # DEFAULT_CHAR_GENDER: 0 (Trai Dat), 1 (Namek), 2 (Sayda)
     DEFAULT_CHAR_GENDER = 1
-    # DEFAULT_CHAR_HAIR: ID toc
-    DEFAULT_CHAR_HAIR = 4
+    # DEFAULT_CHAR_HAIR: ID dau phu hop voi hanh tinh
+    # gender 0 (Trai Dat): 64
+    # gender 1 (Namek): 9
+    # gender 2 (Xayda): 6
+    DEFAULT_CHAR_HAIR = 9
 
     # HOST: địa chỉ server (IP hoặc domain)
     HOST = "103.245.255.222"
