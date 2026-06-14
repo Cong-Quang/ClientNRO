@@ -180,8 +180,8 @@ class Controller:
                 self.map_handler.process_map_offline(msg)
             elif cmd == Cmd.UPDATE_DATA:
                 self.map_handler.process_update_data(msg)
-            elif cmd == Cmd.UPDATE_MAP:
-                self.map_handler.process_update_map(msg)
+            elif cmd == 6: # ITEM_BUY response (updates assets)
+                self.character_handler.process_item_buy(msg)
             elif cmd == Cmd.MAP_CLEAR:
                 logger.info(f"Received MAP_CLEAR (Cmd {cmd}).")
                 
@@ -194,6 +194,10 @@ class Controller:
                 self.character_handler.process_power_info(msg)
             elif cmd == Cmd.PLAYER_UP_EXP:
                 self.character_handler.process_player_up_exp(msg)
+            elif cmd == Cmd.ME_CHANGE_COIN:
+                self.character_handler.process_me_change_coin(msg)
+            elif cmd == Cmd.ME_UP_COIN_BAG:
+                self.character_handler.process_me_up_coin_bag(msg)
                 
             # Combat
             elif cmd == Cmd.MOB_HP:

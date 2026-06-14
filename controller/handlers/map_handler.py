@@ -175,10 +175,12 @@ class MapHandler(BaseHandler):
             logger.error(f"Lỗi khi xử lý UPDATE_DATA: {e}")
 
     def process_update_map(self, msg: Message):
-        """Xử lý gói tin UPDATE_MAP (6) để cập nhật MobTemplate."""
+        """Xử lý gói tin UPDATE_MAP để cập nhật MobTemplate."""
         try:
             import struct
             reader = msg.reader()
+            if msg.command == -28: # Cmd.NOT_MAP
+                reader.read_byte() # skip sub_cmd
             vc_map = reader.read_byte()
             logger.info(f"UPDATE_MAP: vcMap={vc_map}")
             

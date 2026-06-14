@@ -71,6 +71,9 @@ class LoginHandler(BaseHandler):
                 logger.info(f"Server versions: data={vsData}, map={vsMap}, skill={vsSkill}, item={vsItem}")
                 asyncio.create_task(self.account.service.client_ok())
                 
+            elif sub_cmd == 6:
+                self.controller.map_handler.process_update_map(msg)
+                
             else:
                 logger.info(f"Unhandled NOT_MAP subcmd: {sub_cmd}, payload={msg.get_data().hex()}")
         except Exception as e:

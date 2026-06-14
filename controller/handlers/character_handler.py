@@ -2,13 +2,65 @@
 Character Handler - Xử lý các message liên quan đến thông tin nhân vật
 """
 from network.message import Message
-from logs.logger_config import logger
+from logs.logger_config import TerminalColors as C, logger
 from .base_handler import BaseHandler
 
 
 class CharacterHandler(BaseHandler):
     """Handler xử lý character stats, power, exp updates."""
     
+    def reconstruct_xu(self, char, raw_xu: int) -> int:
+        """Tái cấu trúc lại giá trị vàng chuẩn từ giá trị bị dịch chuyển từ server lậu."""
+        unsigned_xu = raw_xu & 0xffffffffffffffff
+        is_shifted = False
+        if unsigned_xu > 1_000_000_000_000:
+            r = unsigned_xu >> 32
+            is_shifted = True
+        else:
+            r = unsigned_xu
+            
+        prev_xu = getattr(char, 'xu', 0)
+        if prev_xu > 0:
+            k = round((prev_xu - r) / 4294967296)
+            if k < 0:
+                k = 0
+            reconstructed = k * 4294967296 + r
+            return reconstructed
+            
+        import json
+        import os
+        config_path = os.path.join("config", "gold_config.json")
+        target_gold = 0
+        username = self.account.username
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+                    target_gold = config.get(username, 0)
+            except Exception as e:
+                logger.error(f"Lỗi khi đọc file gold_config.json: {e}")
+                
+        if target_gold > 0:
+            k = round((target_gold - r) / 4294967296)
+            if k < 0:
+                k = 0
+            reconstructed = k * 4294967296 + r
+            return reconstructed
+            
+        if is_shifted:
+            logger.warning(
+                f"[{username}] Phát hiện vàng lớn (> 4.29 tỷ) bị tràn số từ server. "
+                f"Để hiển thị chính xác lượng vàng thực tế thay vì phần dư ({r/1_000_000_000:.1f}b), "
+                f"hãy thêm '{username}': <lượng vàng ước lượng> vào file config/gold_config.json."
+            )
+            print(
+                f"\n{C.RED}[CẢNH BÁO]{C.RESET} Tài khoản {C.YELLOW}{username}{C.RESET} có lượng vàng lớn (> 4.29 tỷ). "
+                f"Hãy mở file {C.GREEN}config/gold_config.json{C.RESET} và thêm lượng vàng ước lượng của tài khoản này "
+                f"để hiển thị chính xác nhất (Hiện tại đang hiển thị phần dư {r/1_000_000_000:.1f}b).\n"
+            )
+            
+        return r
+
     def process_me_load_point(self, msg: Message):
         """Đọc thông tin chỉ số nhân vật khi vào map hoặc load point và cập nhật thuộc tính `char`."""
         try:
@@ -78,11 +130,8 @@ class CharacterHandler(BaseHandler):
                     s = reader.read_short()
                     skills.append(s)
                 
-                char.xu = reader.read_long()
-                unsigned_xu = char.xu & 0xffffffffffffffff
-                if unsigned_xu > 1_000_000_000_000:
-                    unsigned_xu >>= 32
-                char.xu = unsigned_xu
+                raw_xu = reader.read_long()
+                char.xu = self.reconstruct_xu(char, raw_xu)
                 
                 char.luong_khoa = reader.read_int()
                 char.luong = reader.read_int()
@@ -164,11 +213,8 @@ class CharacterHandler(BaseHandler):
                     self.account.login_event.set()
 
             elif sub_cmd == 4:
-                char.xu = reader.read_long()
-                unsigned_xu = char.xu & 0xffffffffffffffff
-                if unsigned_xu > 1_000_000_000_000:
-                    unsigned_xu >>= 32
-                char.xu = unsigned_xu
+                raw_xu = reader.read_long()
+                char.xu = self.reconstruct_xu(char, raw_xu)
                 char.luong = reader.read_int()
                 char.c_hp = reader.read_int()
                 char.c_mp = reader.read_int()
@@ -198,6 +244,11 @@ class CharacterHandler(BaseHandler):
                     logger.info(f"SUB_COMMAND (Lệnh {msg.command}) sub_cmd 14: Payload Hex: {remaining.hex()}")
                 else:
                     logger.info(f"SUB_COMMAND (Lệnh {msg.command}) sub_cmd 14 (empty)")
+
+            elif sub_cmd == 21: # BOX_COIN_OUT
+                coin_change = reader.read_int()
+                char.xu += coin_change
+                logger.info(f"Cập nhật xu từ rương (sub_cmd 21): thay đổi={coin_change}, Vàng={char.xu}")
 
             else:
                 logger.info(f"SUB_COMMAND (Lệnh {msg.command}) lệnh phụ chưa xử lý: {sub_cmd}")
@@ -238,3 +289,38 @@ class CharacterHandler(BaseHandler):
             logger.info(f"Người chơi tăng EXP (Cmd {msg.command}): Loại={exp_type}, Số lượng={amount}. SM Hiện tại: {char.c_power}, TN: {char.c_tiem_nang}")
         except Exception as e:
             logger.error(f"Lỗi khi phân tích PLAYER_UP_EXP: {e}")
+
+    def process_item_buy(self, msg: Message):
+        """Xử lý cập nhật tài sản khi mua/bán item (Cmd 6)."""
+        try:
+            reader = msg.reader()
+            char = self.account.char
+            
+            raw_xu = reader.read_long()
+            char.xu = self.reconstruct_xu(char, raw_xu)
+            
+            char.luong = reader.read_int()
+            char.luong_khoa = reader.read_int()
+            logger.info(f"Cập nhật tài sản sau khi mua/bán (Cmd 6): Vàng={char.xu}, Ngọc={char.luong}, Ngọc khóa={char.luong_khoa}")
+        except Exception as e:
+            logger.error(f"Lỗi khi phân tích ITEM_BUY: {e}")
+
+    def process_me_change_coin(self, msg: Message):
+        """Xử lý thay đổi xu từ server (Cmd -1)."""
+        try:
+            reader = msg.reader()
+            coin_change = reader.read_int()
+            self.account.char.xu += coin_change
+            logger.info(f"Cập nhật xu (Cmd -1): thay đổi={coin_change}, Vàng={self.account.char.xu}")
+        except Exception as e:
+            logger.error(f"Lỗi khi phân tích ME_CHANGE_COIN: {e}")
+
+    def process_me_up_coin_bag(self, msg: Message):
+        """Xử lý tăng/giảm xu trong hành trang trực tiếp (Cmd 95)."""
+        try:
+            reader = msg.reader()
+            coin_change = reader.read_int()
+            self.account.char.xu += coin_change
+            logger.info(f"Cập nhật xu trong hành trang (Cmd 95): thay đổi={coin_change}, Vàng={self.account.char.xu}")
+        except Exception as e:
+            logger.error(f"Lỗi khi phân tích ME_UP_COIN_BAG: {e}")
