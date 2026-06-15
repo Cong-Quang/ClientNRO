@@ -23,7 +23,7 @@ COMMAND_TREE = {
     "help": [],
     "list": [],
     "target": [],
-    "show": ["csgoc", "nhiemvu", "boss", "finfomap", "mobs", "balo"],
+    "show": ["csgoc", "nhiemvu", "boss", "finfomap", "mobs", "balo", "equip", "trangbi"],
     "tansat": ["start", "off", "clear", "list"],
     "useitem": [],
     "findboss": [],
@@ -49,7 +49,12 @@ COMMAND_TREE = {
     "wait": [],
     "config": ["reload", "get", "set"],
     # Setup Accounts Command
-    "setup_accounts": ["<start_idx> <end_idx>", "<start_idx> <end_idx> force"],
+    "setup_accounts": [
+        "<start_idx> <end_idx>",
+        "<start_idx> <end_idx> force",
+        "<start_idx> <end_idx> reset",
+        "<start_idx> <end_idx> start_step=7",
+    ],
     # Plugin Commands
     "plugin": ["list", "enable", "disable", "reload", "info"],
     # AI Commands (global)

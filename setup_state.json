@@ -1,502 +1,4 @@
 {
-  "poopooi06": {
-    "username": "poopooi06",
-    "steps": {
-      "1": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "2": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "3": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "4": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "5": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "6": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "7": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "8": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "9": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "10": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "11": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "12": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      }
-    },
-    "has_character": false,
-    "has_pet": false,
-    "gold_claimed": true,
-    "gem_claimed": true,
-    "giftcode_done": true,
-    "disciple_claimed": true
-  },
-  "poopooi08": {
-    "username": "poopooi08",
-    "steps": {
-      "1": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "2": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "3": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "4": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "5": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "6": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "7": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "8": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "9": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "10": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "11": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "12": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      }
-    },
-    "has_character": false,
-    "has_pet": false,
-    "gold_claimed": true,
-    "gem_claimed": true,
-    "giftcode_done": true,
-    "disciple_claimed": true
-  },
-  "poopooi09": {
-    "username": "poopooi09",
-    "steps": {
-      "1": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "2": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "3": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "4": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "5": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "6": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "7": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "8": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "9": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "10": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "11": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "12": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      }
-    },
-    "has_character": false,
-    "has_pet": false,
-    "gold_claimed": true,
-    "gem_claimed": true,
-    "giftcode_done": true,
-    "disciple_claimed": true
-  },
-  "poopooi10": {
-    "username": "poopooi10",
-    "steps": {
-      "1": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "2": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "3": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "4": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "5": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "6": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "7": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "8": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "9": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "10": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "11": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "12": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      }
-    },
-    "has_character": false,
-    "has_pet": false,
-    "gold_claimed": true,
-    "gem_claimed": true,
-    "giftcode_done": true,
-    "disciple_claimed": true
-  },
-  "poopooi07": {
-    "username": "poopooi07",
-    "steps": {
-      "1": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "2": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "3": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "4": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "5": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "6": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "7": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "8": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "9": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "10": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "11": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "12": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      }
-    },
-    "has_character": false,
-    "has_pet": false,
-    "gold_claimed": true,
-    "gem_claimed": true,
-    "giftcode_done": true,
-    "disciple_claimed": true
-  },
-  "poopooi11": {
-    "username": "poopooi11",
-    "steps": {
-      "1": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "2": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "3": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "4": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "5": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "6": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "7": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "8": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "9": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "10": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "11": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      },
-      "12": {
-        "completed": true,
-        "skipped": false,
-        "retry_count": 0,
-        "error": ""
-      }
-    },
-    "has_character": false,
-    "has_pet": false,
-    "gold_claimed": true,
-    "gem_claimed": true,
-    "giftcode_done": true,
-    "disciple_claimed": true
-  },
   "poopooi12": {
     "username": "poopooi12",
     "steps": {
@@ -531,7 +33,7 @@
         "error": ""
       },
       "6": {
-        "completed": false,
+        "completed": true,
         "skipped": false,
         "retry_count": 0,
         "error": ""
@@ -573,7 +75,7 @@
         "error": ""
       }
     },
-    "has_character": false,
+    "has_character": true,
     "has_pet": false,
     "gold_claimed": true,
     "gem_claimed": true,
@@ -614,7 +116,7 @@
         "error": ""
       },
       "6": {
-        "completed": false,
+        "completed": true,
         "skipped": false,
         "retry_count": 0,
         "error": ""
@@ -656,7 +158,7 @@
         "error": ""
       }
     },
-    "has_character": false,
+    "has_character": true,
     "has_pet": false,
     "gold_claimed": true,
     "gem_claimed": true,
@@ -697,7 +199,7 @@
         "error": ""
       },
       "6": {
-        "completed": false,
+        "completed": true,
         "skipped": false,
         "retry_count": 0,
         "error": ""
@@ -739,7 +241,7 @@
         "error": ""
       }
     },
-    "has_character": false,
+    "has_character": true,
     "has_pet": false,
     "gold_claimed": true,
     "gem_claimed": true,
@@ -822,7 +324,1003 @@
         "error": ""
       }
     },
-    "has_character": false,
+    "has_character": true,
+    "has_pet": false,
+    "gold_claimed": true,
+    "gem_claimed": true,
+    "giftcode_done": true,
+    "disciple_claimed": true
+  },
+  "poopooi06": {
+    "username": "poopooi06",
+    "steps": {
+      "1": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "2": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "3": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "4": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "5": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "6": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "7": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "8": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "9": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "10": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "11": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": "Failed after retries"
+      },
+      "12": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      }
+    },
+    "has_character": true,
+    "has_pet": false,
+    "gold_claimed": true,
+    "gem_claimed": true,
+    "giftcode_done": true,
+    "disciple_claimed": true
+  },
+  "poopooi07": {
+    "username": "poopooi07",
+    "steps": {
+      "1": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "2": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "3": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "4": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "5": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "6": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "7": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "8": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "9": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "10": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "11": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": "Failed after retries"
+      },
+      "12": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      }
+    },
+    "has_character": true,
+    "has_pet": false,
+    "gold_claimed": true,
+    "gem_claimed": true,
+    "giftcode_done": true,
+    "disciple_claimed": true
+  },
+  "poopooi08": {
+    "username": "poopooi08",
+    "steps": {
+      "1": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "2": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "3": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "4": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "5": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "6": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "7": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "8": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "9": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "10": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "11": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": "Failed after retries"
+      },
+      "12": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      }
+    },
+    "has_character": true,
+    "has_pet": false,
+    "gold_claimed": true,
+    "gem_claimed": true,
+    "giftcode_done": true,
+    "disciple_claimed": true
+  },
+  "poopooi09": {
+    "username": "poopooi09",
+    "steps": {
+      "1": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "2": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "3": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "4": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "5": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "6": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "7": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "8": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "9": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "10": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "11": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": "Failed after retries"
+      },
+      "12": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      }
+    },
+    "has_character": true,
+    "has_pet": false,
+    "gold_claimed": true,
+    "gem_claimed": true,
+    "giftcode_done": true,
+    "disciple_claimed": true
+  },
+  "poopooi10": {
+    "username": "poopooi10",
+    "steps": {
+      "1": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "2": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "3": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "4": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "5": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "6": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "7": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "8": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "9": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "10": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "11": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": "Failed after retries"
+      },
+      "12": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      }
+    },
+    "has_character": true,
+    "has_pet": false,
+    "gold_claimed": true,
+    "gem_claimed": true,
+    "giftcode_done": true,
+    "disciple_claimed": true
+  },
+  "poopooi11": {
+    "username": "poopooi11",
+    "steps": {
+      "1": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "2": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "3": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "4": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "5": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "6": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "7": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "8": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "9": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "10": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "11": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": "Failed after retries"
+      },
+      "12": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      }
+    },
+    "has_character": true,
+    "has_pet": false,
+    "gold_claimed": true,
+    "gem_claimed": true,
+    "giftcode_done": true,
+    "disciple_claimed": true
+  },
+  "poopooi16": {
+    "username": "poopooi16",
+    "steps": {
+      "1": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "2": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "3": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "4": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "5": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "6": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "7": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "8": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "9": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "10": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "11": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "12": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      }
+    },
+    "has_character": true,
+    "has_pet": false,
+    "gold_claimed": true,
+    "gem_claimed": true,
+    "giftcode_done": true,
+    "disciple_claimed": true
+  },
+  "poopooi17": {
+    "username": "poopooi17",
+    "steps": {
+      "1": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "2": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "3": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "4": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "5": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "6": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "7": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "8": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "9": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "10": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "11": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "12": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      }
+    },
+    "has_character": true,
+    "has_pet": false,
+    "gold_claimed": true,
+    "gem_claimed": true,
+    "giftcode_done": true,
+    "disciple_claimed": true
+  },
+  "poopooi18": {
+    "username": "poopooi18",
+    "steps": {
+      "1": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "2": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "3": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "4": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "5": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "6": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "7": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "8": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "9": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "10": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "11": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "12": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      }
+    },
+    "has_character": true,
+    "has_pet": false,
+    "gold_claimed": true,
+    "gem_claimed": true,
+    "giftcode_done": true,
+    "disciple_claimed": true
+  },
+  "poopooi19": {
+    "username": "poopooi19",
+    "steps": {
+      "1": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "2": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "3": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "4": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "5": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "6": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "7": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "8": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "9": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "10": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "11": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "12": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      }
+    },
+    "has_character": true,
+    "has_pet": false,
+    "gold_claimed": true,
+    "gem_claimed": true,
+    "giftcode_done": true,
+    "disciple_claimed": true
+  },
+  "poopooi20": {
+    "username": "poopooi20",
+    "steps": {
+      "1": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "2": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "3": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "4": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "5": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "6": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "7": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "8": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "9": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "10": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "11": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "12": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      }
+    },
+    "has_character": true,
+    "has_pet": false,
+    "gold_claimed": true,
+    "gem_claimed": true,
+    "giftcode_done": true,
+    "disciple_claimed": true
+  },
+  "poopooi21": {
+    "username": "poopooi21",
+    "steps": {
+      "1": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "2": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "3": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "4": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "5": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "6": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "7": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "8": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "9": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "10": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "11": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "12": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      }
+    },
+    "has_character": true,
     "has_pet": false,
     "gold_claimed": true,
     "gem_claimed": true,

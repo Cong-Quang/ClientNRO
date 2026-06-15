@@ -200,6 +200,38 @@ class ShowCommand(TargetedCommand):
                 print_items(getattr(char, 'arr_item_box', []), f"Rương Đồ (Box) - {len([i for i in getattr(char, 'arr_item_box', []) if i])} món")
                 print()
 
+            elif sub == "equip" or sub == "trangbi":
+                # Hiển thị trạng thái trang bị (sao, lỗ, index)
+                from commands.setup.combine_helper import CombineHelper
+                from commands.setup.constants import ITEM_EQUIP, UPGRADE_TIMES_PER_PIECE
+
+                await account.service.request_me_info()
+                await asyncio.sleep(0.3)
+
+                helper = CombineHelper(account, lambda msg: print(f"[{self.C.YELLOW}{account.username}{self.C.RESET}] {msg}"))
+                B = Box
+
+                print()
+                print(f"[{self.C.YELLOW}{account.username}{self.C.RESET}] {self.C.CYAN}=== Trạng Thái Trang Bị (Ép Sao) ==={self.C.RESET}")
+
+                for item_id in ITEM_EQUIP:
+                    info = helper.check_item_slots(item_id, UPGRADE_TIMES_PER_PIECE)
+                    items = info["items"]
+                    max_s = info["max_stars"]
+                    ok = f"{self.C.GREEN}✓{self.C.RESET}" if info["filled"] == info["total"] and max_s >= UPGRADE_TIMES_PER_PIECE else f"{self.C.YELLOW}✗{self.C.RESET}"
+
+                    if items:
+                        print(f"{ok} {self.C.CYAN}Item {item_id}{self.C.RESET}: {info['total']} cái, sao_max={max_s}/{UPGRADE_TIMES_PER_PIECE}")
+                        for it in items:
+                            s = it["stars"]
+                            sym = f"{self.C.GREEN}✓{self.C.RESET}" if s >= UPGRADE_TIMES_PER_PIECE else f"{self.C.YELLOW}✗{self.C.RESET}"
+                            name = it["info"][:35] if it["info"] else f"Item {item_id}"
+                            print(f"    {sym} idx={it['index']:>3}  sao={s:>2}/{UPGRADE_TIMES_PER_PIECE}  {name}")
+                    else:
+                        print(f"{self.C.DIM}  Item {item_id}: không có trong balo{self.C.RESET}")
+
+                print()
+
             else:
                 print(f"[{self.C.YELLOW}{account.username}{self.C.RESET}] Lệnh show con không xác định: {sub}")
         else:
