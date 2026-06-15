@@ -65,7 +65,7 @@ async def buy_bua(acc, log_func) -> bool:
             await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=3.0)
         except asyncio.TimeoutError:
             pass
-        await asyncio.sleep(0.15)
+        await asyncio.sleep(0.2)
         opts = ctrl.last_ui_options or []
         log_func(f"{C.DIM}→ Menu lần 2: {opts}{C.RESET}")
 

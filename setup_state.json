@@ -164,19 +164,19 @@
         "error": ""
       },
       "12": {
-        "completed": false,
+        "completed": true,
         "skipped": false,
         "retry_count": 0,
         "error": ""
       },
       "13": {
-        "completed": false,
+        "completed": true,
         "skipped": false,
         "retry_count": 0,
         "error": ""
       },
       "14": {
-        "completed": false,
+        "completed": true,
         "skipped": false,
         "retry_count": 0,
         "error": ""
@@ -254,6 +254,101 @@
       },
       "11": {
         "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "12": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "13": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "14": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      }
+    },
+    "has_character": false,
+    "has_pet": false,
+    "gold_claimed": true,
+    "gem_claimed": true,
+    "giftcode_done": true,
+    "disciple_claimed": true
+  },
+  "poopooi09": {
+    "username": "poopooi09",
+    "steps": {
+      "1": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "2": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "3": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "4": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "5": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "6": {
+        "completed": true,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "7": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "8": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "9": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "10": {
+        "completed": false,
+        "skipped": false,
+        "retry_count": 0,
+        "error": ""
+      },
+      "11": {
+        "completed": false,
         "skipped": false,
         "retry_count": 0,
         "error": ""

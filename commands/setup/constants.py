@@ -28,9 +28,9 @@ ALL_STEPS = [
     STEP_EQUIP_MASTER, STEP_EQUIP_PET,
 ]
 
-# Server MAX_STAR = 9 (EpSaoTrangBi.MAX_STAR)
-# Mỗi star Item 16 cho +3% sức đánh (option 50 param=3), 9 stars = 27% sức đánh
-UPGRADE_TIMES_PER_PIECE = 9
+# Server MAX_STAR = 10 (EpSaoTrangBi.MAX_STAR)
+# Mỗi star Item 16 cho +3% sức đánh (option 50 param=3), 10 stars = 30% sức đánh
+UPGRADE_TIMES_PER_PIECE = 10
 
 STEP_LABELS = {
     STEP_CREATE_CHAR: "Tạo nhân vật",
@@ -94,8 +94,10 @@ BUA_ITEM_IDS = [213, 214, 215, 216, 217, 218, 219, 522, 671, 672]
 
 # ── Santa shop items ─────────────────────────
 
-SANTA_ITEM_HO_TRO = [(517, 100), (518, 50)]       # Tab hỗ trợ
-SANTA_ITEM_DAC_BIET = [(402, 20), (403, 20)]        # Tab đặc biệt (mua 20 món mỗi loại)
+SANTA_ITEM_HO_TRO = [
+    (517, 100), (518, 50),  # Các item hỗ trợ cơ bản
+    (402, 20), (403, 20)   # Sách kĩ năng đệ tử (nằm trong Cửa hàng Hỗ trợ)
+]
 SANTA_ITEM_USE = [(402, 6), (403, 6)]              # Dùng 6 lần mỗi item sau khi mua
 SANTA_NO_BAG_ITEMS = {517, 518}          # Items không vào balo (bay, pet, sách...)
 

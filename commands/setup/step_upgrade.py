@@ -264,52 +264,38 @@ async def upgrade_other_items(acc, log_func, C=None) -> bool:
         if not acc.is_logged_in:
             return False
 
-        # Tìm tất cả bản sao
-        all_copies = []
-        for idx, item in enumerate(acc.char.arr_item_bag or []):
-            if item is not None and item.item_id == item_id:
-                stars = svc.get_item_star_at_index(idx)
-                all_copies.append((idx, stars))
-
-        if not all_copies:
-            log_func(f"{C.DIM}→ Item {item_id}: không có trong balo.{C.RESET}")
-            continue
-
-        copies_to_upgrade = all_copies
-
-        need_any = any(stars < UPGRADE_TIMES_PER_PIECE for _, stars in copies_to_upgrade)
-        if not need_any:
-            log_func(f"{C.GREEN}→ Item {item_id}: tất cả đã đủ sao, bỏ qua.{C.RESET}")
-            continue
-
-        item16_count = svc.count_item(ITEM_UPGRADE_16)
-        if item16_count < 1:
-            log_func(f"{C.YELLOW}→ Item {item_id}: hết Item 16.{C.RESET}")
-            continue
-
-        log_func(f"{C.DIM}→ Item {item_id}: {len(copies_to_upgrade)} bản sao cần ép "
-                 f"({', '.join(f'idx {idx}={s}⭐' for idx, s in copies_to_upgrade)})."
-                 f" Item 16: {item16_count}.{C.RESET}")
-
-        for copy_idx, current_stars in copies_to_upgrade:
+        # Duyệt qua từng bản sao một cách an toàn: tìm, ép, refresh, tìm tiếp
+        while True:
             if not acc.is_logged_in:
                 return False
 
-            if current_stars >= UPGRADE_TIMES_PER_PIECE:
-                continue
-
-            need = UPGRADE_TIMES_PER_PIECE - current_stars
-            item16_now = svc.count_item(ITEM_UPGRADE_16)
-            if item16_now < 1:
-                log_func(f"{C.YELLOW}  → Hết Item 16 cho idx {copy_idx}.{C.RESET}")
+            await refresh_inventory(acc)
+            
+            # Tìm 1 bản sao chưa đủ sao
+            copy_idx = -1
+            current_stars = 0
+            for idx, item in enumerate(acc.char.arr_item_bag or []):
+                if item is not None and item.item_id == item_id:
+                    stars = svc.get_item_star_at_index(idx)
+                    if stars < UPGRADE_TIMES_PER_PIECE:
+                        copy_idx = idx
+                        current_stars = stars
+                        break
+            
+            if copy_idx < 0:
+                # Đã hết bản sao cần ép cho loại item này
                 break
 
+            item16_now = svc.count_item(ITEM_UPGRADE_16)
+            if item16_now < 1:
+                log_func(f"{C.YELLOW}→ Item {item_id}: hết Item 16.{C.RESET}")
+                break
+
+            need = UPGRADE_TIMES_PER_PIECE - current_stars
             max_up = min(need, item16_now)
-            if max_up <= 0:
-                continue
 
             log_func(f"{C.DIM}  → Ép idx {copy_idx} (sao: {current_stars}→{UPGRADE_TIMES_PER_PIECE}/{UPGRADE_TIMES_PER_PIECE}), "
-                     f"x{max_up} lần (ép từng cái một)...{C.RESET}")
+                     f"x{max_up} lần...{C.RESET}")
 
             done = await _upgrade_one_by_one(
                 svc, acc, log_func, C,
@@ -326,6 +312,8 @@ async def upgrade_other_items(acc, log_func, C=None) -> bool:
             else:
                 overall_ok = False
                 log_func(f"{C.YELLOW}    ✗ idx {copy_idx}: không ép được.{C.RESET}")
+                # Tránh lặp vô tận nếu lỗi, nhảy sang bản sao khác hoặc thoát
+                break
 
     # ── Set 2: Item 12 đặc biệt (442 hút ki + 441 hút HP) ──
     # Mỗi copy rada: 2x442 + 8x441
@@ -391,6 +379,18 @@ async def upgrade_other_items(acc, log_func, C=None) -> bool:
             if not acc.is_logged_in:
                 break
             await refresh_inventory(acc)
+
+            # Re-find copy_idx in case of shifts
+            new_idx = -1
+            for idx, item in enumerate(acc.char.arr_item_bag or []):
+                if item is not None and item.item_id == ITEM_12:
+                    opts = {o.option_template_id: o.param for o in (item.item_option or [])}
+                    if opts.get(96, 0) < 10:
+                        new_idx = idx
+                        break
+            if new_idx >= 0:
+                copy_idx = new_idx
+            
             if svc.count_item(ITEM_442) < 1:
                 log_func(f"{C.YELLOW}    Hết 442 ở lần {i+1}/{need_442_qty}.{C.RESET}")
                 break
@@ -411,6 +411,18 @@ async def upgrade_other_items(acc, log_func, C=None) -> bool:
             if not acc.is_logged_in:
                 break
             await refresh_inventory(acc)
+
+            # Re-find copy_idx in case of shifts
+            new_idx = -1
+            for idx, item in enumerate(acc.char.arr_item_bag or []):
+                if item is not None and item.item_id == ITEM_12:
+                    opts = {o.option_template_id: o.param for o in (item.item_option or [])}
+                    if opts.get(95, 0) < 40:
+                        new_idx = idx
+                        break
+            if new_idx >= 0:
+                copy_idx = new_idx
+
             if svc.count_item(ITEM_441) < 1:
                 log_func(f"{C.YELLOW}    Hết 441 ở lần {i+1}/{need_441_qty}.{C.RESET}")
                 break

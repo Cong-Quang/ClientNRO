@@ -70,14 +70,14 @@ def is_item_upgraded(item) -> bool:
 def is_item_fully_upgraded(item) -> bool:
     """Kiểm tra item đã được ép FULL chưa (đầy đủ các sao/chỉ số cần thiết).
     - Item 12 (rada): phải đạt tối thiểu option 95 >= 40 (40% hút HP) và option 96 >= 10 (10% hút KI)
-    - Các items khác (1,7,22,28): phải có option 102 >= 9 (9 sao = MAX_STAR trên server)
+    - Các items khác (1,7,22,28): phải có option 102 >= 10 (10 sao = 30% sức đánh)
     """
     if item is None or not item.item_option:
         return False
     opts = {o.option_template_id: o.param for o in item.item_option}
     if item.item_id == 12:
         return opts.get(95, 0) >= 40 and opts.get(96, 0) >= 10
-    return opts.get(102, 0) >= 9
+    return opts.get(102, 0) >= 10
 
 
 class CombineService:

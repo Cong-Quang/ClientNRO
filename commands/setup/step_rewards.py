@@ -172,7 +172,7 @@ async def _claim_gold(acc, log_func):
 
             try:
                 await acc.service.request_me_info()
-                await asyncio.sleep(0.15)
+                await asyncio.sleep(0.2)
             except Exception:
                 pass
 

@@ -50,8 +50,11 @@ async def activate_items(acc, log_func) -> bool:
                         await acc.service.use_item(1, 1, idx, -1)
                         log_func(f"{C.GREEN}→ Đã mặc cải trang item {item_id}.{C.RESET}")
                     else:
-                        await acc.service.use_item(0, 1, idx, -1)
-                        log_func(f"{C.GREEN}→ Đã dùng item {item_id}.{C.RESET}")
+                        # Dùng get_item(type=4) để mặc trực tiếp cho sư phụ nếu là trang bị, 
+                        # hoặc dùng bình thường nếu là consumable.
+                        # Hầu hết ACTIVATE_ITEMS_ONCE là trang bị thưởng.
+                        await acc.service.get_item(4, idx)
+                        log_func(f"{C.GREEN}→ Đã kích hoạt/mặc item {item_id}.{C.RESET}")
                 except Exception as e:
                     log_func(f"{C.RED}→ Lỗi xử lý item {item_id}: {e}{C.RESET}")
                 break

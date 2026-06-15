@@ -415,8 +415,16 @@ class XMap:
             await self.update()
             await asyncio.sleep(0.01)
 
+    def stop(self):
+        """Dừng tiến trình XMap một cách chủ động (dùng cho NavigationService)"""
+        self.is_xmapping = False
+        self.processing_map_change = False
+
     def finish(self):
         """Kết thúc XMap và hiển thị lộ trình đã đi"""
+        if not self.is_xmapping:
+            return
+            
         self.is_xmapping = False
         self.processing_map_change = False
         username = getattr(self.controller.account, 'username', 'Unknown')

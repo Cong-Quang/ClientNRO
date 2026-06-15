@@ -177,13 +177,6 @@
         "functions": [],
         "classes": []
     },
-    "project_summary.md": {
-        "file_name": "project_summary.md",
-        "extension": ".md",
-        "abs_path": "project_summary.md",
-        "functions": [],
-        "classes": []
-    },
     "proxy.txt": {
         "file_name": "proxy.txt",
         "extension": ".txt",
@@ -1543,62 +1536,62 @@
             {
                 "name": "SetupAccountsCommand",
                 "docstring": "Lệnh tự động setup tài khoản mới — dựa trên state machine.",
-                "lineno": 59,
+                "lineno": 67,
                 "methods": [
                     {
                         "name": "__init__",
                         "args": "manager",
                         "type": "method",
-                        "lineno": 62,
+                        "lineno": 70,
                         "docstring": ""
                     },
                     {
                         "name": "_log",
                         "args": "acc, msg: str",
                         "type": "method",
-                        "lineno": 70,
+                        "lineno": 78,
                         "docstring": ""
                     },
                     {
                         "name": "_step_log",
                         "args": "acc, step: int, msg: str",
                         "type": "method",
-                        "lineno": 76,
+                        "lineno": 84,
                         "docstring": ""
                     },
                     {
                         "name": "execute",
                         "args": "*args, **kwargs",
                         "type": "async_method",
-                        "lineno": 82,
+                        "lineno": 90,
                         "docstring": ""
                     },
                     {
                         "name": "_setup_one",
-                        "args": "acc, idx, end_idx, force",
+                        "args": "acc, idx, end_idx, force, start_step",
                         "type": "async_method",
-                        "lineno": 152,
+                        "lineno": 177,
                         "docstring": ""
                     },
                     {
                         "name": "_run_step",
                         "args": "acc, step: int, force: bool",
                         "type": "async_method",
-                        "lineno": 204,
+                        "lineno": 241,
                         "docstring": "Dispatch tới step handler tương ứng."
                     },
                     {
                         "name": "_ensure_logged_in",
                         "args": "acc, C",
                         "type": "async_method",
-                        "lineno": 238,
+                        "lineno": 279,
                         "docstring": ""
                     },
                     {
                         "name": "_wait_game_ready",
                         "args": "acc, C, timeout",
                         "type": "async_method",
-                        "lineno": 253,
+                        "lineno": 294,
                         "docstring": ""
                     }
                 ]
@@ -1685,6 +1678,13 @@
         "functions": [],
         "classes": []
     },
+    "commands/setup/combine_helper.py": {
+        "file_name": "combine_helper.py",
+        "extension": ".py",
+        "abs_path": "commands/setup/combine_helper.py",
+        "functions": [],
+        "classes": []
+    },
     "commands/setup/constants.py": {
         "file_name": "constants.py",
         "extension": ".py",
@@ -1698,73 +1698,31 @@
         "abs_path": "commands/setup/inventory_helpers.py",
         "functions": [
             {
-                "name": "count_item",
-                "args": "acc, item_id: int",
-                "type": "function",
-                "lineno": 19,
-                "docstring": "Đếm số lượng item theo ID trong balo."
-            },
-            {
-                "name": "find_item_index",
-                "args": "acc, item_id: int",
-                "type": "function",
-                "lineno": 28,
-                "docstring": "Tìm index đầu tiên của item trong balo. Trả về -1 nếu không tìm thấy."
-            },
-            {
-                "name": "find_item_indices",
-                "args": "acc, item_id: int, quantity: int",
-                "type": "function",
-                "lineno": 36,
-                "docstring": "Tìm nhiều index của item trong balo."
-            },
-            {
-                "name": "has_item",
-                "args": "acc, item_id: int",
-                "type": "function",
-                "lineno": 47,
-                "docstring": "Kiểm tra có item trong balo không."
-            },
-            {
-                "name": "count_item_by_ids",
-                "args": "acc, item_ids: list[int]",
-                "type": "function",
-                "lineno": 55,
-                "docstring": "Đếm số lượng nhiều item IDs cùng lúc. Trả về {item_id: count}."
-            },
-            {
-                "name": "refresh_inventory",
-                "args": "acc",
-                "type": "async_function",
-                "lineno": 64,
-                "docstring": "Refresh lại thông tin inventory từ server."
-            },
-            {
                 "name": "count_beans",
                 "args": "acc",
                 "type": "function",
-                "lineno": 75,
+                "lineno": 24,
                 "docstring": "Đếm tổng số đậu thần trong balo."
             },
             {
                 "name": "has_giftcode_items",
                 "args": "acc",
                 "type": "function",
-                "lineno": 84,
+                "lineno": 33,
                 "docstring": "Kiểm tra có item giftcode trong balo không."
             },
             {
                 "name": "count_bua_items",
                 "args": "acc",
                 "type": "function",
-                "lineno": 92,
+                "lineno": 41,
                 "docstring": "Đếm số loại bùa đã có trong balo."
             },
             {
                 "name": "count_set_lien_hoan",
                 "args": "acc",
                 "type": "function",
-                "lineno": 101,
+                "lineno": 50,
                 "docstring": "Đếm số set trang bị Liên Hoàn (min của items 1,16,22,28,12)."
             }
         ],
@@ -1774,109 +1732,15 @@
         "file_name": "navigation_helpers.py",
         "extension": ".py",
         "abs_path": "commands/setup/navigation_helpers.py",
-        "functions": [
-            {
-                "name": "find_npc",
-                "args": "acc, npc_id: int",
-                "type": "function",
-                "lineno": 17,
-                "docstring": "Tìm NPC theo template_id trong bản đồ hiện tại."
-            },
-            {
-                "name": "find_npc_by_name",
-                "args": "acc, name: str",
-                "type": "function",
-                "lineno": 28,
-                "docstring": "Tìm NPC theo tên (không phân biệt hoa thường)."
-            },
-            {
-                "name": "teleport_to_npc",
-                "args": "acc, npc_id: int, y_offset: int",
-                "type": "async_function",
-                "lineno": 40,
-                "docstring": "Teleport đến gần NPC. Thử tìm trong bản đồ trước, fallback movement service."
-            },
-            {
-                "name": "open_menu_npc",
-                "args": "acc, npc_id: int, timeout: float",
-                "type": "async_function",
-                "lineno": 60,
-                "docstring": "Mở menu NPC, trả về danh sách tùy chọn (list[str])."
-            },
-            {
-                "name": "confirm_menu_npc",
-                "args": "acc, npc_id: int, option_idx: int, wait_next: bool, timeout: float",
-                "type": "async_function",
-                "lineno": 73,
-                "docstring": "Xác nhận tùy chọn trong menu NPC. Nếu wait_next=True thì đợi menu tiếp theo."
-            },
-            {
-                "name": "open_input_form",
-                "args": "acc, npc_id: int, option_idx: int, timeout: float",
-                "type": "async_function",
-                "lineno": 91,
-                "docstring": "Mở menu NPC → chọn option → đợi input form xuất hiện."
-            },
-            {
-                "name": "find_menu_option",
-                "args": "options: list[str], *keywords",
-                "type": "function",
-                "lineno": 112,
-                "docstring": "Tìm index tùy chọn trong menu chứa bất kỳ từ khóa nào. Trả về -1 nếu không."
-            },
-            {
-                "name": "go_home",
-                "args": "acc, log_func",
-                "type": "async_function",
-                "lineno": 124,
-                "docstring": "Di chuyển về nhà theo giới tính nhân vật."
-            },
-            {
-                "name": "move_to_map",
-                "args": "acc, target_map_id: int, log_func",
-                "type": "async_function",
-                "lineno": 152,
-                "docstring": "Di chuyển đến map theo ID bằng xmap."
-            }
-        ],
+        "functions": [],
         "classes": []
     },
     "commands/setup/retry_utils.py": {
         "file_name": "retry_utils.py",
         "extension": ".py",
         "abs_path": "commands/setup/retry_utils.py",
-        "functions": [
-            {
-                "name": "run_with_timeout",
-                "args": "coro: Awaitable, timeout: float, default_return",
-                "type": "async_function",
-                "lineno": 23,
-                "docstring": "Chạy coroutine với timeout, trả về default nếu timeout."
-            },
-            {
-                "name": "retry_operation",
-                "args": "acc, log_func, label: str, coro_factory: Callable, config: RetryConfig, timeout: float",
-                "type": "async_function",
-                "lineno": 32,
-                "docstring": "Retry wrapper: thực thi coroutine với retry + timeout + backoff.\nArgs:\n    acc: Account object (kiểm tra is_logged_in)\n    log_func: Hàm log (acc, msg)\n    label: Nhãn thao tác (dùng trong log)\n    coro_factory: Hàm trả về coroutine cần thực thi\n    config: Cấu hình retry\n    timeout: Timeout cho mỗi lần thử (giây)\nReturns:\n    True nếu thành công, False nếu thất bại sau tất cả retry"
-            }
-        ],
-        "classes": [
-            {
-                "name": "RetryConfig",
-                "docstring": "Cấu hình retry cho mỗi thao tác.",
-                "lineno": 13,
-                "methods": [
-                    {
-                        "name": "__init__",
-                        "args": "max_attempts: int, base_delay: float, max_delay: float, backoff: float",
-                        "type": "method",
-                        "lineno": 15,
-                        "docstring": ""
-                    }
-                ]
-            }
-        ]
+        "functions": [],
+        "classes": []
     },
     "commands/setup/state_manager.py": {
         "file_name": "state_manager.py",
@@ -1998,7 +1862,7 @@
                 "name": "_activate_item_2000",
                 "args": "acc, ctrl, log_func",
                 "type": "async_function",
-                "lineno": 58,
+                "lineno": 62,
                 "docstring": "Dùng item 2000, chọn \"Set Liên Hoàn\".\nKiểm tra balo trước: nếu đã đủ 2 set thì bỏ qua.\nMỗi lần mở item 2000 sẽ hiện menu với nhiều set, phải chọn đúng \"Set Liên Hoàn\"."
             }
         ],
@@ -2013,7 +1877,7 @@
                 "name": "buy_bua",
                 "args": "acc, log_func",
                 "type": "async_function",
-                "lineno": 13,
+                "lineno": 17,
                 "docstring": "Mua bùa tại Bà Hạt Mít (Vách Núi Moori)."
             }
         ],
@@ -2029,14 +1893,44 @@
                 "args": "acc, log_func",
                 "type": "async_function",
                 "lineno": 17,
-                "docstring": "Tạo nhân vật mới nếu chưa có.\nTên nhân vật: hentz + hậu tố số từ username.\nSuppress auto-creation trong misc_handler để tránh race condition."
+                "docstring": "Tạo nhân vật mới nếu chưa có.\nĐợi character data load xong sau login (tối đa 15s) trước khi quyết định."
             },
             {
                 "name": "select_character",
                 "args": "acc, log_func",
                 "type": "async_function",
-                "lineno": 81,
+                "lineno": 98,
                 "docstring": "Chọn nhân vật mặc định và vào game.\nĐợi cho đến khi map_id > 0 và c_power > 0."
+            }
+        ],
+        "classes": []
+    },
+    "commands/setup/step_equip_master.py": {
+        "file_name": "step_equip_master.py",
+        "extension": ".py",
+        "abs_path": "commands/setup/step_equip_master.py",
+        "functions": [
+            {
+                "name": "equip_master",
+                "args": "acc, log_func, C",
+                "type": "async_function",
+                "lineno": 16,
+                "docstring": "Mặc đồ cho sư phụ: tìm bản sao đã ép của mỗi item và equip lên body.\nChỉ equip items đã ép (có option 102 hoặc 95/96)."
+            }
+        ],
+        "classes": []
+    },
+    "commands/setup/step_equip_pet.py": {
+        "file_name": "step_equip_pet.py",
+        "extension": ".py",
+        "abs_path": "commands/setup/step_equip_pet.py",
+        "functions": [
+            {
+                "name": "equip_pet",
+                "args": "acc, log_func, C",
+                "type": "async_function",
+                "lineno": 17,
+                "docstring": "Mặc đồ cho đệ tử: tìm bản sao đã ép của mỗi item và đưa cho đệ tử.\nChỉ đưa items đã ép."
             }
         ],
         "classes": []
@@ -2065,29 +1959,29 @@
                 "name": "wait_giftcode_response",
                 "args": "acc, ctrl, log_func, timeout: float",
                 "type": "async_function",
-                "lineno": 26,
-                "docstring": "Đợi phản hồi server sau khi gửi giftcode.\nXử lý race condition: nếu message không liên quan → chờ message tiếp.\nReturns: (status, detail)其中 status: 'success'|'used'|'expired'|'invalid'|'unknown'"
+                "lineno": 20,
+                "docstring": "Tương thích ngược: gọi GiftcodeService.wait_response."
             },
             {
                 "name": "check_giftcode_items",
                 "args": "acc, log_func",
                 "type": "async_function",
-                "lineno": 72,
-                "docstring": "Kiểm tra item 1680 trong inventory sau khi nhận giftcode."
+                "lineno": 28,
+                "docstring": "Tương thích ngược: gọi GiftcodeService.check_reward_items."
             },
             {
                 "name": "submit_giftcode",
                 "args": "acc, npc_id: int, code: str, log_func",
                 "type": "async_function",
-                "lineno": 83,
-                "docstring": "Nhập giftcode tại NPC nhà (fallback tới Santa).\nCó thể tái sử dụng: truyền npc_id của bất kỳ NPC nào có chức năng giftcode."
+                "lineno": 34,
+                "docstring": "Tương thích ngược: gọi GiftcodeService.submit_giftcode.\nReturns True nếu thành công hoặc đã dùng."
             },
             {
                 "name": "_submit_giftcode_santa",
                 "args": "acc, code: str, log_func",
                 "type": "async_function",
-                "lineno": 132,
-                "docstring": "Nhập giftcode tại Santa (fallback khi NPC nhà không có)."
+                "lineno": 43,
+                "docstring": "Tương thích ngược: gọi GiftcodeService.submit_giftcode với Santa fallback."
             }
         ],
         "classes": []
@@ -2101,35 +1995,35 @@
                 "name": "open_muri",
                 "args": "acc, log_func",
                 "type": "async_function",
-                "lineno": 15,
+                "lineno": 18,
                 "docstring": "Teleport tới NPC Ông Muri và mở menu."
             },
             {
                 "name": "claim_rewards",
                 "args": "acc, state_mgr, log_func, force: bool",
                 "type": "async_function",
-                "lineno": 46,
-                "docstring": "Nhận thưởng: vàng miễn phí → ngọc miễn phí → giftcode → đệ tử miễn phí.\nKiểm tra state_mgr để tránh nhận trùng."
+                "lineno": 49,
+                "docstring": "Nhận thưởng: vàng miễn phí → ngọc miễn phí → giftcode → đệ tử miễn phí.\nKiểm tra state_mgr để tránh nhận trùng.\nGiftcode dùng GiftcodeService từ services/."
             },
             {
                 "name": "_claim_gold",
                 "args": "acc, log_func",
                 "type": "async_function",
-                "lineno": 113,
+                "lineno": 129,
                 "docstring": "Nhận vàng từ NPC nhà."
             },
             {
                 "name": "_claim_gem",
                 "args": "acc, npc_id, log_func",
                 "type": "async_function",
-                "lineno": 177,
+                "lineno": 193,
                 "docstring": "Nhận ngọc xanh miễn phí từ NPC nhà."
             },
             {
                 "name": "_claim_disciple",
                 "args": "acc, npc_id, log_func",
                 "type": "async_function",
-                "lineno": 213,
+                "lineno": 229,
                 "docstring": "Nhận đệ tử miễn phí từ NPC nhà."
             }
         ],
@@ -2144,7 +2038,7 @@
                 "name": "santa_shop",
                 "args": "acc, log_func",
                 "type": "async_function",
-                "lineno": 17,
+                "lineno": 18,
                 "docstring": "Mua item tại Santa shop (tab hỗ trợ + tab đặc biệt)."
             }
         ],
@@ -2160,7 +2054,7 @@
                 "args": "acc, log_func",
                 "type": "async_function",
                 "lineno": 14,
-                "docstring": "Dùng item hỗ trợ:\n- Item 1182: Dùng để nhận item 441. Nếu item 441 < 20, dùng 1182 cho đến khi đủ.\n- Item 1680: Nếu còn trong balo, dùng 1 lần."
+                "docstring": "Dùng item hỗ trợ:\n- Item 1182: Dùng để nhận item 441 và 442. Nếu item 441 < 20 hoặc 442 < 10, dùng 1182 cho đến khi đủ.\n- Item 1680: Nếu còn trong balo, dùng 1 lần."
             }
         ],
         "classes": []
@@ -2171,32 +2065,32 @@
         "abs_path": "commands/setup/step_upgrade.py",
         "functions": [
             {
-                "name": "open_ep_sao_trang_bi",
-                "args": "acc, log_func",
+                "name": "_upgrade_one_by_one",
+                "args": "svc, acc, log_func, C, item_id, copy_idx, target_stars, mat_id, mat_qty, max_total",
                 "type": "async_function",
-                "lineno": 19,
-                "docstring": "Mở giao diện Ép Sao Trang Bị tại Bà Hạt Mít (Đảo Kame, map 5).\nFlow: Di chuyển Đảo Kame → Teleport NPC → \"Chức năng pha lê\" → \"Ép Sao Trang Bị\""
-            },
-            {
-                "name": "do_one_upgrade",
-                "args": "acc, log_func, main_item_id: int, material_items: list[tuple[int, int]], max_upgrades: int, clear_between: bool",
-                "type": "async_function",
-                "lineno": 101,
-                "docstring": "Thực hiện nâng cấp một item tại Ép Sao Trang Bị.\nArgs:\n    main_item_id: ID item chính cần nâng cấp\n    material_items: [(item_id, quantity)] nguyên liệu\n    max_upgrades: Số lần nâng cấp tối đa\n    clear_between: True nếu cần clear items giữa các lần\nReturns:\n    Số lần nâng cấp thành công"
+                "lineno": 27,
+                "docstring": "Ép từng cái một, kiểm tra sao sau mỗi lần, retry nếu cần.\n\nArgs:\n    svc: CombineService instance\n    item_id: ID của trang bị cần ép\n    copy_idx: index trong balo\n    target_stars: số sao mục tiêu\n    mat_id: ID nguyên liệu\n    mat_qty: số lượng nguyên liệu mỗi lần ép (mặc định 1)\n    max_total: số lần ép tối đa\n    \nReturns: số sao đã ép thành công"
             },
             {
                 "name": "upgrade_item_16",
                 "args": "acc, log_func, C",
                 "type": "async_function",
-                "lineno": 227,
-                "docstring": "Nâng cấp item ID 16 tại Bà Hạt Mít (Ép Sao Trang Bị) 11 lần.\nMỗi lần: 1x ID 16 (chính) + 2x ID 1 (nguyên liệu)"
+                "lineno": 112,
+                "docstring": "Ép sao Item 1 (trang bị) bằng Item 16 (đá pha lê).\nServer EpSaoTrangBi.java yêu cầu đúng 2 items: 1 trangBi + 1 daPhaLe.\nMỗi lần combine: 1x Item 1 (equipment) + 1x Item 16 (crystal)."
+            },
+            {
+                "name": "_rada_combine_one",
+                "args": "svc, acc, log_func, C, copy_idx, mat_id, mat_label, use_item_upgrade",
+                "type": "async_function",
+                "lineno": 189,
+                "docstring": "Ép 1 lần cho rada với material 442 hoặc 441.\nĐảm bảo tab combine luôn mở trước khi gửi lệnh.\n\nArgs:\n    use_item_upgrade: True=dùng open_item_upgrade(), False=dùng open_combine()"
             },
             {
                 "name": "upgrade_other_items",
                 "args": "acc, log_func, C",
                 "type": "async_function",
-                "lineno": 278,
-                "docstring": "Nâng cấp các item còn lại:\n- ID 1, 22, 28: ép tối đa 10 lần mỗi item (mỗi lần 2x cùng item)\n- ID 12 first: 1x ID 12 + ID 16 đã ép\n- ID 12 second: 1x ID 12 + 2x ID 442 + 8x ID 441"
+                "lineno": 244,
+                "docstring": "Ép trang bị (items 1, 7, 22, 28, 12):\n- Set 1 (Item 16 sức đánh): items 1,7,22,28 — ALL copies\n  🔴 BỎ QUA Item 12 (rada) — rada chỉ ép 442+441 (hút ki + hút HP)\n- Set 2 (442 hút ki + 441 hút HP): TẤT CẢ copy của Item 12\n- Quan trọng: Mở combine 1 lần duy nhất, reuse cho tất cả các copy"
             }
         ],
         "classes": []
@@ -2451,112 +2345,112 @@
                         "name": "toggle_auto_quest",
                         "args": "enabled: bool",
                         "type": "method",
-                        "lineno": 100,
+                        "lineno": 104,
                         "docstring": "Bật hoặc tắt chế độ Auto Quest."
                     },
                     {
                         "name": "toggle_autoplay",
                         "args": "enabled: bool",
                         "type": "method",
-                        "lineno": 107,
+                        "lineno": 111,
                         "docstring": "Bật hoặc tắt chế độ AutoPlay; khi bật, thêm task AutoPlay vào `account.tasks` nếu có."
                     },
                     {
                         "name": "toggle_auto_pet",
                         "args": "enabled: bool",
                         "type": "method",
-                        "lineno": 116,
+                        "lineno": 120,
                         "docstring": "Bật hoặc tắt chế độ AutoPet; khi bật, thêm task AutoPet vào `account.tasks` nếu có."
                     },
                     {
                         "name": "toggle_auto_attack",
                         "args": "enabled: bool",
                         "type": "method",
-                        "lineno": 125,
+                        "lineno": 129,
                         "docstring": "Bật hoặc tắt Auto Attack (Universal - cho cả mobs và chars)"
                     },
                     {
                         "name": "toggle_auto_boss",
                         "args": "enabled: bool, boss_name: str",
                         "type": "method",
-                        "lineno": 137,
+                        "lineno": 141,
                         "docstring": "Bật hoặc tắt chế độ Auto Boss."
                     },
                     {
                         "name": "toggle_auto_item",
                         "args": "enabled: bool, item_id: int",
                         "type": "method",
-                        "lineno": 147,
+                        "lineno": 151,
                         "docstring": "Bật hoặc tắt chế độ Auto Item."
                     },
                     {
                         "name": "toggle_ai_agent",
                         "args": "enabled: bool",
                         "type": "method",
-                        "lineno": 159,
+                        "lineno": 163,
                         "docstring": "Bật hoặc tắt AI Agent (Neural Network control)"
                     },
                     {
                         "name": "on_message",
                         "args": "msg: Message",
                         "type": "method",
-                        "lineno": 182,
+                        "lineno": 186,
                         "docstring": "Chuyển tiếp tin nhắn theo `msg.command` đến handler tương ứng."
                     },
                     {
                         "name": "_handle_magic_tree",
                         "args": "msg: Message",
                         "type": "method",
-                        "lineno": 339,
+                        "lineno": 343,
                         "docstring": "Xử lý magic tree menu (Cmd -34 sub_cmd 1)."
                     },
                     {
                         "name": "_handle_input_form",
                         "args": "msg: Message",
                         "type": "method",
-                        "lineno": 357,
+                        "lineno": 361,
                         "docstring": "Xử lý input form từ server (Cmd -125)."
                     },
                     {
                         "name": "_handle_combine_msg",
                         "args": "msg: Message",
                         "type": "method",
-                        "lineno": 373,
+                        "lineno": 377,
                         "docstring": "Xử lý server combine message (Cmd -81).\nSub-types:\n  0 = OPEN_TAB_COMBINE (mở tab combine)\n  1 = REOPEN_TAB_COMBINE (mở lại tab combine)\n  2 = COMBINE_SUCCESS (ép thành công)\n  3 = COMBINE_FAIL (ép thất bại)\n  5 = COMBINE_DRAGON_BALL\n  6 = OPEN_ITEM"
                     },
                     {
                         "name": "eat_pea",
                         "args": "",
                         "type": "async_method",
-                        "lineno": 407,
+                        "lineno": 411,
                         "docstring": "Tìm và ăn đậu trong hành trang khi HP/MP thấp."
                     },
                     {
                         "name": "find_item_in_bag",
                         "args": "item_id: int",
                         "type": "method",
-                        "lineno": 411,
+                        "lineno": 415,
                         "docstring": "Tìm item trong hành trang và trả về danh sách kết quả."
                     },
                     {
                         "name": "use_item_by_id",
                         "args": "item_id: int, action_type: int",
                         "type": "async_method",
-                        "lineno": 415,
+                        "lineno": 419,
                         "docstring": "Tìm và thực hiện hành động với item theo ID."
                     },
                     {
                         "name": "attack_nearest_mob",
                         "args": "",
                         "type": "async_method",
-                        "lineno": 419,
+                        "lineno": 423,
                         "docstring": "Tấn công quái vật gần nhất một lần."
                     },
                     {
                         "name": "auto_upgrade_stats",
                         "args": "target_hp: int, target_mp: int, target_sd: int",
                         "type": "async_method",
-                        "lineno": 423,
+                        "lineno": 427,
                         "docstring": "Tự động cộng chỉ số tiềm năng cho đến khi đạt mục tiêu."
                     }
                 ]
@@ -2635,35 +2529,35 @@
                         "name": "process_power_info",
                         "args": "msg: Message",
                         "type": "method",
-                        "lineno": 210,
+                        "lineno": 261,
                         "docstring": "Xử lý thông tin sức mạnh (POWER_INFO -115)."
                     },
                     {
                         "name": "process_player_up_exp",
                         "args": "msg: Message",
                         "type": "method",
-                        "lineno": 223,
+                        "lineno": 274,
                         "docstring": "Xử lý cập nhật EXP/Sức mạnh theo loại gói tin PLAYER_UP_EXP."
                     },
                     {
                         "name": "process_item_buy",
                         "args": "msg: Message",
                         "type": "method",
-                        "lineno": 243,
+                        "lineno": 294,
                         "docstring": "Xử lý cập nhật tài sản khi mua/bán item (Cmd 6)."
                     },
                     {
                         "name": "process_me_change_coin",
                         "args": "msg: Message",
                         "type": "method",
-                        "lineno": 257,
+                        "lineno": 308,
                         "docstring": "Xử lý thay đổi xu từ server (Cmd -1)."
                     },
                     {
                         "name": "process_me_up_coin_bag",
                         "args": "msg: Message",
                         "type": "method",
-                        "lineno": 267,
+                        "lineno": 318,
                         "docstring": "Xử lý tăng/giảm xu trong hành trang trực tiếp (Cmd 95)."
                     }
                 ]
@@ -2749,21 +2643,21 @@
                         "name": "eat_pea",
                         "args": "",
                         "type": "async_method",
-                        "lineno": 242,
+                        "lineno": 245,
                         "docstring": "Tìm và ăn đậu trong hành trang khi HP/MP thấp."
                     },
                     {
                         "name": "find_item_in_bag",
                         "args": "item_id: int",
                         "type": "method",
-                        "lineno": 277,
+                        "lineno": 280,
                         "docstring": "Tìm item trong hành trang và trả về danh sách kết quả."
                     },
                     {
                         "name": "use_item_by_id",
                         "args": "item_id: int, action_type: int",
                         "type": "async_method",
-                        "lineno": 289,
+                        "lineno": 292,
                         "docstring": "Tìm và thực hiện hành động với item theo ID (sử dụng hoặc bán).\n:param item_id: ID template của item.\n:param action_type: 0 = Sử dụng, 1 = Bán."
                     }
                 ]
@@ -4939,7 +4833,7 @@
                         "name": "handle_walk_move",
                         "args": "next_map: NextMap",
                         "type": "async_method",
-                        "lineno": 908,
+                        "lineno": 910,
                         "docstring": ""
                     }
                 ]
@@ -5022,13 +4916,6 @@
                 ]
             }
         ]
-    },
-    "logs/setup_test_report.md": {
-        "file_name": "setup_test_report.md",
-        "extension": ".md",
-        "abs_path": "logs/setup_test_report.md",
-        "functions": [],
-        "classes": []
     },
     "macros/chia_khu.txt": {
         "file_name": "chia_khu.txt",
@@ -6505,6 +6392,28 @@
         "functions": [],
         "classes": []
     },
+    "scratch/inspect_bag.py": {
+        "file_name": "inspect_bag.py",
+        "extension": ".py",
+        "abs_path": "scratch/inspect_bag.py",
+        "functions": [
+            {
+                "name": "main",
+                "args": "",
+                "type": "async_function",
+                "lineno": 14,
+                "docstring": ""
+            }
+        ],
+        "classes": []
+    },
+    "scratch/search_log.py": {
+        "file_name": "search_log.py",
+        "extension": ".py",
+        "abs_path": "scratch/search_log.py",
+        "functions": [],
+        "classes": []
+    },
     "scripts/analyze_project.py": {
         "file_name": "analyze_project.py",
         "extension": ".py",
@@ -6527,12 +6436,367 @@
         ],
         "classes": []
     },
-    "scripts/project_structure.json": {
-        "file_name": "project_structure.json",
-        "extension": ".json",
-        "abs_path": "scripts/project_structure.json",
+    "services/combine_service.py": {
+        "file_name": "combine_service.py",
+        "extension": ".py",
+        "abs_path": "services/combine_service.py",
+        "functions": [
+            {
+                "name": "detect_star_option",
+                "args": "acc, item_id: int",
+                "type": "function",
+                "lineno": 30,
+                "docstring": "Tự động detect option_id cho sao pha lê.\nServer dùng:\n  - Option 102: ép sao (param = star count)\n  - Option 107: pha lê hóa hoặc max slots"
+            },
+            {
+                "name": "is_item_upgraded",
+                "args": "item",
+                "type": "function",
+                "lineno": 48,
+                "docstring": "Kiểm tra item đã được ép/chế tạo chưa.\n- Item 12 (rada): phải có option 95 (HP steal) hoặc 96 (KI steal)\n- Items 1,7,22,28: phải có option 102 > 0 (ép sao)\n\nDùng chung cho cả equip_master và equip_pet để tránh duplicate code.\n\nArgs:\n    item: Item object từ inventory (có item_id và item_option)\nReturns:\n    True nếu item đã được ép (có option phù hợp)"
+            },
+            {
+                "name": "is_item_fully_upgraded",
+                "args": "item",
+                "type": "function",
+                "lineno": 70,
+                "docstring": "Kiểm tra item đã được ép FULL chưa (đầy đủ các sao/chỉ số cần thiết).\n- Item 12 (rada): phải đạt tối thiểu option 95 >= 40 (40% hút HP) và option 96 >= 10 (10% hút KI)\n- Các items khác (1,7,22,28): phải có option 102 >= 9 (9 sao = MAX_STAR trên server)"
+            }
+        ],
+        "classes": [
+            {
+                "name": "CombineService",
+                "docstring": "Dịch vụ combine / ép sao / đập đồ — tái sử dụng cho mọi module.",
+                "lineno": 83,
+                "methods": [
+                    {
+                        "name": "__init__",
+                        "args": "acc, log_func: Optional[Callable]",
+                        "type": "method",
+                        "lineno": 86,
+                        "docstring": "Args:\n    acc: Account object\n    log_func: Hàm log(msg) tùy chọn. Nếu None, dùng print mặc định."
+                    },
+                    {
+                        "name": "count_item",
+                        "args": "item_id: int",
+                        "type": "method",
+                        "lineno": 103,
+                        "docstring": "Đếm item trong balo (delegate tới InventoryService)."
+                    },
+                    {
+                        "name": "refresh_inventory",
+                        "args": "",
+                        "type": "async_method",
+                        "lineno": 107,
+                        "docstring": "Refresh inventory (delegate tới InventoryService)."
+                    },
+                    {
+                        "name": "find_menu_option",
+                        "args": "options: list[str], *keywords",
+                        "type": "method",
+                        "lineno": 111,
+                        "docstring": "Tìm tùy chọn menu (delegate tới NavigationService)."
+                    },
+                    {
+                        "name": "_get_item_stars",
+                        "args": "item",
+                        "type": "method",
+                        "lineno": 119,
+                        "docstring": "Đọc số sao ép sao từ item object.\nServer Java (EpSaoTrangBi.java):\n  - Option 102: param = ép sao star count (param=1 = 1 sao, param=9 = 9 sao)\n  - Option 107: param = max slots (pha lê hóa), KHÔNG phải ép sao star\nChỉ option 102 mới là ép sao star count."
+                    },
+                    {
+                        "name": "_get_star_count",
+                        "args": "item_id: int",
+                        "type": "method",
+                        "lineno": 132,
+                        "docstring": "Lấy số sao ép sao hiện tại của item (chỉ option 102)."
+                    },
+                    {
+                        "name": "_get_star_count_max",
+                        "args": "item_id: int",
+                        "type": "method",
+                        "lineno": 141,
+                        "docstring": "Lấy số sao ép sao cao nhất (chỉ option 102)."
+                    },
+                    {
+                        "name": "get_item_stars",
+                        "args": "item_id: int",
+                        "type": "method",
+                        "lineno": 152,
+                        "docstring": "Lấy số sao cao nhất của item trong balo."
+                    },
+                    {
+                        "name": "get_item_star_at_index",
+                        "args": "bag_index: int",
+                        "type": "method",
+                        "lineno": 156,
+                        "docstring": "Lấy số sao tại index cụ thể trong balo."
+                    },
+                    {
+                        "name": "count_item",
+                        "args": "item_id: int",
+                        "type": "method",
+                        "lineno": 163,
+                        "docstring": "Đếm số lượng item trong balo."
+                    },
+                    {
+                        "name": "dump_item_options",
+                        "args": "item_id: int",
+                        "type": "method",
+                        "lineno": 167,
+                        "docstring": "Debug: in tất cả option_ids và params của items trong balo."
+                    },
+                    {
+                        "name": "get_item_details",
+                        "args": "item_id: int",
+                        "type": "method",
+                        "lineno": 177,
+                        "docstring": "Lấy chi tiết tất cả item theo ID trong balo.\nReturns: [{\"index\": idx, \"qty\": quantity, \"stars\": sao,\n            \"info\": \"tên\", \"options\": [...]}]"
+                    },
+                    {
+                        "name": "get_slot_max",
+                        "args": "item",
+                        "type": "method",
+                        "lineno": 197,
+                        "docstring": "Đọc số slot tối đa (option 107) của item — dùng để phân biệt ép sao vs pha lê hóa."
+                    },
+                    {
+                        "name": "check_item_slots",
+                        "args": "item_id: int, target_stars: int",
+                        "type": "method",
+                        "lineno": 208,
+                        "docstring": "Kiểm tra chi tiết từng item trong balo theo ID.\nReturns: {\n    \"total\": tổng_số_cái,\n    \"filled\": đã_có_sao,\n    \"empty\": chưa_có_sao,\n    \"max_stars\": sao_cao_nhất,\n    \"target\": sao_mục_tiêu,\n    \"items\": [{\"index\": idx, \"stars\": sao, \"info\": \"tên item\"}, ...]\n}"
+                    },
+                    {
+                        "name": "is_fully_upgraded",
+                        "args": "item_id: int, target_stars: int",
+                        "type": "method",
+                        "lineno": 249,
+                        "docstring": "Kiểm tra item đã đủ sao chưa (mọi item cùng loại đều đủ)."
+                    },
+                    {
+                        "name": "print_status",
+                        "args": "item_ids: list[int], target_stars: int",
+                        "type": "method",
+                        "lineno": 257,
+                        "docstring": "In trạng thái chi tiết từng trang bị."
+                    },
+                    {
+                        "name": "open_combine",
+                        "args": "npc_id: int, map_id: int, menu_item_keywords: Optional[list[str]], submenu_keywords: Optional[list[str]]",
+                        "type": "async_method",
+                        "lineno": 282,
+                        "docstring": "Mở tab combine tại NPC.\n\nArgs:\n    npc_id: ID template của NPC (mặc định 21 = Bà Hạt Mít)\n    map_id: ID map chứa NPC (mặc định 5 = Đảo Kame)\n    menu_item_keywords: Từ khóa tìm menu chức năng chính\n    submenu_keywords: Từ khóa tìm sub-menu combine\n\nReturns: True nếu mở tab combine thành công"
+                    },
+                    {
+                        "name": "open_item_upgrade",
+                        "args": "npc_id: int, map_id: int",
+                        "type": "async_method",
+                        "lineno": 391,
+                        "docstring": "Mở tab nâng cấp vật phẩm (dùng cho rada với item 441/442).\nItems 441/442 có ID > 20 nên không dùng được tab \"Ép sao trang bị\".\nCần dùng tab khác — thử \"Nâng cấp vật phẩm\" hoặc \"Pha lê hóa trang bị\".\n\nReturns: True nếu mở tab thành công"
+                    },
+                    {
+                        "name": "do_combine",
+                        "args": "main_item_id: int, materials: list[tuple[int, int]], max_times: int, npc_id: int, bag_index: int",
+                        "type": "async_method",
+                        "lineno": 523,
+                        "docstring": "Thực hiện combine lặp lại: main + materials → xác nhận → verify.\n\nFlow:\n  send_combine_items → đợi menu (ui_menu_event) → chọn option\n  → đợi kết quả combine (combine_event) → verify\n\nArgs:\n    main_item_id: ID item chính (trang bị cần ép)\n    materials: List (material_id, quantity)\n    max_times: Số lần ép tối đa\n    npc_id: NPC ID để confirm menu\n    bag_index: Index cụ thể trong balo (nếu -1 thì tự tìm first item)\n\nReturns: Số lần thành công"
+                    },
+                    {
+                        "name": "find_item_indices",
+                        "args": "item_id: int, quantity: int",
+                        "type": "method",
+                        "lineno": 696,
+                        "docstring": "Tìm indices của item trong balo."
+                    },
+                    {
+                        "name": "send_and_confirm",
+                        "args": "indices: list[int], npc_id: int",
+                        "type": "async_method",
+                        "lineno": 706,
+                        "docstring": "Gửi items lên combine và đợi kết quả.\nReturns: 'success' | 'fail' | 'timeout' | ''"
+                    }
+                ]
+            }
+        ]
+    },
+    "services/giftcode_service.py": {
+        "file_name": "giftcode_service.py",
+        "extension": ".py",
+        "abs_path": "services/giftcode_service.py",
         "functions": [],
-        "classes": []
+        "classes": [
+            {
+                "name": "GiftcodeService",
+                "docstring": "Dịch vụ nhập giftcode — tái sử dụng cho mọi module.",
+                "lineno": 31,
+                "methods": [
+                    {
+                        "name": "__init__",
+                        "args": "acc, log_func: Optional[Callable]",
+                        "type": "method",
+                        "lineno": 34,
+                        "docstring": "Args:\n    acc: Account object\n    log_func: Hàm log(msg) tùy chọn"
+                    },
+                    {
+                        "name": "_ensure_server_event",
+                        "args": "",
+                        "type": "method",
+                        "lineno": 51,
+                        "docstring": "Đảm bảo server_message_event tồn tại và là asyncio.Event().\nController có thể bị re-init (ví dụ khi reconnect), làm mất event cũ."
+                    },
+                    {
+                        "name": "wait_response",
+                        "args": "timeout: float",
+                        "type": "async_method",
+                        "lineno": 64,
+                        "docstring": "Đợi phản hồi server sau khi gửi giftcode.\nXử lý race condition: nếu message không liên quan → chờ message tiếp.\n\nReturns:\n    (status, detail) với status: 'success'|'used'|'expired'|'invalid'|'unknown'"
+                    },
+                    {
+                        "name": "check_reward_items",
+                        "args": "",
+                        "type": "async_method",
+                        "lineno": 116,
+                        "docstring": "Kiểm tra item 1680 trong inventory sau khi nhận giftcode."
+                    },
+                    {
+                        "name": "submit_giftcode",
+                        "args": "code: str, npc_id: Optional[int], santa_map: Optional[int]",
+                        "type": "async_method",
+                        "lineno": 130,
+                        "docstring": "Nhập giftcode tại NPC (tự động fallback tới Santa).\n\nArgs:\n    code: Mã giftcode (ví dụ \"tdstudio\")\n    npc_id: ID NPC nhà (nếu None, chỉ thử Santa)\n    santa_map: Map Santa theo giới tính (nếu None, tự động)\n\nReturns:\n    status: 'success' | 'used' | 'expired' | 'invalid' | 'unknown'"
+                    },
+                    {
+                        "name": "_submit_at_npc",
+                        "args": "code: str, npc_id: int",
+                        "type": "async_method",
+                        "lineno": 153,
+                        "docstring": "Nhập giftcode tại NPC cụ thể."
+                    },
+                    {
+                        "name": "_submit_at_santa",
+                        "args": "code: str, santa_map: Optional[int]",
+                        "type": "async_method",
+                        "lineno": 183,
+                        "docstring": "Nhập giftcode tại Santa."
+                    },
+                    {
+                        "name": "_log_giftcode_result",
+                        "args": "code: str, status: str, detail: str",
+                        "type": "method",
+                        "lineno": 222,
+                        "docstring": "Ghi log kết quả giftcode."
+                    }
+                ]
+            }
+        ]
+    },
+    "services/inventory.py": {
+        "file_name": "inventory.py",
+        "extension": ".py",
+        "abs_path": "services/inventory.py",
+        "functions": [
+            {
+                "name": "count_item",
+                "args": "acc, item_id: int",
+                "type": "function",
+                "lineno": 27,
+                "docstring": "Đếm số lượng item theo ID trong balo (free function)."
+            },
+            {
+                "name": "find_item_index",
+                "args": "acc, item_id: int",
+                "type": "function",
+                "lineno": 36,
+                "docstring": "Tìm index đầu tiên của item trong balo. Trả về -1 nếu không."
+            },
+            {
+                "name": "find_item_indices",
+                "args": "acc, item_id: int, quantity: int",
+                "type": "function",
+                "lineno": 44,
+                "docstring": "Tìm nhiều index của item trong balo."
+            },
+            {
+                "name": "has_item",
+                "args": "acc, item_id: int",
+                "type": "function",
+                "lineno": 55,
+                "docstring": "Kiểm tra có item trong balo không."
+            },
+            {
+                "name": "count_items_by_ids",
+                "args": "acc, item_ids: list[int]",
+                "type": "function",
+                "lineno": 63,
+                "docstring": "Đếm số lượng nhiều item IDs cùng lúc. Trả về {item_id: count}."
+            },
+            {
+                "name": "refresh_inventory",
+                "args": "acc",
+                "type": "async_function",
+                "lineno": 72,
+                "docstring": "Refresh lại thông tin inventory từ server (free function)."
+            }
+        ],
+        "classes": [
+            {
+                "name": "InventoryService",
+                "docstring": "Dịch vụ thao tác với hành trang — tái sử dụng cho mọi module.",
+                "lineno": 88,
+                "methods": [
+                    {
+                        "name": "__init__",
+                        "args": "acc, log_func: Optional[Callable]",
+                        "type": "method",
+                        "lineno": 91,
+                        "docstring": "Args:\n    acc: Account object\n    log_func: Hàm log(msg) tùy chọn"
+                    },
+                    {
+                        "name": "count_item",
+                        "args": "item_id: int",
+                        "type": "method",
+                        "lineno": 104,
+                        "docstring": "Đếm số lượng item theo ID trong balo."
+                    },
+                    {
+                        "name": "find_item_index",
+                        "args": "item_id: int",
+                        "type": "method",
+                        "lineno": 108,
+                        "docstring": "Tìm index đầu tiên của item trong balo. Trả về -1 nếu không tìm thấy."
+                    },
+                    {
+                        "name": "find_item_indices",
+                        "args": "item_id: int, quantity: int",
+                        "type": "method",
+                        "lineno": 112,
+                        "docstring": "Tìm nhiều index của item trong balo."
+                    },
+                    {
+                        "name": "has_item",
+                        "args": "item_id: int",
+                        "type": "method",
+                        "lineno": 116,
+                        "docstring": "Kiểm tra có item trong balo không."
+                    },
+                    {
+                        "name": "count_items_by_ids",
+                        "args": "item_ids: list[int]",
+                        "type": "method",
+                        "lineno": 120,
+                        "docstring": "Đếm số lượng nhiều item IDs cùng lúc. Trả về {item_id: count}."
+                    },
+                    {
+                        "name": "refresh",
+                        "args": "",
+                        "type": "async_method",
+                        "lineno": 128,
+                        "docstring": "Refresh lại thông tin inventory từ server."
+                    }
+                ]
+            }
+        ]
     },
     "services/movement.py": {
         "file_name": "movement.py",
@@ -6598,6 +6862,155 @@
             }
         ]
     },
+    "services/navigation.py": {
+        "file_name": "navigation.py",
+        "extension": ".py",
+        "abs_path": "services/navigation.py",
+        "functions": [
+            {
+                "name": "find_npc",
+                "args": "acc, npc_id: int",
+                "type": "function",
+                "lineno": 38,
+                "docstring": "Tìm NPC theo template_id trong bản đồ hiện tại (free function)."
+            },
+            {
+                "name": "find_npc_by_name",
+                "args": "acc, name: str",
+                "type": "function",
+                "lineno": 49,
+                "docstring": "Tìm NPC theo tên (không phân biệt hoa thường) (free function)."
+            },
+            {
+                "name": "teleport_to_npc",
+                "args": "acc, npc_id: int, y_offset: int",
+                "type": "async_function",
+                "lineno": 59,
+                "docstring": "Teleport đến gần NPC (free function)."
+            },
+            {
+                "name": "open_menu_npc",
+                "args": "acc, npc_id: int, timeout: float",
+                "type": "async_function",
+                "lineno": 77,
+                "docstring": "Mở menu NPC, trả về danh sách tùy chọn (free function)."
+            },
+            {
+                "name": "confirm_menu_npc",
+                "args": "acc, npc_id: int, option_idx: int, wait_next: bool, timeout: float",
+                "type": "async_function",
+                "lineno": 90,
+                "docstring": "Xác nhận tùy chọn trong menu NPC (free function)."
+            },
+            {
+                "name": "open_input_form",
+                "args": "acc, npc_id: int, option_idx: int, timeout: float",
+                "type": "async_function",
+                "lineno": 108,
+                "docstring": "Mở menu NPC → chọn option → đợi input form (free function)."
+            },
+            {
+                "name": "find_menu_option",
+                "args": "options: list[str], *keywords",
+                "type": "function",
+                "lineno": 129,
+                "docstring": "Tìm index tùy chọn trong menu chứa bất kỳ từ khóa nào (free function)."
+            },
+            {
+                "name": "go_home",
+                "args": "acc, log_func",
+                "type": "async_function",
+                "lineno": 139,
+                "docstring": "Di chuyển về nhà theo giới tính nhân vật (free function)."
+            },
+            {
+                "name": "move_to_map",
+                "args": "acc, target_map_id: int, log_func",
+                "type": "async_function",
+                "lineno": 167,
+                "docstring": "Di chuyển đến map theo ID bằng xmap (free function)."
+            }
+        ],
+        "classes": [
+            {
+                "name": "NavigationService",
+                "docstring": "Dịch vụ di chuyển và tương tác NPC / menu — tái sử dụng cho mọi module.",
+                "lineno": 204,
+                "methods": [
+                    {
+                        "name": "__init__",
+                        "args": "acc, log_func: Optional[Callable]",
+                        "type": "method",
+                        "lineno": 207,
+                        "docstring": "Args:\n    acc: Account object\n    log_func: Hàm log(msg) tùy chọn. Nếu None, dùng print mặc định."
+                    },
+                    {
+                        "name": "find_npc",
+                        "args": "npc_id: int",
+                        "type": "method",
+                        "lineno": 222,
+                        "docstring": "Tìm NPC theo template_id trong bản đồ hiện tại."
+                    },
+                    {
+                        "name": "find_npc_by_name",
+                        "args": "name: str",
+                        "type": "method",
+                        "lineno": 226,
+                        "docstring": "Tìm NPC theo tên (không phân biệt hoa thường)."
+                    },
+                    {
+                        "name": "teleport_to_npc",
+                        "args": "npc_id: int, y_offset: int",
+                        "type": "async_method",
+                        "lineno": 234,
+                        "docstring": "Teleport đến gần NPC."
+                    },
+                    {
+                        "name": "open_menu",
+                        "args": "npc_id: int, timeout: float",
+                        "type": "async_method",
+                        "lineno": 242,
+                        "docstring": "Mở menu NPC, trả về danh sách tùy chọn."
+                    },
+                    {
+                        "name": "confirm_menu",
+                        "args": "npc_id: int, option_idx: int, wait_next: bool, timeout: float",
+                        "type": "async_method",
+                        "lineno": 246,
+                        "docstring": "Xác nhận tùy chọn trong menu NPC."
+                    },
+                    {
+                        "name": "open_input_form",
+                        "args": "npc_id: int, option_idx: int, timeout: float",
+                        "type": "async_method",
+                        "lineno": 251,
+                        "docstring": "Mở menu NPC → chọn option → đợi input form xuất hiện."
+                    },
+                    {
+                        "name": "find_menu_option",
+                        "args": "options: list[str], *keywords",
+                        "type": "method",
+                        "lineno": 257,
+                        "docstring": "Tìm index tùy chọn trong menu chứa bất kỳ từ khóa nào. Trả về -1 nếu không."
+                    },
+                    {
+                        "name": "go_home",
+                        "args": "",
+                        "type": "async_method",
+                        "lineno": 265,
+                        "docstring": "Di chuyển về nhà theo giới tính nhân vật."
+                    },
+                    {
+                        "name": "move_to_map",
+                        "args": "target_map_id: int",
+                        "type": "async_method",
+                        "lineno": 269,
+                        "docstring": "Di chuyển đến map theo ID bằng xmap."
+                    }
+                ]
+            }
+        ]
+    },
     "services/pet_service.py": {
         "file_name": "pet_service.py",
         "extension": ".py",
@@ -6626,6 +7039,43 @@
             }
         ],
         "classes": []
+    },
+    "services/retry.py": {
+        "file_name": "retry.py",
+        "extension": ".py",
+        "abs_path": "services/retry.py",
+        "functions": [
+            {
+                "name": "run_with_timeout",
+                "args": "coro: Awaitable, timeout: float, default_return",
+                "type": "async_function",
+                "lineno": 31,
+                "docstring": "Chạy coroutine với timeout, trả về default nếu timeout."
+            },
+            {
+                "name": "retry_operation",
+                "args": "acc, log_func, label: str, coro_factory: Callable, config: Optional[RetryConfig], timeout: float",
+                "type": "async_function",
+                "lineno": 40,
+                "docstring": "Retry wrapper: thực thi coroutine với retry + timeout + backoff.\n\nArgs:\n    acc: Account object (kiểm tra is_logged_in)\n    log_func: Hàm log (acc, msg)\n    label: Nhãn thao tác (dùng trong log)\n    coro_factory: Hàm trả về coroutine cần thực thi\n    config: Cấu hình retry (None = RetryConfig mặc định)\n    timeout: Timeout cho mỗi lần thử (giây)\n\nReturns:\n    True nếu thành công, False nếu thất bại sau tất cả retry"
+            }
+        ],
+        "classes": [
+            {
+                "name": "RetryConfig",
+                "docstring": "Cấu hình retry cho mỗi thao tác.",
+                "lineno": 20,
+                "methods": [
+                    {
+                        "name": "__init__",
+                        "args": "max_attempts: int, base_delay: float, max_delay: float, backoff: float",
+                        "type": "method",
+                        "lineno": 23,
+                        "docstring": ""
+                    }
+                ]
+            }
+        ]
     },
     "services/__init__.py": {
         "file_name": "__init__.py",
@@ -7283,6 +7733,27 @@
                         "type": "async_method",
                         "lineno": 13,
                         "docstring": ""
+                    },
+                    {
+                        "name": "_show_body_equip",
+                        "args": "account",
+                        "type": "method",
+                        "lineno": 261,
+                        "docstring": "Hiển thị trang bị sư phụ + đệ tử đang mặc (tổng hợp nhanh)."
+                    },
+                    {
+                        "name": "_show_body_items",
+                        "args": "items_list, prefix",
+                        "type": "method",
+                        "lineno": 293,
+                        "docstring": "Hiển thị chi tiết items trên body.\nArgs:\n    items_list: list items (arr_item_body)\n    prefix: tiền đề hiển thị (\"Body\" hoặc \"PetBody\")"
+                    },
+                    {
+                        "name": "_show_pet_equip",
+                        "args": "account",
+                        "type": "async_method",
+                        "lineno": 328,
+                        "docstring": "Hiển thị chi tiết trang bị đệ tử đang mặc."
                     }
                 ]
             }
@@ -7452,216 +7923,6 @@
         "file_name": "__init__.py",
         "extension": ".py",
         "abs_path": "targeted_commands/__init__.py",
-        "functions": [],
-        "classes": []
-    },
-    "tests/debug_boss_match.py": {
-        "file_name": "debug_boss_match.py",
-        "extension": ".py",
-        "abs_path": "tests/debug_boss_match.py",
-        "functions": [
-            {
-                "name": "debug_matching",
-                "args": "",
-                "type": "function",
-                "lineno": 4,
-                "docstring": ""
-            }
-        ],
-        "classes": []
-    },
-    "tests/live_test_setup.py": {
-        "file_name": "live_test_setup.py",
-        "extension": ".py",
-        "abs_path": "tests/live_test_setup.py",
-        "functions": [
-            {
-                "name": "run_test",
-                "args": "start_idx, end_idx, force, reset",
-                "type": "async_function",
-                "lineno": 22,
-                "docstring": ""
-            }
-        ],
-        "classes": []
-    },
-    "tests/test_ai_commands.py": {
-        "file_name": "test_ai_commands.py",
-        "extension": ".py",
-        "abs_path": "tests/test_ai_commands.py",
-        "functions": [
-            {
-                "name": "test_ai_commands",
-                "args": "",
-                "type": "async_function",
-                "lineno": 30,
-                "docstring": "Test all AI commands"
-            }
-        ],
-        "classes": [
-            {
-                "name": "MockAccount",
-                "docstring": "",
-                "lineno": 14,
-                "methods": [
-                    {
-                        "name": "__init__",
-                        "args": "username",
-                        "type": "method",
-                        "lineno": 15,
-                        "docstring": ""
-                    }
-                ]
-            },
-            {
-                "name": "MockManager",
-                "docstring": "",
-                "lineno": 20,
-                "methods": [
-                    {
-                        "name": "__init__",
-                        "args": "",
-                        "type": "method",
-                        "lineno": 21,
-                        "docstring": ""
-                    }
-                ]
-            }
-        ]
-    },
-    "tests/test_ai_pipeline.py": {
-        "file_name": "test_ai_pipeline.py",
-        "extension": ".py",
-        "abs_path": "tests/test_ai_pipeline.py",
-        "functions": [
-            {
-                "name": "test_full_pipeline",
-                "args": "",
-                "type": "async_function",
-                "lineno": 65,
-                "docstring": "Test complete AI pipeline"
-            },
-            {
-                "name": "_get_action_category",
-                "args": "action: int",
-                "type": "function",
-                "lineno": 181,
-                "docstring": "Get action category name"
-            },
-            {
-                "name": "_describe_action",
-                "args": "action: int",
-                "type": "function",
-                "lineno": 194,
-                "docstring": "Get action description"
-            }
-        ],
-        "classes": [
-            {
-                "name": "MockChar",
-                "docstring": "Mock character for testing",
-                "lineno": 10,
-                "methods": [
-                    {
-                        "name": "__init__",
-                        "args": "",
-                        "type": "method",
-                        "lineno": 12,
-                        "docstring": ""
-                    }
-                ]
-            },
-            {
-                "name": "MockMob",
-                "docstring": "Mock mob for testing",
-                "lineno": 23,
-                "methods": [
-                    {
-                        "name": "__init__",
-                        "args": "mob_id, x, y, hp, max_hp",
-                        "type": "method",
-                        "lineno": 25,
-                        "docstring": ""
-                    }
-                ]
-            },
-            {
-                "name": "MockAccount",
-                "docstring": "Mock account for testing",
-                "lineno": 35,
-                "methods": [
-                    {
-                        "name": "__init__",
-                        "args": "",
-                        "type": "method",
-                        "lineno": 37,
-                        "docstring": ""
-                    }
-                ]
-            },
-            {
-                "name": "MockController",
-                "docstring": "Mock controller with game state",
-                "lineno": 42,
-                "methods": [
-                    {
-                        "name": "__init__",
-                        "args": "",
-                        "type": "method",
-                        "lineno": 44,
-                        "docstring": ""
-                    }
-                ]
-            },
-            {
-                "name": "MockService",
-                "docstring": "Mock network service for testing",
-                "lineno": 53,
-                "methods": [
-                    {
-                        "name": "send_attack",
-                        "args": "mob_id, skill",
-                        "type": "async_method",
-                        "lineno": 55,
-                        "docstring": ""
-                    },
-                    {
-                        "name": "char_move",
-                        "args": "",
-                        "type": "async_method",
-                        "lineno": 58,
-                        "docstring": ""
-                    },
-                    {
-                        "name": "select_skill",
-                        "args": "index",
-                        "type": "async_method",
-                        "lineno": 61,
-                        "docstring": ""
-                    }
-                ]
-            }
-        ]
-    },
-    "tests/test_login.py": {
-        "file_name": "test_login.py",
-        "extension": ".py",
-        "abs_path": "tests/test_login.py",
-        "functions": [
-            {
-                "name": "run_test",
-                "args": "",
-                "type": "async_function",
-                "lineno": 5,
-                "docstring": ""
-            }
-        ],
-        "classes": []
-    },
-    "tests/test_setup_flow.py": {
-        "file_name": "test_setup_flow.py",
-        "extension": ".py",
-        "abs_path": "tests/test_setup_flow.py",
         "functions": [],
         "classes": []
     },
@@ -7860,7 +8121,7 @@
                 "name": "display_macro_help",
                 "args": "",
                 "type": "function",
-                "lineno": 108,
+                "lineno": 111,
                 "docstring": "Hiển thị hướng dẫn sử dụng hệ thống Macro mới."
             }
         ],
@@ -8064,35 +8325,35 @@
                 "name": "set_plugin_list_callback",
                 "args": "callback",
                 "type": "function",
-                "lineno": 67,
+                "lineno": 72,
                 "docstring": "Set callback function to provide list of plugin names"
             },
             {
                 "name": "set_macro_list_callback",
                 "args": "callback",
                 "type": "function",
-                "lineno": 74,
+                "lineno": 79,
                 "docstring": "Set callback function to provide list of macro names"
             },
             {
                 "name": "common_prefix",
                 "args": "strings",
                 "type": "function",
-                "lineno": 79,
+                "lineno": 84,
                 "docstring": "Tìm tiền tố chung dài nhất."
             },
             {
                 "name": "get_candidates",
                 "args": "buffer_str",
                 "type": "function",
-                "lineno": 88,
+                "lineno": 93,
                 "docstring": "Xác định danh sách gợi ý dựa trên bộ đệm hiện tại.\nTrả về: (list_candidates, prefix_current_word)"
             },
             {
                 "name": "get_input_with_autocomplete",
                 "args": "prompt, commands",
                 "type": "function",
-                "lineno": 202,
+                "lineno": 207,
                 "docstring": ""
             }
         ],

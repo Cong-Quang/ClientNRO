@@ -9,7 +9,7 @@ import asyncio
 from logs.logger_config import TerminalColors
 from commands.setup.constants import (
     NPC_SANTA, SANTA_MAPS,
-    SANTA_ITEM_HO_TRO, SANTA_ITEM_DAC_BIET, SANTA_ITEM_USE, SANTA_NO_BAG_ITEMS,
+    SANTA_ITEM_HO_TRO, SANTA_ITEM_USE, SANTA_NO_BAG_ITEMS,
 )
 from commands.setup.navigation_helpers import teleport_to_npc, move_to_map
 from commands.setup.inventory_helpers import count_item, refresh_inventory
@@ -103,25 +103,15 @@ async def santa_shop(acc, log_func) -> bool:
                 return True
         return False
 
-    # Tab hỗ trợ
-    log_func(f"{C.DIM}→ Tab hỗ trợ: 517x100, 518x50...{C.RESET}")
+    # ── Mua items tại Cửa hàng Hỗ trợ ──
+    log_func(f"{C.DIM}→ Mở Cửa hàng Hỗ trợ Santa (517, 518, 402, 403)...{C.RESET}")
     ok = await _open_and_buy(
         tab_keywords=["hỗ trợ", "hotro", "trợ"],
         tab_default=0,
         items=SANTA_ITEM_HO_TRO
     )
     if not ok:
-        log_func(f"{C.RED}→ Mua tab hỗ trợ không đủ.{C.RESET}")
-
-    # Tab đặc biệt
-    log_func(f"{C.DIM}→ Tab đặc biệt: 402x20, 403x20...{C.RESET}")
-    ok = await _open_and_buy(
-        tab_keywords=["đặc biệt", "dac biet", "biệt", "special"],
-        tab_default=1,
-        items=SANTA_ITEM_DAC_BIET
-    )
-    if not ok:
-        log_func(f"{C.RED}→ Mua tab đặc biệt không đủ.{C.RESET}")
+        log_func(f"{C.YELLOW}→ Một số item Santa chưa mua đủ (có thể rương đầy hoặc thiếu vàng).{C.RESET}")
 
     # ── Dùng item 402 và 403 mỗi loại 6 lần ──
     log_func(f"{C.DIM}→ Dùng item 402 và 403 mỗi loại 6 lần cho đệ tử...{C.RESET}")

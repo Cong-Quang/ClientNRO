@@ -31,6 +31,9 @@ async def equip_master(acc, log_func, C=None) -> bool:
         if not acc.is_logged_in:
             return False
 
+        # Luôn refresh và re-find để đảm bảo index chính xác (tránh lỗi do server shift items khi mặc đồ)
+        await refresh_inventory(acc)
+
         # Kiểm tra xem sư phụ đã mặc bản FULL upgrade này chưa trên người
         already_equipped = False
         body_items = getattr(acc.char, 'arr_item_body', None) or []
@@ -57,7 +60,6 @@ async def equip_master(acc, log_func, C=None) -> bool:
                     found_idx = idx
                     break
         # Fallback cuối: mặc bất kỳ bản nào (kể cả chưa ép)
-        # Đảm bảo sư phụ luôn có đồ dù upgrade chưa chạy
         if found_idx < 0:
             log_func(f"{C.YELLOW}  → Item {item_id}: không tìm thấy bản đã ép. Lấy bản chưa ép làm fallback...{C.RESET}")
             for idx, item in enumerate(acc.char.arr_item_bag or []):
@@ -68,12 +70,11 @@ async def equip_master(acc, log_func, C=None) -> bool:
                 log_func(f"{C.YELLOW}  → Item {item_id}: không có trong balo, bỏ qua.{C.RESET}")
                 continue
 
-        # Equip: type=0 (sử dụng), where=1 (bản thân)
-        # 🔴 QUAN TRỌNG: type=1 là "đeo vào" (dùng cho cải trang), type=0 là "sử dụng" (mặc đồ cho sư phụ)
-        log_func(f"{C.DIM}  → Equip Item {item_id} (idx {found_idx}) đã ép...{C.RESET}")
+        # Equip: dùng get_item(type=4) để mặc trực tiếp cho sư phụ, tránh hiện menu "Dùng cho ai"
+        log_func(f"{C.DIM}  → Equip Item {item_id} (idx {found_idx}) cho sư phụ...{C.RESET}")
         try:
-            await acc.service.use_item(0, 1, found_idx, -1)
-            await asyncio.sleep(0.15)
+            await acc.service.get_item(4, found_idx)
+            await asyncio.sleep(0.3)
             log_func(f"{C.GREEN}    ✓ Đã equip Item {item_id}.{C.RESET}")
         except Exception as e:
             log_func(f"{C.RED}    ✗ Lỗi equip Item {item_id}: {e}{C.RESET}")

@@ -55,6 +55,9 @@ async def equip_pet(acc, log_func, C=None) -> bool:
         if not acc.is_logged_in:
             return False
 
+        # Luôn refresh và re-find để đảm bảo index chính xác (tránh lỗi do server shift items khi đưa đồ cho đệ)
+        await refresh_inventory(acc)
+
         # Kiểm tra xem đệ tử đã mặc bản FULL upgrade này chưa trên người
         already_equipped = False
         body_items = getattr(acc.pet, 'arr_item_body', None) or []
@@ -81,7 +84,6 @@ async def equip_pet(acc, log_func, C=None) -> bool:
                     found_idx = idx
                     break
         # Fallback cuối: lấy bất kỳ bản nào (kể cả chưa ép)
-        # Đảm bảo đệ tử luôn có đồ dù upgrade chưa chạy
         if found_idx < 0:
             log_func(f"{C.YELLOW}  → Item {item_id}: không tìm thấy bản đã ép. Lấy bản chưa ép làm fallback...{C.RESET}")
             for idx, item in enumerate(acc.char.arr_item_bag or []):
@@ -93,10 +95,10 @@ async def equip_pet(acc, log_func, C=None) -> bool:
                 continue
 
         # Đưa cho đệ tử: get_item(type=6, index)
-        log_func(f"{C.DIM}  → Đưa Item {item_id} (idx {found_idx}) đã ép cho đệ tử...{C.RESET}")
+        log_func(f"{C.DIM}  → Đưa Item {item_id} (idx {found_idx}) cho đệ tử...{C.RESET}")
         try:
             await acc.service.get_item(6, found_idx)
-            await asyncio.sleep(0.15)
+            await asyncio.sleep(0.3)
             log_func(f"{C.GREEN}    ✓ Đã đưa Item {item_id} cho đệ tử.{C.RESET}")
         except Exception as e:
             log_func(f"{C.RED}    ✗ Lỗi đưa Item {item_id}: {e}{C.RESET}")
