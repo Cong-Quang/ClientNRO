@@ -47,7 +47,7 @@ class CongcsCommand(TargetedCommand):
                 num = 100 if count >= 100 else (10 if count >= 10 else 1)
                 await account.service.up_potential(type_pt, num)
                 count -= num
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(0.2)
 
         if hp > 0: await up(0, hp)
         if mp > 0: await up(1, mp)

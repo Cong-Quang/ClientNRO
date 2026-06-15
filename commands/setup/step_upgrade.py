@@ -3,79 +3,239 @@ Bước 11 & 12: Ép sao trang bị tại Bà Hạt Mít (Đảo Kame).
 
 Step 11: Ép Item 16 (x11 lần, mỗi lần 1x Item 16 + 2x Item 1)
 Step 12: Ép trang bị (items 1, 7, 22, 28, 12)
-  - Set 1: mỗi trang bị ép với Item 16 (x10 lần mỗi món)
-  - Set 2: Item 12 đặc biệt — 12 + 2x 442 + 8x 441
+  - Set 1: mỗi trang bị ép với Item 16 (x9, server MAX_STAR=9, mỗi sao +3% sức đánh)
+    🔴 KHÔNG ép Item 16 cho Item 12 (rada) — rada chỉ ép 442+441
+  - Set 2: TẤT CẢ copy của Item 12 (rada): 2x442 (10% hút ki) + 8x441 (40% hút HP)
 
-Dùng CombineHelper để tái sử dụng.
+Dùng services.combine_service thay vì setup-specific CombineHelper.
 """
 
 import asyncio
 
 from logs.logger_config import TerminalColors
 from commands.setup.constants import (
-    MAP_DAO_KAME, NPC_BA_HAT_MIT,
-    ITEM_UPGRADE_16, ITEM_UPGRADE_16_CRYSTAL, ITEM_UPGRADE_16_TIMES,
-    ITEM_12, ITEM_442, ITEM_441, ITEM_EQUIP, UPGRADE_TIMES_PER_PIECE,
+    ITEM_UPGRADE_16, ITEM_UPGRADE_16_CRYSTAL,
+    ITEM_12, ITEM_442, ITEM_441,
+    ITEM_EQUIP, UPGRADE_TIMES_PER_PIECE,
 )
 from commands.setup.inventory_helpers import count_item, refresh_inventory
-from commands.setup.combine_helper import CombineHelper
+from services.combine_service import CombineService
+
+
+# ── HELPERS ──
+
+async def _upgrade_one_by_one(svc, acc, log_func, C, item_id, copy_idx, target_stars, mat_id, mat_qty=1, max_total=9) -> int:
+    """Ép từng cái một, kiểm tra sao sau mỗi lần, retry nếu cần.
+    
+    Args:
+        svc: CombineService instance
+        item_id: ID của trang bị cần ép
+        copy_idx: index trong balo
+        target_stars: số sao mục tiêu
+        mat_id: ID nguyên liệu
+        mat_qty: số lượng nguyên liệu mỗi lần ép (mặc định 1)
+        max_total: số lần ép tối đa
+        
+    Returns: số sao đã ép thành công
+    """
+    done_total = 0
+    attempt = 0
+    max_attempts = max_total * 2  # cho phép retry
+
+    while attempt < max_attempts:
+        if not acc.is_logged_in:
+            log_func(f"{C.YELLOW}  Mất kết nối, dừng ép.{C.RESET}")
+            break
+
+        if attempt > 0:
+            await refresh_inventory(acc)
+
+        # Đọc sao hiện tại
+        current = svc.get_item_star_at_index(copy_idx)
+        if current >= target_stars:
+            log_func(f"{C.GREEN}  ✓ idx {copy_idx} đã đạt {current}/{target_stars} sao.{C.RESET}")
+            break
+
+        # Kiểm tra nguyên liệu
+        mat_count = count_item(acc, mat_id)
+        if mat_count < mat_qty:
+            log_func(f"{C.YELLOW}  Hết item {mat_id} (còn {mat_count}).{C.RESET}")
+            break
+
+        need = target_stars - current
+        to_do = min(need, mat_count // mat_qty, max_total - done_total)
+        if to_do <= 0:
+            break
+
+        if not await svc.open_combine():
+            log_func(f"{C.RED}  Không mở được combine.{C.RESET}")
+            attempt += 1
+            await asyncio.sleep(0.2)
+            continue
+
+        mat_count_before = count_item(acc, mat_id)
+        stars_before = current
+
+        done = await svc.do_combine(
+            main_item_id=item_id,
+            materials=[(mat_id, mat_qty)],
+            max_times=to_do,
+            bag_index=copy_idx,
+        )
+
+        stars_after = svc.get_item_star_at_index(copy_idx)
+
+        if done > 0 or stars_after > stars_before:
+            gained = stars_after - stars_before
+            done_total += max(gained, 1)
+            log_func(f"{C.DIM}    ✓ +{gained} sao (tổng {stars_after}/{target_stars}){C.RESET}")
+            attempt = 0  # reset attempt counter on success
+            await asyncio.sleep(0.05)
+        else:
+            mat_count_after = count_item(acc, mat_id)
+            if mat_count_after < mat_count_before:
+                # Nguyên liệu vẫn bị consume dù không detect được sao
+                done_total += 1
+                log_func(f"{C.DIM}    ? Nguyên liệu consumed, coi như thành công.{C.RESET}")
+                attempt = 0
+                await asyncio.sleep(0.05)
+            else:
+                attempt += 1
+                log_func(f"{C.YELLOW}    ✗ Lần {attempt} không thành công, retry...{C.RESET}")
+                await asyncio.sleep(0.2)
+
+    return done_total
 
 
 # ── STEP 11: Ép Item 16 ──
 
 async def upgrade_item_16(acc, log_func, C=None) -> bool:
     """
-    Ép Item 16: 1x Item 16 + 2x Item 1 → Item 16 upgraded.
-    Check đã đủ 11 sao chưa, nếu đủ thì bỏ qua.
+    Ép sao Item 1 (trang bị) bằng Item 16 (đá pha lê).
+    Server EpSaoTrangBi.java yêu cầu đúng 2 items: 1 trangBi + 1 daPhaLe.
+    Mỗi lần combine: 1x Item 1 (equipment) + 1x Item 16 (crystal).
     """
     if C is None:
         C = TerminalColors
 
-    helper = CombineHelper(acc, log_func)
+    svc = CombineService(acc, log_func)
 
-    # Check đã ép đủ chưa
-    if helper.is_fully_upgraded(ITEM_UPGRADE_16, ITEM_UPGRADE_16_TIMES):
-        stars = helper.get_item_stars(ITEM_UPGRADE_16)
-        log_func(f"{C.GREEN}→ Item 16 đã đủ {stars} sao, bỏ qua.{C.RESET}")
+    # Kiểm tra Item 1 đã đủ sao chưa (server MAX_STAR=9)
+    equip_id = ITEM_UPGRADE_16_CRYSTAL  # Item 1 = equipment
+    target = UPGRADE_TIMES_PER_PIECE     # Server MAX_STAR = 9
+
+    if svc.is_fully_upgraded(equip_id, target):
+        stars = svc.get_item_stars(equip_id)
+        log_func(f"{C.GREEN}→ Item 1 đã đủ {stars} sao, bỏ qua.{C.RESET}")
         return True
 
-    if not await helper.open_combine():
+    if not await svc.open_combine():
         return False
 
     await refresh_inventory(acc)
 
-    item16_count = helper.count_item(ITEM_UPGRADE_16)
-    item1_count = helper.count_item(ITEM_UPGRADE_16_CRYSTAL)
-    current_stars = helper.get_item_stars(ITEM_UPGRADE_16)
+    equip_count = svc.count_item(equip_id)
+    crystal_count = svc.count_item(ITEM_UPGRADE_16)
+    current_stars = svc.get_item_stars(equip_id)
 
-    log_func(f"{C.DIM}→ Item 16: {item16_count} (sao: {current_stars}/{ITEM_UPGRADE_16_TIMES}), Item 1: {item1_count}.{C.RESET}")
+    log_func(f"{C.DIM}→ Item 1 (equip): {equip_count} (sao: {current_stars}/{target}), "
+             f"Item 16 (crystal): {crystal_count}.{C.RESET}")
 
-    if item16_count == 0:
-        log_func(f"{C.YELLOW}→ Không có Item 16.{C.RESET}")
+    if equip_count == 0:
+        log_func(f"{C.YELLOW}→ Không có Item 1 để ép.{C.RESET}")
         return True
 
-    need = ITEM_UPGRADE_16_TIMES - current_stars
+    need = target - current_stars
     if need <= 0:
-        log_func(f"{C.GREEN}→ Item 16 đã đủ sao.{C.RESET}")
+        log_func(f"{C.GREEN}→ Item 1 đã đủ sao.{C.RESET}")
         return True
 
-    max_up = min(need, item16_count, item1_count // 2)
-    if max_up <= 0:
-        log_func(f"{C.YELLOW}→ Không đủ Item 1 (cần {need * 2}, có {item1_count}).{C.RESET}")
+    # Tìm index của Item 1
+    copy_idx = -1
+    for idx, item in enumerate(acc.char.arr_item_bag or []):
+        if item is not None and item.item_id == equip_id:
+            copy_idx = idx
+            break
+    if copy_idx < 0:
+        log_func(f"{C.YELLOW}→ Không tìm thấy Item 1 trong balo.{C.RESET}")
         return False
 
-    log_func(f"{C.DIM}→ Ép Item 16 x{max_up} lần (cần thêm {need} sao)...{C.RESET}")
+    max_up = min(need, crystal_count)
+    if max_up <= 0:
+        log_func(f"{C.YELLOW}→ Không đủ Item 16 (cần {need}, có {crystal_count}).{C.RESET}")
+        return False
 
-    done = await helper.do_combine(
-        main_item_id=ITEM_UPGRADE_16,
-        materials=[(ITEM_UPGRADE_16_CRYSTAL, 2)],
-        max_times=max_up,
+    log_func(f"{C.DIM}→ Ép Item 1 x{max_up} lần (cần thêm {need} sao)...{C.RESET}")
+
+    done = await _upgrade_one_by_one(
+        svc, acc, log_func, C,
+        item_id=equip_id,
+        copy_idx=copy_idx,
+        target_stars=target,
+        mat_id=ITEM_UPGRADE_16,
+        mat_qty=1,
+        max_total=max_up,
     )
 
     if done > 0:
-        log_func(f"{C.GREEN}→ Item 16: xong {done}/{max_up} lần.{C.RESET}")
+        log_func(f"{C.GREEN}→ Item 1: xong {done}/{max_up} lần.{C.RESET}")
         return True
-    log_func(f"{C.RED}→ Không ép được Item 16.{C.RESET}")
+    log_func(f"{C.RED}→ Không ép được Item 1.{C.RESET}")
+    return False
+
+
+# ── Helper ép rada: 1 combine với 1 material ──
+
+async def _rada_combine_one(svc, acc, log_func, C, copy_idx, mat_id, mat_label, use_item_upgrade=True) -> bool:
+    """Ép 1 lần cho rada với material 442 hoặc 441.
+    Đảm bảo tab combine luôn mở trước khi gửi lệnh.
+
+    Args:
+        use_item_upgrade: True=dùng open_item_upgrade(), False=dùng open_combine()
+    """
+    for attempt in range(5):
+        if not acc.is_logged_in:
+            return False
+
+        await refresh_inventory(acc)
+
+        # Kiểm tra material
+        if count_item(acc, mat_id) < 1:
+            log_func(f"{C.YELLOW}    Hết {mat_label} (item {mat_id}).{C.RESET}")
+            return False
+
+        mat_before = count_item(acc, mat_id)
+        stars_before = svc.get_item_star_at_index(copy_idx)
+
+        # Luôn mở lại tab combine trước mỗi lần do_combine vì server close tab sau combine
+        if use_item_upgrade:
+            tab_ok = await svc.open_item_upgrade()
+        else:
+            tab_ok = await svc.open_combine()
+            
+        if not tab_ok:
+            log_func(f"{C.YELLOW}      Không mở được tab ở lần thử {attempt+1}/5, retry...{C.RESET}")
+            await asyncio.sleep(0.1)
+            continue
+
+        done = await svc.do_combine(
+            main_item_id=ITEM_12,
+            materials=[(mat_id, 1)],
+            max_times=1,
+            bag_index=copy_idx,
+        )
+
+        await refresh_inventory(acc)
+        stars_after = svc.get_item_star_at_index(copy_idx)
+        mat_after = count_item(acc, mat_id)
+
+        if done > 0 or stars_after > stars_before or mat_after < mat_before:
+            return True
+        else:
+            log_func(f"{C.YELLOW}      retry {attempt+1}/5 cho {mat_label}...{C.RESET}")
+            await asyncio.sleep(0.1)
+
+    log_func(f"{C.RED}    ✗ {mat_label} thất bại sau 5 lần.{C.RESET}")
     return False
 
 
@@ -84,134 +244,210 @@ async def upgrade_item_16(acc, log_func, C=None) -> bool:
 async def upgrade_other_items(acc, log_func, C=None) -> bool:
     """
     Ép trang bị (items 1, 7, 22, 28, 12):
-    - Set 1: mỗi trang bị ép với Item 16 (x10 lần mỗi món)
-    - Set 2: Item 12 đặc biệt — 12 + 2x 442 + 8x 441
-    Check đã đủ sao chưa trước khi ép.
+    - Set 1 (Item 16 sức đánh): items 1,7,22,28 — ALL copies
+      🔴 BỎ QUA Item 12 (rada) — rada chỉ ép 442+441 (hút ki + hút HP)
+    - Set 2 (442 hút ki + 441 hút HP): TẤT CẢ copy của Item 12
+    - Quan trọng: Mở combine 1 lần duy nhất, reuse cho tất cả các copy
     """
     if C is None:
         C = TerminalColors
 
-    helper = CombineHelper(acc, log_func)
+    svc = CombineService(acc, log_func)
     overall_ok = True
 
-    # ── Set 1: Ép từng trang bị với Item 16 ──
+    # ── Set 1: Ép Item 16 (sức đánh) lên từng bản sao ──
+    # Items 1,7,22,28: ép ALL copies
+    # 🔴 Item 12 (rada) BỊ LOẠI khỏi vòng lặp — rada chỉ ép 442+441
     for item_id in ITEM_EQUIP:
+        if item_id == ITEM_12:
+            continue
         if not acc.is_logged_in:
             return False
 
-        # Check đã ép đủ chưa
-        if helper.is_fully_upgraded(item_id, UPGRADE_TIMES_PER_PIECE):
-            stars = helper.get_item_stars(item_id)
-            log_func(f"{C.GREEN}→ Item {item_id} đã đủ {stars} sao, bỏ qua.{C.RESET}")
+        # Tìm tất cả bản sao
+        all_copies = []
+        for idx, item in enumerate(acc.char.arr_item_bag or []):
+            if item is not None and item.item_id == item_id:
+                stars = svc.get_item_star_at_index(idx)
+                all_copies.append((idx, stars))
+
+        if not all_copies:
+            log_func(f"{C.DIM}→ Item {item_id}: không có trong balo.{C.RESET}")
             continue
 
-        item_count = helper.count_item(item_id)
-        item16_count = helper.count_item(ITEM_UPGRADE_16)
-        current_stars = helper.get_item_stars(item_id)
+        copies_to_upgrade = all_copies
 
-        if item_count < 1:
-            log_func(f"{C.YELLOW}→ Item {item_id}: không có.{C.RESET}")
+        need_any = any(stars < UPGRADE_TIMES_PER_PIECE for _, stars in copies_to_upgrade)
+        if not need_any:
+            log_func(f"{C.GREEN}→ Item {item_id}: tất cả đã đủ sao, bỏ qua.{C.RESET}")
             continue
 
-        need = UPGRADE_TIMES_PER_PIECE - current_stars
-        if need <= 0:
-            log_func(f"{C.GREEN}→ Item {item_id} đã đủ sao ({current_stars}).{C.RESET}")
+        item16_count = svc.count_item(ITEM_UPGRADE_16)
+        if item16_count < 1:
+            log_func(f"{C.YELLOW}→ Item {item_id}: hết Item 16.{C.RESET}")
             continue
 
-        max_up = min(need, item_count, item16_count)
-        if max_up <= 0:
-            log_func(f"{C.YELLOW}→ Item {item_id}: thiếu Item 16 ({item16_count}), sao: {current_stars}/{UPGRADE_TIMES_PER_PIECE}.{C.RESET}")
-            continue
+        log_func(f"{C.DIM}→ Item {item_id}: {len(copies_to_upgrade)} bản sao cần ép "
+                 f"({', '.join(f'idx {idx}={s}⭐' for idx, s in copies_to_upgrade)})."
+                 f" Item 16: {item16_count}.{C.RESET}")
 
-        if not await helper.open_combine():
-            log_func(f"{C.RED}→ Không mở được ép sao cho item {item_id}.{C.RESET}")
-            overall_ok = False
-            continue
+        for copy_idx, current_stars in copies_to_upgrade:
+            if not acc.is_logged_in:
+                return False
 
-        log_func(f"{C.DIM}→ Ép item {item_id} x{max_up} lần (sao: {current_stars}/{UPGRADE_TIMES_PER_PIECE}, item:{item_count}, 16:{item16_count})...{C.RESET}")
+            if current_stars >= UPGRADE_TIMES_PER_PIECE:
+                continue
 
-        done = await helper.do_combine(
-            main_item_id=item_id,
-            materials=[(ITEM_UPGRADE_16, 1)],
-            max_times=max_up,
-        )
+            need = UPGRADE_TIMES_PER_PIECE - current_stars
+            item16_now = svc.count_item(ITEM_UPGRADE_16)
+            if item16_now < 1:
+                log_func(f"{C.YELLOW}  → Hết Item 16 cho idx {copy_idx}.{C.RESET}")
+                break
 
-        if done > 0:
-            log_func(f"{C.GREEN}  → Item {item_id}: xong {done} lần.{C.RESET}")
-        else:
-            overall_ok = False
-            log_func(f"{C.YELLOW}  → Item {item_id}: không ép được.{C.RESET}")
+            max_up = min(need, item16_now)
+            if max_up <= 0:
+                continue
 
-        if not acc.is_logged_in:
-            return False
+            log_func(f"{C.DIM}  → Ép idx {copy_idx} (sao: {current_stars}→{UPGRADE_TIMES_PER_PIECE}/{UPGRADE_TIMES_PER_PIECE}), "
+                     f"x{max_up} lần (ép từng cái một)...{C.RESET}")
 
-    # ── Set 2: Item 12 đặc biệt (12 + 2x 442 + 8x 441) ──
+            done = await _upgrade_one_by_one(
+                svc, acc, log_func, C,
+                item_id=item_id,
+                copy_idx=copy_idx,
+                target_stars=UPGRADE_TIMES_PER_PIECE,
+                mat_id=ITEM_UPGRADE_16,
+                mat_qty=1,
+                max_total=max_up,
+            )
+
+            if done > 0:
+                log_func(f"{C.GREEN}    ✓ idx {copy_idx}: xong {done} lần.{C.RESET}")
+            else:
+                overall_ok = False
+                log_func(f"{C.YELLOW}    ✗ idx {copy_idx}: không ép được.{C.RESET}")
+
+    # ── Set 2: Item 12 đặc biệt (442 hút ki + 441 hút HP) ──
+    # Mỗi copy rada: 2x442 + 8x441
+    # QUAN TRỌNG: Mở combine TAB MỚI cho mỗi copy (server có thể close tab sau combine)
     if not acc.is_logged_in:
         return False
 
     await refresh_inventory(acc)
 
-    item12_count = helper.count_item(ITEM_12)
-    item442_count = helper.count_item(ITEM_442)
-    item441_count = helper.count_item(ITEM_441)
+    total_442 = svc.count_item(ITEM_442)
+    total_441 = svc.count_item(ITEM_441)
+    log_func(f"{C.DIM}→ Set 2 (rada 442+441): Có {total_442}x442, {total_441}x441 trong balo.{C.RESET}")
 
-    if item12_count < 1 or item442_count < 2 or item441_count < 8:
-        log_func(f"{C.YELLOW}→ Set 2 Item 12: thiếu "
-                   f"(12:{item12_count}, 442:{item442_count}/2, 441:{item441_count}/8).{C.RESET}")
-    else:
-        if not await helper.open_combine():
-            log_func(f"{C.RED}→ Không mở được ép sao cho Set 2 Item 12.{C.RESET}")
-        else:
-            log_func(f"{C.DIM}→ Set 2 Item 12: 12 + 442x2 + 441x8...{C.RESET}")
+    # Ép rada theo vòng lặp: tìm từng copy, ép, refresh, lặp
+    copy_round = 0
+    while True:
+        if not acc.is_logged_in:
+            break
 
-            ctrl = acc.controller
-            indices = []
-            for search_id, search_qty in [(ITEM_12, 1), (ITEM_442, 2), (ITEM_441, 8)]:
-                found = 0
-                for idx, item in enumerate(acc.char.arr_item_bag or []):
-                    if item is not None and item.item_id == search_id:
-                        if found < search_qty:
-                            indices.append(idx)
-                            found += 1
+        await refresh_inventory(acc)
 
-            log_func(f"{C.DIM}  Gửi {len(indices)} items: {indices}{C.RESET}")
+        # Tìm 1 bản sao Item 12 cần upgrade (hút ki < 10% hoặc hút HP < 40%)
+        copy_idx = -1
+        need_442_qty = 0
+        need_441_qty = 0
+        for idx, item in enumerate(acc.char.arr_item_bag or []):
+            if item is not None and item.item_id == ITEM_12:
+                opts = {o.option_template_id: o.param for o in (item.item_option or [])}
+                p_ki = opts.get(96, 0)
+                p_hp = opts.get(95, 0)
+                if p_ki < 10 or p_hp < 40:
+                    copy_idx = idx
+                    need_442_qty = max(0, (10 - p_ki) // 5)
+                    need_441_qty = max(0, (40 - p_hp) // 5)
+                    break
 
-            ctrl.combine_event.clear()
-            ctrl.combine_result = ""
-            ctrl.ui_menu_event.clear()
-            await acc.service.send_combine_items(indices)
-            await asyncio.sleep(0.5)
+        if copy_idx < 0:
+            log_func(f"{C.GREEN}→ Tất cả rada trong balo đã được ép xong (hoặc không còn rada chưa ép).{C.RESET}")
+            break
 
-            try:
-                await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=3.0)
-            except asyncio.TimeoutError:
-                pass
-            await asyncio.sleep(0.3)
+        # Kiểm tra nguyên liệu
+        cur_442 = svc.count_item(ITEM_442)
+        cur_441 = svc.count_item(ITEM_441)
+        if cur_442 < need_442_qty or cur_441 < need_441_qty:
+            log_func(f"{C.YELLOW}  → Thiếu nguyên liệu cho rada idx {copy_idx} (cần 442:{need_442_qty}, 441:{need_441_qty}; có 442:{cur_442}, 441:{cur_441}).{C.RESET}")
+            break
 
-            opts = ctrl.last_ui_options or []
-            if opts:
-                confirm_idx = 0
-                for i, opt in enumerate(opts):
-                    if "nâng cấp" in opt.lower() or "cần" in opt.lower():
-                        confirm_idx = i
-                        break
-                ctrl.combine_event.clear()
-                ctrl.combine_result = ""
-                await acc.service.confirm_menu_npc(NPC_BA_HAT_MIT, confirm_idx)
-                try:
-                    await asyncio.wait_for(ctrl.combine_event.wait(), timeout=5.0)
-                except asyncio.TimeoutError:
-                    pass
-                await asyncio.sleep(0.3)
-                log_func(f"{C.GREEN}  → Set 2 Item 12: {ctrl.combine_result}.{C.RESET}")
+        copy_round += 1
+        log_func(f"{C.DIM}  === Rada copy #{copy_round}: idx {copy_idx} (cần thêm 442:{need_442_qty}, 441:{need_441_qty}) ==={C.RESET}")
+
+        # Mở tab combine "Ép sao trang bị" (sử dụng open_combine thay vì open_item_upgrade)
+        use_item_upgrade_tab = False
+        tab_opened = await svc.open_combine()
+
+        if not tab_opened:
+            log_func(f"{C.RED}  → Không mở được combine tab, dừng ép rada.{C.RESET}")
+            overall_ok = False
+            break
+
+        # Ép 442 (hút ki)
+        combine_failed = False
+        for i in range(need_442_qty):
+            if not acc.is_logged_in:
+                break
+            await refresh_inventory(acc)
+            if svc.count_item(ITEM_442) < 1:
+                log_func(f"{C.YELLOW}    Hết 442 ở lần {i+1}/{need_442_qty}.{C.RESET}")
+                break
+            ok = await _rada_combine_one(svc, acc, log_func, C, copy_idx, ITEM_442, "442", use_item_upgrade=use_item_upgrade_tab)
+            if ok:
+                log_func(f"{C.DIM}      ✓ 442 lần {i+1}/{need_442_qty}.{C.RESET}")
             else:
-                log_func(f"{C.YELLOW}  → Set 2 Item 12: không có menu.{C.RESET}")
+                log_func(f"{C.YELLOW}      ✗ 442 lần {i+1}/{need_442_qty}.{C.RESET}")
+                combine_failed = True
+                break
+
+        if combine_failed:
+            overall_ok = False
+            break
+
+        # Ép 441 (hút HP)
+        for i in range(need_441_qty):
+            if not acc.is_logged_in:
+                break
+            await refresh_inventory(acc)
+            if svc.count_item(ITEM_441) < 1:
+                log_func(f"{C.YELLOW}    Hết 441 ở lần {i+1}/{need_441_qty}.{C.RESET}")
+                break
+            ok = await _rada_combine_one(svc, acc, log_func, C, copy_idx, ITEM_441, "441", use_item_upgrade=use_item_upgrade_tab)
+            if ok:
+                log_func(f"{C.DIM}      ✓ 441 lần {i+1}/{need_441_qty}.{C.RESET}")
+            else:
+                log_func(f"{C.YELLOW}      ✗ 441 lần {i+1}/{need_441_qty}.{C.RESET}")
+                combine_failed = True
+                break
+
+        if combine_failed:
+            overall_ok = False
+            break
+
+        log_func(f"{C.DIM}  → Rada copy #{copy_round} (idx {copy_idx}): kết thúc.{C.RESET}")
+
+    # ── Verify options của Item 12 sau khi ép ──
+    await refresh_inventory(acc)
+    log_func(f"{C.CYAN}→ Verify options Item 12 (rada):{C.RESET}")
+    svc.dump_item_options(ITEM_12)
+    for idx, item in enumerate(acc.char.arr_item_bag or []):
+        if item is not None and item.item_id == ITEM_12:
+            star = svc.get_item_star_at_index(idx)
+            opts = {o.option_template_id: o.param
+                    for o in (item.item_option or [])}
+            has_ki_steal = 96 in opts
+            has_hp_steal = 95 in opts
+            log_func(f"{C.DIM}  [idx {idx}] sao={star} "
+                     f"hutHP={has_hp_steal}({opts.get(95,0)}) "
+                     f"hutKi={has_ki_steal}({opts.get(96,0)}){C.RESET}")
 
     # ── Tổng kết ──
-    helper.print_status(ITEM_EQUIP, UPGRADE_TIMES_PER_PIECE)
+    svc.print_status(ITEM_EQUIP, UPGRADE_TIMES_PER_PIECE)
 
     if overall_ok:
         log_func(f"{C.GREEN}→ Hoàn thành ép trang bị.{C.RESET}")
     else:
         log_func(f"{C.YELLOW}→ Một số item không ép được.{C.RESET}")
-    return True
+    return overall_ok

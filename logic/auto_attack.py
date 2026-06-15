@@ -65,7 +65,7 @@ class AutoAttack:
                 break
             except Exception as e:
                 logger.error(f"Lỗi trong Auto Attack loop: {e}")
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(0.2)
     
     async def _update(self):
         """

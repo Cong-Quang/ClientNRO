@@ -28,7 +28,7 @@ async def buy_bua(acc, log_func) -> bool:
             return False
 
     log_func(f"{C.GREEN}→ Đã ở map {ctrl.tile_map.map_id}.{C.RESET}")
-    await asyncio.sleep(1.0)
+    await asyncio.sleep(0.2)
 
     # ── Đợi NPC load ──
     for attempt in range(5):
@@ -36,7 +36,7 @@ async def buy_bua(acc, log_func) -> bool:
         if npc_data:
             break
         log_func(f"{C.DIM}  Đợi NPC load (lần {attempt + 1})...{C.RESET}")
-        await asyncio.sleep(1.0)
+        await asyncio.sleep(0.2)
 
     # ── Teleport đến Bà Hạt Mít ──
     if not await teleport_to_npc(acc, NPC_BA_HAT_MIT):
@@ -51,7 +51,7 @@ async def buy_bua(acc, log_func) -> bool:
         return False
 
     log_func(f"{C.GREEN}→ Đã tới Bà Hạt Mít.{C.RESET}")
-    await asyncio.sleep(0.3)
+    await asyncio.sleep(0.1)
 
     # ── Mở menu NPC ──
     opts = await open_menu_npc(acc, NPC_BA_HAT_MIT)
@@ -65,7 +65,7 @@ async def buy_bua(acc, log_func) -> bool:
             await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=3.0)
         except asyncio.TimeoutError:
             pass
-        await asyncio.sleep(0.3)
+        await asyncio.sleep(0.15)
         opts = ctrl.last_ui_options or []
         log_func(f"{C.DIM}→ Menu lần 2: {opts}{C.RESET}")
 
@@ -89,7 +89,7 @@ async def buy_bua(acc, log_func) -> bool:
         await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=3.0)
     except asyncio.TimeoutError:
         pass
-    await asyncio.sleep(0.3)
+    await asyncio.sleep(0.1)
 
     opts2 = ctrl.last_ui_options or []
     log_func(f"{C.DIM}→ Menu bùa: {opts2}{C.RESET}")
@@ -108,7 +108,7 @@ async def buy_bua(acc, log_func) -> bool:
     log_func(f"{C.DIM}→ Chọn '{opts2[month_idx]}'{C.RESET}")
     ctrl.ui_menu_event.clear()
     await acc.service.confirm_menu_npc(NPC_BA_HAT_MIT, month_idx)
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(0.2)
 
     # ── Mua bùa ──
     await refresh_inventory(acc)
@@ -121,7 +121,7 @@ async def buy_bua(acc, log_func) -> bool:
         try:
             await acc.service.buy_item(0, item_id)
             bought += 1
-            await asyncio.sleep(0.15)
+            await asyncio.sleep(0.02)
         except Exception as e:
             log_func(f"{C.YELLOW}  Lỗi mua item {item_id}: {e}{C.RESET}")
 

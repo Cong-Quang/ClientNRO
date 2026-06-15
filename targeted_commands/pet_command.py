@@ -20,7 +20,7 @@ class PetCommand(TargetedCommand):
             sub_cmd = parts[1]
             if sub_cmd == "info":
                 await account.service.pet_info()
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(0.2)
                 # This now needs the specific pet object and username (and optional idx for compact view)
                 display_pet_info(account.pet, account.username, compact=compact_mode, idx=idx)
             elif sub_cmd in {"follow", "protect", "attack", "home"}:

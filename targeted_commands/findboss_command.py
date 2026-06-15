@@ -17,7 +17,7 @@ class FindbossCommand(TargetedCommand):
         """
         # Request cập nhật vị trí từ server (Cmd 18)
         await account.service.request_players()
-        await asyncio.sleep(0.5)  # Đợi server response
+        await asyncio.sleep(0.2)  # Đợi server response
         
         chars = account.controller.chars
         

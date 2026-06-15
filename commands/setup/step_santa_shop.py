@@ -1,6 +1,7 @@
 """
 Bước 8: Mua item tại Santa shop.
-Mua item hỗ trợ (517x100, 518x50) và item đặc biệt (402x6, 403x6).
+Mua item hỗ trợ (517x100, 518x50) và item đặc biệt (402x20, 403x20).
+Sau khi mua, dùng item 402 và 403 mỗi loại 6 lần.
 """
 
 import asyncio
@@ -8,10 +9,10 @@ import asyncio
 from logs.logger_config import TerminalColors
 from commands.setup.constants import (
     NPC_SANTA, SANTA_MAPS,
-    SANTA_ITEM_HO_TRO, SANTA_ITEM_DAC_BIET, SANTA_NO_BAG_ITEMS,
+    SANTA_ITEM_HO_TRO, SANTA_ITEM_DAC_BIET, SANTA_ITEM_USE, SANTA_NO_BAG_ITEMS,
 )
 from commands.setup.navigation_helpers import teleport_to_npc, move_to_map
-from commands.setup.inventory_helpers import count_item
+from commands.setup.inventory_helpers import count_item, refresh_inventory
 
 
 async def santa_shop(acc, log_func) -> bool:
@@ -37,11 +38,11 @@ async def santa_shop(acc, log_func) -> bool:
     async def _open_and_buy(tab_keywords, tab_default, items) -> bool:
         """Mở menu Santa → chọn tab → mua items."""
         for attempt in range(1, 4):
-            if attempt > 1:
-                await asyncio.sleep(0.5)
-                if not await teleport_to_npc(acc, NPC_SANTA):
-                    continue
+            if not await teleport_to_npc(acc, NPC_SANTA):
+                log_func(f"{C.YELLOW}  → Thử lần {attempt}/3 không tìm thấy Santa.{C.RESET}")
                 await asyncio.sleep(0.2)
+                continue
+            await asyncio.sleep(0.2)
 
             # Mở menu Santa
             ctrl.ui_menu_event.clear()
@@ -56,39 +57,15 @@ async def santa_shop(acc, log_func) -> bool:
             shop_opt = -1
             for i, opt in enumerate(opts):
                 ol = opt.lower()
-                if "cửa hàng" in ol or "hỗ trợ" in ol or "hotro" in ol:
+                if any(kw in ol for kw in tab_keywords):
                     shop_opt = i
                     break
             if shop_opt == -1:
-                shop_opt = 0
+                shop_opt = tab_default
 
+            log_func(f"{C.DIM}  → Chọn option {shop_opt} ({opts[shop_opt] if shop_opt < len(opts) else 'default'})...{C.RESET}")
             ctrl.ui_menu_event.clear()
             await acc.service.confirm_menu_npc(NPC_SANTA, shop_opt)
-            try:
-                await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=3.0)
-            except asyncio.TimeoutError:
-                pass
-            await asyncio.sleep(0.1)
-
-            # Chọn tab
-            tab_opts = ctrl.last_ui_options or []
-            tab_idx = -1
-            for i, opt in enumerate(tab_opts):
-                for kw in tab_keywords:
-                    if kw in opt.lower():
-                        tab_idx = i
-                        break
-                if tab_idx != -1:
-                    break
-            if tab_idx == -1:
-                tab_idx = tab_default
-
-            ctrl.ui_menu_event.clear()
-            await acc.service.confirm_menu_npc(NPC_SANTA, tab_idx)
-            try:
-                await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=3.0)
-            except asyncio.TimeoutError:
-                pass
             await asyncio.sleep(0.1)
 
             # Mua items
@@ -109,18 +86,14 @@ async def santa_shop(acc, log_func) -> bool:
                         bought += 1
                         if bought % 50 == 0:
                             log_func(f"{C.DIM}  Đã mua {bought}/{need} item {item_id}.{C.RESET}")
-                        await asyncio.sleep(0.03)
+                        await asyncio.sleep(0.01)
                     except Exception:
                         break
                 if bought > 0:
                     log_func(f"{C.GREEN}→ Đã mua {bought} item {item_id}.{C.RESET}")
 
                 if item_id not in SANTA_NO_BAG_ITEMS:
-                    try:
-                        await acc.service.request_me_info()
-                    except Exception:
-                        pass
-                    await asyncio.sleep(0.3)
+                    await refresh_inventory(acc)
                     final_count = count_item(acc, item_id)
                     if final_count < qty:
                         log_func(f"{C.YELLOW}  Còn thiếu {qty - final_count} item {item_id}.{C.RESET}")
@@ -141,7 +114,7 @@ async def santa_shop(acc, log_func) -> bool:
         log_func(f"{C.RED}→ Mua tab hỗ trợ không đủ.{C.RESET}")
 
     # Tab đặc biệt
-    log_func(f"{C.DIM}→ Tab đặc biệt: 402x6, 403x6...{C.RESET}")
+    log_func(f"{C.DIM}→ Tab đặc biệt: 402x20, 403x20...{C.RESET}")
     ok = await _open_and_buy(
         tab_keywords=["đặc biệt", "dac biet", "biệt", "special"],
         tab_default=1,
@@ -149,5 +122,58 @@ async def santa_shop(acc, log_func) -> bool:
     )
     if not ok:
         log_func(f"{C.RED}→ Mua tab đặc biệt không đủ.{C.RESET}")
+
+    # ── Dùng item 402 và 403 mỗi loại 6 lần ──
+    log_func(f"{C.DIM}→ Dùng item 402 và 403 mỗi loại 6 lần cho đệ tử...{C.RESET}")
+    await refresh_inventory(acc)
+    
+    # Kiểm tra đệ tử có tồn tại và đang hoạt động không
+    have_pet = False
+    if acc.pet and acc.pet.have_pet:
+        have_pet = True
+    else:
+        try:
+            acc.controller.pet_info_event.clear()
+            await acc.service.pet_info()
+            await asyncio.wait_for(acc.controller.pet_info_event.wait(), timeout=3.0)
+            if acc.pet and acc.pet.have_pet:
+                have_pet = True
+        except Exception:
+            pass
+        
+    if not have_pet:
+        log_func(f"{C.YELLOW}  → Không tìm thấy đệ tử hoạt động, bỏ qua dùng sách kĩ năng đệ tử.{C.RESET}")
+    else:
+        for item_id, use_times in SANTA_ITEM_USE:
+            if not acc.is_logged_in:
+                break
+            count = count_item(acc, item_id)
+            if count == 0:
+                log_func(f"{C.YELLOW}  → Không có item {item_id} trong balo.{C.RESET}")
+                continue
+            log_func(f"{C.DIM}  → Dùng {use_times} lần item {item_id} (có {count}) cho đệ tử...{C.RESET}")
+            used = 0
+            for _ in range(use_times):
+                if not acc.is_logged_in:
+                    break
+                # Tìm index item trong balo
+                idx = -1
+                for j, it in enumerate(acc.char.arr_item_bag or []):
+                    if it is not None and it.item_id == item_id:
+                        idx = j
+                        break
+                if idx < 0:
+                    log_func(f"{C.YELLOW}    Hết item {item_id} sau {used} lần.{C.RESET}")
+                    break
+                try:
+                    # Dùng item cho đệ tử: get_item(type=6)
+                    await acc.service.get_item(6, idx)
+                    used += 1
+                    await asyncio.sleep(0.1)
+                except Exception as e:
+                    log_func(f"{C.YELLOW}    Lỗi dùng item {item_id}: {e}{C.RESET}")
+                    break
+            if used > 0:
+                log_func(f"{C.GREEN}    ✓ Đã dùng {used} lần item {item_id} cho đệ tử.{C.RESET}")
 
     return True

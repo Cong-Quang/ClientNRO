@@ -233,6 +233,9 @@ class InventoryHandler(BaseHandler):
                     pet.arr_pet_skill[i] = s
             
             logger.info(f"Đã cập nhật thông tin Đệ tử: {pet.name} | HP: {pet.c_hp}/{pet.c_hp_full} | Sức mạnh: {pet.c_power}")
+            
+            # Signal pet_info event
+            self.controller.pet_info_event.set()
 
         except Exception as e:
             logger.error(f"Lỗi khi phân tích PET_INFO: {e}")

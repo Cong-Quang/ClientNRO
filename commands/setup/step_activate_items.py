@@ -45,11 +45,15 @@ async def activate_items(acc, log_func) -> bool:
         for idx, item in enumerate(acc.char.arr_item_bag or []):
             if item is not None and item.item_id == item_id:
                 try:
-                    await acc.service.use_item(0, 1, idx, -1)
-                    await asyncio.sleep(0.15)
-                    log_func(f"{C.GREEN}→ Đã dùng item {item_id}.{C.RESET}")
+                    # Item 290 là cải trang → cần type=1 (đeo vào) thay vì type=0 (dùng)
+                    if item_id == 290:
+                        await acc.service.use_item(1, 1, idx, -1)
+                        log_func(f"{C.GREEN}→ Đã mặc cải trang item {item_id}.{C.RESET}")
+                    else:
+                        await acc.service.use_item(0, 1, idx, -1)
+                        log_func(f"{C.GREEN}→ Đã dùng item {item_id}.{C.RESET}")
                 except Exception as e:
-                    log_func(f"{C.RED}→ Lỗi dùng item {item_id}: {e}{C.RESET}")
+                    log_func(f"{C.RED}→ Lỗi xử lý item {item_id}: {e}{C.RESET}")
                 break
 
     return True
@@ -98,7 +102,7 @@ async def _activate_item_2000(acc, ctrl, log_func):
 
             if retry > 1:
                 log_func(f"{C.YELLOW}  Retry lần {retry}/3 mở item 2000...{C.RESET}")
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(0.2)
                 await refresh_inventory(acc)
 
             # Tìm và dùng item 2000
@@ -120,10 +124,10 @@ async def _activate_item_2000(acc, ctrl, log_func):
             try:
                 log_func(f"{C.DIM}  Dùng item 2000 tại bag index {found_item}...{C.RESET}")
                 await acc.service.use_item(0, 1, found_item, -1)
-                await asyncio.sleep(0.8)
+                await asyncio.sleep(0.4)
 
                 try:
-                    await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=5.0)
+                    await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=3.0)
                 except asyncio.TimeoutError:
                     log_func(f"{C.YELLOW}    Timeout chờ menu item 2000.{C.RESET}")
 
@@ -144,7 +148,7 @@ async def _activate_item_2000(acc, ctrl, log_func):
                     npc_to_use = menu_npc if menu_npc > 0 else 0
                     log_func(f"{C.DIM}    Chọn option {target_idx} với npc_id={npc_to_use}.{C.RESET}")
                     await acc.service.confirm_menu_npc(npc_to_use, target_idx)
-                    await asyncio.sleep(2.0)
+                    await asyncio.sleep(1.0)
 
                     await refresh_inventory(acc)
 

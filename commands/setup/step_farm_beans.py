@@ -21,9 +21,9 @@ async def farm_magic_tree(acc, log_func, target_count: int = TARGET_BEAN_QTY) ->
 
     # Về nhà trước
     await go_home(acc, log_func)
-    await asyncio.sleep(0.3)
+    await asyncio.sleep(0.1)
     await teleport_to_npc(acc, NPC_DAU_THAN)
-    await asyncio.sleep(0.3)
+    await asyncio.sleep(0.1)
 
     bean_count = count_beans(acc)
     log_func(f"{C.DIM}→ Đậu: {bean_count}/{target_count}{C.RESET}")
@@ -45,10 +45,10 @@ async def farm_magic_tree(acc, log_func, target_count: int = TARGET_BEAN_QTY) ->
         ctrl.ui_menu_event.clear()
         await acc.service.open_menu_npc(NPC_DAU_THAN)
         try:
-            await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=2.0)
+            await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=0.8)
         except asyncio.TimeoutError:
             pass
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.03)
 
         opts = ctrl.magic_tree_options or ctrl.last_ui_options or []
         if not opts:
@@ -62,16 +62,18 @@ async def farm_magic_tree(acc, log_func, target_count: int = TARGET_BEAN_QTY) ->
         if has_fast:
             fi = next((i for i, o in enumerate(lo) if 'kết hạt' in o), None)
             if fi is not None:
-                log_func(f"{C.DIM}[{r+1}] Kết hạt nhanh →{C.RESET}")
+                if r % 10 == 0:
+                    log_func(f"{C.DIM}[{r+1}] Kết hạt nhanh →{C.RESET}")
                 await acc.service.confirm_menu_npc(NPC_DAU_THAN, fi)
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(0.03)
         elif has_harvest:
-            log_func(f"{C.DIM}[{r+1}] Thu hoạch →{C.RESET}")
+            if r % 10 == 0:
+                log_func(f"{C.DIM}[{r+1}] Thu hoạch →{C.RESET}")
             await acc.service.confirm_menu_npc(NPC_DAU_THAN, 0)
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.03)
         else:
             await acc.service.confirm_menu_npc(NPC_DAU_THAN, 0)
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.03)
 
         bean_count = count_beans(acc)
         if r % 5 == 0 or bean_count >= target_count:

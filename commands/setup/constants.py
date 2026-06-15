@@ -17,16 +17,20 @@ STEP_USE_SUPPORT = 9       # Dùng item hỗ trợ (1182 → 441, 1680)
 STEP_ACTIVATE_ITEMS = 10   # Kích hoạt vật phẩm thưởng
 STEP_UPGRADE_16 = 11       # Ép sao Item 16 (x11)
 STEP_UPGRADE_OTHER = 12    # Ép sao Item 1/22/28/12
+STEP_EQUIP_MASTER = 13     # Mặc đồ cho sư phụ
+STEP_EQUIP_PET = 14        # Mặc đồ cho đệ tử
 
 ALL_STEPS = [
     STEP_CREATE_CHAR, STEP_SELECT_CHAR, STEP_GO_HOME, STEP_OPEN_MURI,
     STEP_CLAIM_REWARDS, STEP_FARM_BEANS, STEP_BUY_BUA, STEP_SANTA_SHOP,
     STEP_USE_SUPPORT, STEP_ACTIVATE_ITEMS,
     STEP_UPGRADE_16, STEP_UPGRADE_OTHER,
+    STEP_EQUIP_MASTER, STEP_EQUIP_PET,
 ]
 
-# Mỗi trang bị cần tối đa 10 lần upgrade (như áo)
-UPGRADE_TIMES_PER_PIECE = 10
+# Server MAX_STAR = 9 (EpSaoTrangBi.MAX_STAR)
+# Mỗi star Item 16 cho +3% sức đánh (option 50 param=3), 9 stars = 27% sức đánh
+UPGRADE_TIMES_PER_PIECE = 9
 
 STEP_LABELS = {
     STEP_CREATE_CHAR: "Tạo nhân vật",
@@ -41,6 +45,8 @@ STEP_LABELS = {
     STEP_ACTIVATE_ITEMS: "Kích hoạt vật phẩm thưởng",
     STEP_UPGRADE_16: "Ép sao Item 16 (x11)",
     STEP_UPGRADE_OTHER: "Ép sao Item 1/22/28/12",
+    STEP_EQUIP_MASTER: "Mặc đồ cho sư phụ",
+    STEP_EQUIP_PET: "Mặc đồ cho đệ tử",
 }
 
 # ── Giới tính nhân vật ───────────────────────
@@ -89,8 +95,9 @@ BUA_ITEM_IDS = [213, 214, 215, 216, 217, 218, 219, 522, 671, 672]
 # ── Santa shop items ─────────────────────────
 
 SANTA_ITEM_HO_TRO = [(517, 100), (518, 50)]       # Tab hỗ trợ
-SANTA_ITEM_DAC_BIET = [(402, 6), (403, 6)]         # Tab đặc biệt
-SANTA_NO_BAG_ITEMS = {517, 518, 402, 403}          # Items không vào balo (bay, pet, sách...)
+SANTA_ITEM_DAC_BIET = [(402, 20), (403, 20)]        # Tab đặc biệt (mua 20 món mỗi loại)
+SANTA_ITEM_USE = [(402, 6), (403, 6)]              # Dùng 6 lần mỗi item sau khi mua
+SANTA_NO_BAG_ITEMS = {517, 518}          # Items không vào balo (bay, pet, sách...)
 
 # ── Item hỗ trợ ──────────────────────────────
 
@@ -126,19 +133,21 @@ EP_SAO_TRANG_BI = 500
 
 # ── Cấu hình retry cho mỗi bước ──────────────
 
-from commands.setup.retry_utils import RetryConfig
+from services.retry import RetryConfig
 
 RETRY_CONFIGS = {
-    STEP_CREATE_CHAR:    RetryConfig(2, 1.0, 3.0, 1.0),
-    STEP_SELECT_CHAR:    RetryConfig(3, 1.0, 5.0, 1.5),
-    STEP_GO_HOME:        RetryConfig(3, 1.0, 5.0, 1.5),
-    STEP_OPEN_MURI:      RetryConfig(3, 0.5, 3.0, 1.5),
-    STEP_CLAIM_REWARDS:  RetryConfig(3, 0.5, 3.0, 1.5),
-    STEP_FARM_BEANS:     RetryConfig(5, 1.0, 5.0, 1.5),
-    STEP_BUY_BUA:        RetryConfig(3, 1.0, 5.0, 1.5),
-    STEP_SANTA_SHOP:     RetryConfig(3, 1.0, 5.0, 1.5),
-    STEP_USE_SUPPORT:    RetryConfig(2, 0.5, 3.0, 1.0),
-    STEP_ACTIVATE_ITEMS: RetryConfig(2, 0.5, 3.0, 1.0),
-    STEP_UPGRADE_16:     RetryConfig(5, 1.0, 5.0, 1.5),
-    STEP_UPGRADE_OTHER:  RetryConfig(5, 1.0, 5.0, 1.5),
+    STEP_CREATE_CHAR:    RetryConfig(2, 0.5, 2.0, 1.0),
+    STEP_SELECT_CHAR:    RetryConfig(3, 0.5, 3.0, 1.0),
+    STEP_GO_HOME:        RetryConfig(3, 0.5, 3.0, 1.0),
+    STEP_OPEN_MURI:      RetryConfig(3, 0.3, 2.0, 1.0),
+    STEP_CLAIM_REWARDS:  RetryConfig(3, 0.3, 2.0, 1.0),
+    STEP_FARM_BEANS:     RetryConfig(3, 0.5, 3.0, 1.0),
+    STEP_BUY_BUA:        RetryConfig(2, 0.5, 3.0, 1.0),
+    STEP_SANTA_SHOP:     RetryConfig(2, 0.5, 3.0, 1.0),
+    STEP_USE_SUPPORT:    RetryConfig(2, 0.3, 2.0, 1.0),
+    STEP_ACTIVATE_ITEMS: RetryConfig(2, 0.3, 2.0, 1.0),
+    STEP_UPGRADE_16:     RetryConfig(3, 0.5, 3.0, 1.0),
+    STEP_UPGRADE_OTHER:  RetryConfig(3, 0.5, 3.0, 1.0),
+    STEP_EQUIP_MASTER:   RetryConfig(2, 0.3, 2.0, 1.0),
+    STEP_EQUIP_PET:      RetryConfig(2, 0.3, 2.0, 1.0),
 }

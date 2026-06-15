@@ -192,7 +192,7 @@ class AutoMsm:
                 
             logger.info(f"[{self.controller.account.username}] Dịch chuyển tới NPC {home_npc} để nhận vàng...")
             await self.controller.movement.teleport_to_npc(home_npc, search_by_template=True)
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.2)
 
             logger.info(f"[{self.controller.account.username}] Đang xin vàng NPC {home_npc}...")
             self.controller.ui_menu_event.clear()

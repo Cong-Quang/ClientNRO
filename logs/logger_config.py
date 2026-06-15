@@ -126,4 +126,4 @@ def set_logger_status(is_enabled: bool):
     """Bật hoặc tắt logger."""
     logger.disabled = not is_enabled
 
-set_logger_status(False)
+set_logger_status(False)  # Mặc định tắt logger, bật khi cần thiết trong main.py hoặc các module khác

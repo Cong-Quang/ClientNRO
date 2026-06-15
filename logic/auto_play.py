@@ -70,7 +70,7 @@ class AutoPlay:
                     
                     # Chờ xmap hoàn thành
                     while self.controller.xmap.is_xmapping:
-                        await asyncio.sleep(0.5)
+                        await asyncio.sleep(0.2)
                     
                     logger.info(f"Auto: Đã quay về map {current_map_id}.")
             return  # Kết thúc lượt này, vòng lặp tiếp theo sẽ tiếp tục tấn công

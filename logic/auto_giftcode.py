@@ -67,13 +67,13 @@ class AutoGiftcode:
                      char.cx = npc['x']
                      char.cy = npc['y']
                      await self.account.service.char_move()
-                     await asyncio.sleep(1)
+                     await asyncio.sleep(0.2)
                      continue
 
                 # Step 2: Open Menu
                 logger.info(f"[{self.account.username}] Mở menu NPC {npc_id}")
                 await self.account.service.open_menu(npc_id)
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.2)
 
                 # Step 3: Select "Nhap giftcode" (Menu ID 2 generally)
                 # We assume the bot knows the menu index for Giftcode is 2. 
@@ -86,7 +86,7 @@ class AutoGiftcode:
                 
                 await self.account.service.confirm_menu(npc_id, 2)
                 logger.info(f"[{self.account.username}] Chọn menu 2 (Giftcode)")
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.2)
 
                 # Step 4: Input Code
                 # Wait for Input Dialog? We can just send input.
@@ -96,7 +96,7 @@ class AutoGiftcode:
                 
                 logger.info(f"[{self.account.username}] Đã nhập code {current_code}. Chuyển sang code tiếp theo.")
                 self.current_code_index += 1
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.2)
 
             except Exception as e:
                 logger.error(f"[{self.account.username}] Lỗi Auto Giftcode: {e}")

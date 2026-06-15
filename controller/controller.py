@@ -70,6 +70,10 @@ class Controller:
         self.last_ui_chat = ""
         self.last_npc_template_id = 0
 
+        # Coordinate events
+        self.me_load_all_event = asyncio.Event()
+        self.pet_info_event = asyncio.Event()
+
         # Magic Tree state
         self.magic_tree_menu = asyncio.Event()
         self.magic_tree_options = []

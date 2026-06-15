@@ -101,7 +101,7 @@ class PlayerHandler(BaseHandler):
         """Xử lý hồi sinh, đợi về nhà, quay lại map cũ (khu ngẫu nhiên) và tiếp tục auto."""
         logger.info(f"Đang thực hiện quy trình Hồi sinh -> Quay lại Map {target_map_id}...")
         
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.2)
         await self.account.service.return_town_from_dead()
 
         timeout = 20
@@ -110,7 +110,7 @@ class PlayerHandler(BaseHandler):
             if self.controller.tile_map.map_id != target_map_id and self.account.char.c_hp > 0:
                 logger.info("Đã hồi sinh và về nhà thành công.")
                 break
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.2)
         
         if self.controller.tile_map.map_id == target_map_id:
             logger.warning("Không thể về nhà sau khi chết. Hủy quy trình quay lại.")
@@ -120,7 +120,7 @@ class PlayerHandler(BaseHandler):
         await asyncio.sleep(2)
         await self.controller.xmap.start(target_map_id, keep_dangerous=True)
         while self.controller.xmap.is_xmapping:
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.2)
         if self.controller.tile_map.map_id == target_map_id:
             logger.info("Đã quay lại điểm cũ. Kích hoạt lại Auto...")
             if resume_auto_play:

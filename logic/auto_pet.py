@@ -47,7 +47,7 @@ class AutoPet:
         while self.is_running:
             try:
                 await service.pet_info()
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(0.2)
 
                 await self.check_and_feed()
                 await asyncio.sleep(CHECK_INTERVAL)
@@ -91,7 +91,7 @@ class AutoPet:
             if found_bean:
                 logger.info(f"[{self.controller.account.username}] AutoPet: Sử dụng đậu thần tại vị trí {bean_inventory_index} cho sư phụ...")
                 await service.use_item(0, 1, bean_inventory_index, -1)
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.2)
             else:
                 logger.warning(f"[{self.controller.account.username}] AutoPet: Không tìm thấy đậu thần trong túi đồ.")
 

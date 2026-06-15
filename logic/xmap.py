@@ -857,6 +857,8 @@ class XMap:
             logger.warning(f"Không tìm thấy NPC {next_map.npc_id} để teleport.")
             return False
         
+        await asyncio.sleep(0.2)
+        
         # Hàm hỗ trợ tìm index theo text
         def find_idx(name, fallback_idx, options):
             if not name: return fallback_idx

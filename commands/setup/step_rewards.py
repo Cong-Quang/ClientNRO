@@ -2,14 +2,17 @@
 Bước 4 & 5: Mở NPC Muri và nhận thưởng.
 - Step 4: Teleport tới NPC Ông Muri và mở menu
 - Step 5: Nhận vàng miễn phí → ngọc miễn phí → giftcode → đệ tử miễn phí
+
+Dùng services.giftcode_service cho thao tác giftcode.
 """
 
 import asyncio
 
 from logs.logger_config import TerminalColors
-from commands.setup.constants import HOME_NPC
+from commands.setup.constants import HOME_NPC, GIFTCODES
 from commands.setup.navigation_helpers import teleport_to_npc, go_home, open_menu_npc
 from commands.setup.inventory_helpers import has_giftcode_items
+from services.giftcode_service import GiftcodeService
 
 
 async def open_muri(acc, log_func) -> bool:
@@ -20,7 +23,7 @@ async def open_muri(acc, log_func) -> bool:
     if not await teleport_to_npc(acc, npc_id):
         log_func(f"{C.YELLOW}→ Không tìm thấy NPC (template={npc_id}).{C.RESET}")
         await go_home(acc, log_func)
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.2)
         if not await teleport_to_npc(acc, npc_id):
             log_func(f"{C.RED}→ Vẫn không tìm thấy NPC.{C.RESET}")
             return False
@@ -32,7 +35,7 @@ async def open_muri(acc, log_func) -> bool:
         await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=3.0)
     except asyncio.TimeoutError:
         pass
-    await asyncio.sleep(0.2)
+    await asyncio.sleep(0.1)
 
     opts = ctrl.last_ui_options or []
     log_func(f"{C.DIM}→ Menu NPC: {opts}{C.RESET}")
@@ -47,6 +50,7 @@ async def claim_rewards(acc, state_mgr, log_func, force: bool) -> bool:
     """
     Nhận thưởng: vàng miễn phí → ngọc miễn phí → giftcode → đệ tử miễn phí.
     Kiểm tra state_mgr để tránh nhận trùng.
+    Giftcode dùng GiftcodeService từ services/.
     """
     C = TerminalColors
     npc_id = HOME_NPC.get(acc.char.gender, 2)
@@ -63,9 +67,6 @@ async def claim_rewards(acc, state_mgr, log_func, force: bool) -> bool:
     else:
         log_func(f"{C.GREEN}→ Đã nhận vàng trước đó.{C.RESET}")
 
-    from commands.setup.retry_utils import retry_operation, RetryConfig
-    from commands.setup.constants import STEP_CLAIM_REWARDS
-    # Kiểm tra đăng nhập lại
     if not acc.is_logged_in:
         return False
 
@@ -80,21 +81,36 @@ async def claim_rewards(acc, state_mgr, log_func, force: bool) -> bool:
     if not acc.is_logged_in:
         return False
 
-    # ── Giftcode ──
-    from commands.setup.step_giftcode import submit_giftcode
-    if force or not state_mgr.get(acc.username).giftcode_done:
-        has_gift = has_giftcode_items(acc)
-        if has_gift and not force:
-            log_func(f"{C.GREEN}→ Đã có item giftcode, bỏ qua.{C.RESET}")
-        else:
-            from commands.setup.constants import GIFTCODES
-            for code in GIFTCODES:
-                if not acc.is_logged_in:
-                    return False
-                await submit_giftcode(acc, npc_id, code, log_func)
+    # ── Giftcode (dùng GiftcodeService) ──
+    # Giftcode chỉ 1 lần/acc — nếu đã có item hoặc state_done, bỏ qua hoàn toàn, ko retry
+    already_has = has_giftcode_items(acc)
+    state_done = state_mgr.get(acc.username).giftcode_done
+    
+    if state_done or already_has:
+        log_func(f"{C.GREEN}→ Đã nhập giftcode trước đó, bỏ qua.{C.RESET}")
         state_mgr.set_attribute(acc.username, giftcode_done=True)
     else:
-        log_func(f"{C.GREEN}→ Đã nhập giftcode trước đó.{C.RESET}")
+        gsvc = GiftcodeService(acc, log_func)
+        for code in GIFTCODES:
+            if not acc.is_logged_in:
+                return False
+            # Giftcode chỉ 1 lần/acc — nếu đã dùng, bỏ qua hoàn toàn, ko retry
+            try:
+                status = await asyncio.wait_for(
+                    gsvc.submit_giftcode(code, npc_id=npc_id),
+                    timeout=15.0
+                )
+                if status == "used":
+                    log_func(f"{C.YELLOW}→ Giftcode '{code}' đã dùng, bỏ qua.{C.RESET}")
+                elif status == "success":
+                    log_func(f"{C.GREEN}→ Giftcode '{code}' thành công!{C.RESET}")
+                else:
+                    log_func(f"{C.YELLOW}→ Giftcode '{code}': {status}, tiếp tục.{C.RESET}")
+            except asyncio.TimeoutError:
+                log_func(f"{C.YELLOW}→ Giftcode '{code}' timeout, bỏ qua.{C.RESET}")
+        state_mgr.set_attribute(acc.username, giftcode_done=True)
+        # ⚠️ Dù giftcode có success hay used/unknown/timeout, step vẫn return True
+        # để tránh retry_operation chạy lại step này và timeout lần nữa
 
     if not acc.is_logged_in:
         return False
@@ -122,7 +138,7 @@ async def _claim_gold(acc, log_func):
 
         if attempt > 1:
             log_func(f"{C.YELLOW}→ Retry nhận vàng lần {attempt}/3...{C.RESET}")
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.1)
 
         gold_before = getattr(acc.char, 'xu', 0)
 
@@ -130,7 +146,7 @@ async def _claim_gold(acc, log_func):
             log_func(f"{C.YELLOW}→ Không tìm thấy NPC nhà.{C.RESET}")
             continue
 
-        await asyncio.sleep(0.3)
+        await asyncio.sleep(0.1)
 
         ctrl.ui_menu_event.clear()
         await acc.service.open_menu_npc(home_npc)
@@ -138,7 +154,7 @@ async def _claim_gold(acc, log_func):
             await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=3.0)
         except asyncio.TimeoutError:
             pass
-        await asyncio.sleep(0.3)
+        await asyncio.sleep(0.1)
 
         opts = ctrl.last_ui_options or []
         gold_opt_idx = -1
@@ -152,11 +168,11 @@ async def _claim_gold(acc, log_func):
         if gold_opt_idx != -1:
             log_func(f"{C.DIM}→ Chọn nhận vàng ở vị trí {gold_opt_idx}.{C.RESET}")
             await acc.service.confirm_menu_npc(home_npc, gold_opt_idx)
-            await asyncio.sleep(1.0)
+            await asyncio.sleep(0.1)
 
             try:
                 await acc.service.request_me_info()
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(0.15)
             except Exception:
                 pass
 
@@ -189,7 +205,7 @@ async def _claim_gem(acc, npc_id, log_func):
         await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=3.0)
     except asyncio.TimeoutError:
         pass
-    await asyncio.sleep(0.3)
+    await asyncio.sleep(0.1)
 
     opts = ctrl.last_ui_options or []
     gem_opt_idx = -1
@@ -202,12 +218,12 @@ async def _claim_gem(acc, npc_id, log_func):
     if gem_opt_idx != -1:
         log_func(f"{C.DIM}→ Chọn nhận ngọc xanh ở vị trí {gem_opt_idx}.{C.RESET}")
         await acc.service.confirm_menu_npc(npc_id, gem_opt_idx)
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.2)
         log_func(f"{C.GREEN}→ Đã nhận ngọc xanh.{C.RESET}")
     else:
         log_func(f"{C.YELLOW}→ Không tìm thấy tùy chọn ngọc, dùng option 2.{C.RESET}")
         await acc.service.confirm_menu_npc(npc_id, 2)
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.2)
 
 
 async def _claim_disciple(acc, npc_id, log_func):
@@ -229,7 +245,7 @@ async def _claim_disciple(acc, npc_id, log_func):
         await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=3.0)
     except asyncio.TimeoutError:
         pass
-    await asyncio.sleep(0.3)
+    await asyncio.sleep(0.1)
 
     opts = ctrl.last_ui_options or []
     disciple_opt = -1
@@ -248,7 +264,7 @@ async def _claim_disciple(acc, npc_id, log_func):
         await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=3.0)
     except asyncio.TimeoutError:
         pass
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(0.2)
 
     # Nếu có menu con thì chọn tiếp
     opts2 = ctrl.last_ui_options or []
@@ -260,12 +276,12 @@ async def _claim_disciple(acc, npc_id, log_func):
                 break
         if confirm_opt != -1:
             await acc.service.confirm_menu_npc(npc_id, confirm_opt)
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.2)
 
     # Refresh trạng thái đệ tử
     try:
         await acc.service.pet_info()
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.2)
     except Exception:
         pass
 

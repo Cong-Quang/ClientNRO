@@ -89,66 +89,114 @@ class CharacterHandler(BaseHandler):
 
                 # Read body items
                 try:
+                    from model.game_objects import Item, ItemOption
                     num_body_items = reader.read_byte()
-                    for _ in range(num_body_items):
+                    char.arr_item_body = [None] * num_body_items
+                    for i in range(num_body_items):
                         if reader.available() < 2: break
                         template_id = reader.read_short()
-                        if template_id != -1:
-                            if reader.available() < 4: break
-                            reader.read_int() # quantity
-                            if reader.available() < 1: break
-                            reader.read_utf() # info
-                            reader.read_utf() # content
-                            if reader.available() < 1: break
-                            num_options = reader.read_ubyte()
+                        if template_id == -1:
+                            continue
+                        
+                        item = Item()
+                        item.item_id = template_id
+                        
+                        if reader.available() < 4: break
+                        item.quantity = reader.read_int()
+                        
+                        if reader.available() < 1: break
+                        item.info = reader.read_utf()
+                        
+                        item.content = reader.read_utf()
+                        
+                        if reader.available() < 1: break
+                        num_options = reader.read_ubyte()
+                        if num_options > 0:
+                            item.item_option = []
                             for _ in range(num_options):
                                 if reader.available() < 3: break
-                                reader.read_byte() # opt id
-                                reader.read_short() # opt param
+                                opt_id = reader.read_byte()
+                                opt_param = reader.read_short()
+                                if opt_id != 255:
+                                    item.item_option.append(ItemOption(opt_id, opt_param))
+                                    
+                        char.arr_item_body[i] = item
                 except Exception as e:
                     logger.error(f"Lỗi khi phân tích Body Items: {e}")
 
                 # Read bag items
                 try:
+                    from model.game_objects import Item, ItemOption
                     if reader.available() < 1: return
                     num_bag_items = reader.read_byte()
-                    for _ in range(num_bag_items):
+                    char.arr_item_bag = [None] * num_bag_items
+                    for i in range(num_bag_items):
                         if reader.available() < 2: break
                         template_id = reader.read_short()
-                        if template_id != -1:
-                            if reader.available() < 4: break
-                            reader.read_int()
-                            if reader.available() < 1: break
-                            reader.read_utf()
-                            reader.read_utf()
-                            if reader.available() < 1: break
-                            num_options = reader.read_ubyte()
+                        if template_id == -1:
+                            continue
+                        
+                        item = Item()
+                        item.item_id = template_id
+                        
+                        if reader.available() < 4: break
+                        item.quantity = reader.read_int()
+                        
+                        if reader.available() < 1: break
+                        item.info = reader.read_utf()
+                        item.content = reader.read_utf()
+                        
+                        if reader.available() < 1: break
+                        num_options = reader.read_ubyte()
+                        if num_options > 0:
+                            item.item_option = []
                             for _ in range(num_options):
                                 if reader.available() < 3: break
-                                reader.read_byte()
-                                reader.read_short()
+                                opt_id = reader.read_byte()
+                                opt_param = reader.read_short()
+                                if opt_id != 255:
+                                    item.item_option.append(ItemOption(opt_id, opt_param))
+                        
+                        item.index_ui = i
+                        char.arr_item_bag[i] = item
                 except Exception as e:
                     logger.error(f"Lỗi khi phân tích Bag Items: {e}")
                 
                 # Read box items
                 try:
+                    from model.game_objects import Item, ItemOption
                     if reader.available() < 1: return
                     num_box_items = reader.read_byte()
-                    for _ in range(num_box_items):
+                    char.arr_item_box = [None] * num_box_items
+                    for i in range(num_box_items):
                         if reader.available() < 2: break
                         template_id = reader.read_short()
-                        if template_id != -1:
-                            if reader.available() < 4: break
-                            reader.read_int()
-                            if reader.available() < 1: break
-                            reader.read_utf()
-                            reader.read_utf()
-                            if reader.available() < 1: break
-                            num_options = reader.read_ubyte()
+                        if template_id == -1:
+                            continue
+                        
+                        item = Item()
+                        item.item_id = template_id
+                        
+                        if reader.available() < 4: break
+                        item.quantity = reader.read_int()
+                        
+                        if reader.available() < 1: break
+                        item.info = reader.read_utf()
+                        item.content = reader.read_utf()
+                        
+                        if reader.available() < 1: break
+                        num_options = reader.read_ubyte()
+                        if num_options > 0:
+                            item.item_option = []
                             for _ in range(num_options):
                                 if reader.available() < 3: break
-                                reader.read_byte()
-                                reader.read_short()
+                                opt_id = reader.read_byte()
+                                opt_param = reader.read_short()
+                                if opt_id != 255:
+                                    item.item_option.append(ItemOption(opt_id, opt_param))
+                        
+                        item.index_ui = i
+                        char.arr_item_box[i] = item
                 except Exception as e:
                     logger.error(f"Lỗi khi phân tích Box Items: {e}")
 
@@ -162,6 +210,9 @@ class CharacterHandler(BaseHandler):
                 # Signal that login is fully complete
                 if not self.account.login_event.is_set():
                     self.account.login_event.set()
+                
+                # Signal me_load_all event
+                self.controller.me_load_all_event.set()
 
             elif sub_cmd == 4:
                 char.xu = self._read_gold(reader, char)

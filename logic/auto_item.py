@@ -104,6 +104,6 @@ class AutoItem:
             # Using type 1 (use on self) as it's more common for consumables
             logger.info(f"[{self.controller.account.username}] Auto-Item: Đang sử dụng item tại vị trí {item_index}...")
             await service.use_item(0, 1, item_index, -1)
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.2)
         else:
             logger.warning(f"[{self.controller.account.username}] Auto-Item: Không tìm thấy item ID {self.item_id} trong túi đồ.")

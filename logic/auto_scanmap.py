@@ -99,7 +99,7 @@ class AutoScanMap:
                 timeout = 60
                 elapsed = 0
                 while self.account.controller.xmap.is_xmapping and elapsed < timeout and self.is_running:
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(0.2)
                     elapsed += 1
                     
                 if not self.is_running:
@@ -121,7 +121,7 @@ class AutoScanMap:
                 self._update_config(current_target, map_name, mobs)
                 print(f"[ScanMap] Đã thêm {len(mobs)} quái vào maps_config.json cho Map: {map_name} ({current_target})")
                 
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.2)
                 
             print("\n[ScanMap] Đã hoàn thành quá trình quét map!")
             self.is_running = False

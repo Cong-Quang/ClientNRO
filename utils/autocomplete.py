@@ -23,7 +23,7 @@ COMMAND_TREE = {
     "help": [],
     "list": [],
     "target": [],
-    "show": ["csgoc", "nhiemvu", "boss", "finfomap", "mobs", "balo", "equip", "trangbi"],
+    "show": ["csgoc", "nhiemvu", "boss", "finfomap", "mobs", "balo", "equip", "trangbi", "equip_master", "body_master", "equip_pet", "body_pet"],
     "tansat": ["start", "off", "clear", "list"],
     "useitem": [],
     "findboss": [],

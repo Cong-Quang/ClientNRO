@@ -557,7 +557,7 @@ class AutoBoss:
             await self.controller.xmap.start(self.target_map_id)
         
         # Đợi XMap hoàn thành
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.2)
     
     async def _state_zone_scanning(self):
         """State: Quét các zone được assign (với Hive coordination)"""
@@ -792,7 +792,7 @@ class AutoBoss:
             logger.info(f"[{self.username}] Team đã tập hợp đầy đủ ({hunters_in_zone}/{hunter_count}), bắt đầu tấn công!")
             self.state = BossState.ATTACKING
         else:
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.2)
     
     async def _state_attacking(self):
         """State: Attack boss"""
@@ -881,7 +881,7 @@ class AutoBoss:
             
             # Đợi XMap hoàn thành
             while self.controller.xmap.is_xmapping:
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.2)
         
         # Đổi về zone cũ
         if self.last_scanned_zone_id != -1:

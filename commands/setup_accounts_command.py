@@ -29,11 +29,13 @@ from commands.setup.constants import (
     STEP_CREATE_CHAR, STEP_SELECT_CHAR, STEP_GO_HOME, STEP_OPEN_MURI,
     STEP_CLAIM_REWARDS, STEP_FARM_BEANS, STEP_BUY_BUA, STEP_SANTA_SHOP,
     STEP_USE_SUPPORT, STEP_ACTIVATE_ITEMS, STEP_UPGRADE_16, STEP_UPGRADE_OTHER,
+    STEP_EQUIP_MASTER, STEP_EQUIP_PET,
     TARGET_BEAN_QTY, ITEM_441, ITEM_UPGRADE_16, ITEM_12, BUA_ITEM_IDS,
 )
 from commands.setup.state_manager import SetupStateManager
-from commands.setup.retry_utils import RetryConfig, retry_operation
-from commands.setup.inventory_helpers import count_beans, count_item, count_bua_items
+from services.retry import RetryConfig, retry_operation
+from services.inventory import count_item
+from commands.setup.inventory_helpers import count_beans, count_bua_items
 
 # Import các step handlers
 from commands.setup.step_character import create_character, select_character
@@ -44,6 +46,8 @@ from commands.setup.step_santa_shop import santa_shop
 from commands.setup.step_support_items import use_support_items
 from commands.setup.step_activate_items import activate_items
 from commands.setup.step_upgrade import upgrade_item_16, upgrade_other_items
+from commands.setup.step_equip_master import equip_master
+from commands.setup.step_equip_pet import equip_pet
 
 
 # ── Cấu hình timeout cho mỗi step (giây) ─────
@@ -54,6 +58,8 @@ STEP_TIMEOUTS = {
     STEP_SANTA_SHOP: 60.0,
     STEP_UPGRADE_16: 90.0,
     STEP_UPGRADE_OTHER: 120.0,
+    STEP_EQUIP_MASTER: 30.0,
+    STEP_EQUIP_PET: 30.0,
 }
 DEFAULT_STEP_TIMEOUT = 30.0
 
@@ -142,7 +148,7 @@ class SetupAccountsCommand(Command):
             print(f"{C.RED}!!! CHẾ ĐỘ FORCE (Chạy lại các bước đã hoàn thành) !!!{C.RESET}")
         if start_step > 1:
             print(f"{C.YELLOW}!!! BẮT ĐẦU TỪ STEP {start_step} !!!{C.RESET}")
-        print(f"{C.DIM}Tạo NV → Chọn NV → Về nhà → NPC → Nhận thưởng → Đậu → Bùa → Santa → Item hỗ trợ → Kích hoạt → Ép 16 → Ép 1/22/28/12{C.RESET}")
+        print(f"{C.DIM}Tạo NV → Chọn NV → Về nhà → NPC → Nhận thưởng → Đậu → Bùa → Santa → Item hỗ trợ → Kích hoạt → Ép 16 → Ép 1/22/28/12 → Mặc đồ → Đệ tử{C.RESET}")
         print()
 
         sem = asyncio.Semaphore(5)
@@ -242,7 +248,7 @@ class SetupAccountsCommand(Command):
         elif step == STEP_SELECT_CHAR:
             return await select_character(acc, log)
         elif step == STEP_GO_HOME:
-            from commands.setup.navigation_helpers import go_home
+            from services.navigation import go_home
             return await go_home(acc, log)
         elif step == STEP_OPEN_MURI:
             return await open_muri(acc, log)
@@ -262,6 +268,10 @@ class SetupAccountsCommand(Command):
             return await upgrade_item_16(acc, log, C)
         elif step == STEP_UPGRADE_OTHER:
             return await upgrade_other_items(acc, log, C)
+        elif step == STEP_EQUIP_MASTER:
+            return await equip_master(acc, log, C)
+        elif step == STEP_EQUIP_PET:
+            return await equip_pet(acc, log, C)
         return False
 
     # ── Ensure Logged In ──────────────────────
@@ -285,7 +295,7 @@ class SetupAccountsCommand(Command):
         for sec in range(timeout):
             if not acc.is_logged_in:
                 return False
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.2)
             if acc.controller.tile_map.map_id > 0 and acc.char.c_power > 0:
                 return True
             if sec == 8:

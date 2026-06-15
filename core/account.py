@@ -53,7 +53,7 @@ class Account:
         if listen_task:
             self.tasks.append(listen_task)
         
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.2)
 
         if not self.session.connected:
             logger.error(f"[{self.username}] Connection failed. Cannot proceed with login.")
@@ -74,14 +74,14 @@ class Account:
         writer.write_bool(True)           # isTouch
         writer.write_utf(f"PC|{self.version}") # Platform | Version
         await self.session.send_message(msg_client)
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.2)
 
         # 2. Send android pack (Cmd 126)
         logger.info(f"[{self.username}] Sending android pack (Cmd 126)...")
         msg_pack = Message(126)
         msg_pack.writer().write_utf("")
         await self.session.send_message(msg_pack)
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.2)
 
         # 3. Send login credentials (Cmd -29, SubCmd 0)
         logger.info(f"[{self.username}] Sending login packet, waiting for confirmation...")
@@ -141,7 +141,7 @@ class Account:
 
         while Config.AUTO_LOGIN and self._should_auto_reconnect:
             logger.info(f"[{self.username}] Attempting to reconnect in 0.5 seconds...")
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.2)
 
             # Cleanup and re-initialize session components before trying to log in again
             self.stop_tasks() # Stop only tasks, not the whole account state

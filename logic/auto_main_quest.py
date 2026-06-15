@@ -704,7 +704,7 @@ class AutoMainQuest:
             if not ok:
                 await asyncio.sleep(2)
                 return
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.2)
         
         # Mở menu NPC và thử các option để báo cáo
         cur_idx = self.account.char.task.index
@@ -727,7 +727,7 @@ class AutoMainQuest:
         except asyncio.TimeoutError:
             if self.account.char.task.index > cur_idx:
                 logger.info(f"[{username}] [AutoQuest] Task đã hoàn thành (silent update).")
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.2)
 
     # ── Handler: Mob Kill ───────────────────────────────────────
 
@@ -763,7 +763,7 @@ class AutoMainQuest:
             controller.toggle_autoplay(False)
             return
         
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.2)
 
     # ── Handler: Boss ───────────────────────────────────────────
 
@@ -796,7 +796,7 @@ class AutoMainQuest:
                 if not self.account.controller.xmap.is_xmapping:
                     await self.account.controller.xmap.start(self._boss_map_id)
                 while self.account.controller.xmap.is_xmapping:
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(0.2)
             return
         
         # Nếu có cui_tid > 0, ưu tiên dùng Cui teleport
@@ -820,7 +820,7 @@ class AutoMainQuest:
                 await self._boss_fight_loop(boss_name, spawn_maps)
             else:
                 logger.info(f"[{username}] [AutoQuest] Tele chưa thành công. Map hiện tại: {char.map_id}")
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.2)
             return
         
         # Không có Cui, dùng xmap trực tiếp
@@ -854,11 +854,11 @@ class AutoMainQuest:
                 cui_npc = info
                 break
         if not cui_npc:
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.2)
             return
         
         await self.account.controller.movement.teleport_to(cui_npc['x'], cui_npc['y'] - 3)
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.2)
         
         logger.info(f"[{username}] [AutoQuest] Mở menu Cui để tele tới {boss_name}...")
         self.account.controller.ui_menu_event.clear()
@@ -927,8 +927,8 @@ class AutoMainQuest:
                     if not self.account.controller.xmap.is_xmapping:
                         await self.account.controller.xmap.start(self._boss_map_id)
                     while self.account.controller.xmap.is_xmapping:
-                        await asyncio.sleep(1)
-                await asyncio.sleep(1)
+                        await asyncio.sleep(0.2)
+                await asyncio.sleep(0.2)
                 atk_count = 0
                 continue
             
@@ -948,7 +948,7 @@ class AutoMainQuest:
                     self._boss_map_id = None
                     return
                 self.current_status_msg = f"Đang tìm {boss_name}..."
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(0.2)
                 continue
             
             boss_hp = self._get_boss_hp(target)
@@ -975,7 +975,7 @@ class AutoMainQuest:
                 same_hp_count = 0
                 last_hp = boss_hp
             
-            await asyncio.sleep(0.3)
+            await asyncio.sleep(0.1)
             
             # Fallback: tele gần boss nếu auto_attack chưa theo kịp
             dist = math.hypot(boss_x - char.cx, boss_y - char.cy)
@@ -1001,7 +1001,7 @@ class AutoMainQuest:
         
         if char.map_id == target_map:
             self.current_status_msg = f"Đã ở Map {target_map}"
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.2)
             return
         
         self.current_status_msg = f"Đi tới Map {target_map}"
@@ -1086,7 +1086,7 @@ class AutoMainQuest:
                         ctrl.toggle_autoplay(False)
                         return
                 # Nếu task đã chuyển hoặc không còn stat nữa, ok
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.2)
                 return
             
             # Chưa đủ sức mạnh → thử dùng auto MSM
@@ -1202,17 +1202,17 @@ class AutoMainQuest:
         while self.is_running:
             try:
                 if not self.account.is_logged_in:
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(0.2)
                     continue
                 
                 char = self.account.char
                 if not char:
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(0.2)
                     continue
                 
                 task = char.task
                 if not task:
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(0.2)
                     continue
                 
                 # Nếu task index vượt quá số sub_names, đã hoàn thành task này

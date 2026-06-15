@@ -175,13 +175,13 @@ class AutoQuest:
 
             # 2. Mở Menu
             await self.controller.account.service.open_menu_npc(npc_template_id)
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.2)
 
             # 3. Chọn Options
             if menu_options:
                 for opt_idx in menu_options:
                     await self.controller.account.service.confirm_menu_npc(npc_template_id, opt_idx)
-                    await asyncio.sleep(0.5)
+                    await asyncio.sleep(0.2)
             
             return True
         except Exception as e:
@@ -221,7 +221,7 @@ class AutoQuest:
                 logger.error(f"[{self.account.username}] Lỗi trong vòng lặp AutoQuest: {e}", exc_info=True)
                 self.stop()
                 break
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.2)
         logger.info(f"[{self.account.username}] Vòng lặp AutoQuest đã kết thúc.")
 
     async def update(self):
@@ -254,7 +254,7 @@ class AutoQuest:
             await state_handler()
 
     async def handle_idle(self):
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.2)
     
     async def handle_get_quest(self):
         self.quest_info = QuestInfo()
@@ -538,7 +538,7 @@ class AutoQuest:
         
         # Huỷ NV: [1] Nhiệm vụ hằng ngày -> [1] Huỷ nhiệm vụ
         await self._interact_with_npc_menu(BO_MONG_NPC_TEMPLATE_ID, [1, 1])
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.2)
         
         # Reset quest info
         self.quest_info = QuestInfo()
@@ -570,7 +570,7 @@ class AutoQuest:
             if not self.is_running:
                 self.controller.xmap.finish()
                 return
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.2)
         
         if self.account.char.map_id != map_id:
             # Thử lại 1 lần nếu thất bại

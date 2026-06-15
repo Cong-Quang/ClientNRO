@@ -25,7 +25,7 @@ class ShowCommand(TargetedCommand):
             
             elif sub == "nhiemvu":
                     await account.service.request_task_info()
-                    await asyncio.sleep(0.5)
+                    await asyncio.sleep(0.2)
                     from ui import display_task_info
                     return True, display_task_info(account, compact=compact_mode, idx=idx, print_output=False)
             
@@ -36,7 +36,7 @@ class ShowCommand(TargetedCommand):
             elif sub == "findboss":
                 # Request cập nhật vị trí từ server trước
                 await account.service.request_players()
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(0.2)
                 
                 # Hiển thị danh sách boss/chars trong map hiện tại
                 chars = account.controller.chars
@@ -201,12 +201,12 @@ class ShowCommand(TargetedCommand):
                 print()
 
             elif sub == "equip" or sub == "trangbi":
-                # Hiển thị trạng thái trang bị (sao, lỗ, index)
+                # Hiển thị trạng thái trang bị (sao, lỗ, index) + body items
                 from commands.setup.combine_helper import CombineHelper
                 from commands.setup.constants import ITEM_EQUIP, UPGRADE_TIMES_PER_PIECE
 
                 await account.service.request_me_info()
-                await asyncio.sleep(0.3)
+                await asyncio.sleep(0.1)
 
                 helper = CombineHelper(account, lambda msg: print(f"[{self.C.YELLOW}{account.username}{self.C.RESET}] {msg}"))
                 B = Box
@@ -230,6 +230,24 @@ class ShowCommand(TargetedCommand):
                     else:
                         print(f"{self.C.DIM}  Item {item_id}: không có trong balo{self.C.RESET}")
 
+                # Trang bị sư phụ + đệ tử
+                self._show_body_equip(account)
+                print()
+
+            elif sub == "equip_master" or sub == "body_master":
+                # Chi tiết trang bị sư phụ đang mặc
+                await account.service.request_me_info()
+                await asyncio.sleep(0.2)
+                print()
+                print(f"[{self.C.YELLOW}{account.username}{self.C.RESET}] {self.C.CYAN}=== Trang Bị Sư Phụ Đang Mặc ==={self.C.RESET}")
+                self._show_body_items(account.char.arr_item_body, "Body")
+                print()
+
+            elif sub == "equip_pet" or sub == "body_pet":
+                # Chi tiết trang bị đệ tử đang mặc
+                print()
+                print(f"[{self.C.YELLOW}{account.username}{self.C.RESET}] {self.C.CYAN}=== Trang Bị Đệ Tử Đang Mặc ==={self.C.RESET}")
+                await self._show_pet_equip(account)
                 print()
 
             else:
@@ -238,3 +256,88 @@ class ShowCommand(TargetedCommand):
             # Default show status
             display_character_status(account, compact=compact_mode, idx=idx)
         return True, "OK"
+
+    # ─── Helper: hiển thị trang bị trên body sư phụ + đệ tử (dùng trong show equip) ───
+    def _show_body_equip(self, account):
+        """Hiển thị trang bị sư phụ + đệ tử đang mặc (tổng hợp nhanh)."""
+        print(f"\n{self.C.CYAN}=== Trang bị sư phụ đang mặc ==={self.C.RESET}")
+        body = getattr(account.char, 'arr_item_body', None) or []
+        found = False
+        for idx, item in enumerate(body):
+            if item is not None:
+                found = True
+                opts = {o.option_template_id: o.param for o in (item.item_option or [])}
+                s102 = opts.get(102, 0)
+                star_text = f"{self.C.GREEN}{s102}⭐{self.C.RESET}" if s102 >= 9 else f"{self.C.YELLOW}{s102}⭐{self.C.RESET}"
+                print(f"  Body[{idx}]: Item {item.item_id} - {item.info or ''} | {star_text}")
+        if not found:
+            print(f"  {self.C.DIM}Không có{C.RESET}")
+
+        print(f"\n{self.C.CYAN}=== Trang bị đệ tử đang mặc ==={self.C.RESET}")
+        if account.pet and account.pet.have_pet:
+            pet_body = getattr(account.pet, 'arr_item_body', None) or []
+            found = False
+            for idx, item in enumerate(pet_body):
+                if item is not None:
+                    found = True
+                    opts = {o.option_template_id: o.param for o in (item.item_option or [])}
+                    s102 = opts.get(102, 0)
+                    star_text = f"{self.C.GREEN}{s102}⭐{self.C.RESET}" if s102 >= 9 else f"{self.C.YELLOW}{s102}⭐{self.C.RESET}"
+                    print(f"  PetBody[{idx}]: Item {item.item_id} - {item.info or ''} | {star_text}")
+            if not found:
+                print(f"  {self.C.DIM}Không có{C.RESET}")
+        else:
+            print(f"  {self.C.DIM}Không có đệ tử{C.RESET}")
+
+    # ─── Helper: hiển thị chi tiết 1 list body items (dùng trong equip_master) ───
+    def _show_body_items(self, items_list, prefix="Body"):
+        """Hiển thị chi tiết items trên body.
+        Args:
+            items_list: list items (arr_item_body)
+            prefix: tiền đề hiển thị ("Body" hoặc "PetBody")
+        """
+        from model.game_objects import ITEM_TEMPLATES
+        items = items_list or []
+        found = False
+        for idx, item in enumerate(items):
+            if item is not None:
+                found = True
+                item_name = ITEM_TEMPLATES.get(item.item_id, item.info or f"Item {item.item_id}")
+                opts = {o.option_template_id: o.param for o in (item.item_option or [])}
+                s102 = opts.get(102, 0)
+                star_text = f"{self.C.GREEN}{s102}⭐{self.C.RESET}" if s102 >= 9 else f"{self.C.YELLOW}{s102}⭐{self.C.RESET}"
+                print(f"  {self.C.CYAN}{prefix}[{idx}]:{self.C.RESET} Item {item.item_id} - {item_name}")
+                print(f"    Sao: {star_text}")
+                # Rada: hiển thị option 95 (sức đánh) và 96 (hút KI)
+                if item.item_id == 12:
+                    s95 = opts.get(95, 0)
+                    s96 = opts.get(96, 0)
+                    s95t = f"{self.C.GREEN}{s95}%{self.C.RESET}" if s95 >= 40 else f"{self.C.YELLOW}{s95}%{self.C.RESET}"
+                    s96t = f"{self.C.GREEN}{s96}%{self.C.RESET}" if s96 >= 10 else f"{self.C.YELLOW}{s96}%{self.C.RESET}"
+                    print(f"    Sức đánh (95): {s95t}")
+                    print(f"    Hút KI (96):   {s96t}")
+                # Các options khác
+                other_opts = [f"[{o.option_template_id}:{o.param}]" for o in (item.item_option or [])
+                             if o.option_template_id not in (95, 96)]
+                if other_opts:
+                    print(f"    Options: {', '.join(other_opts)}")
+        if not found:
+            print(f"  {self.C.YELLOW}Không có{C.RESET}")
+
+    # ─── Helper: hiển thị trang bị đệ tử (dùng trong equip_pet) ───
+    async def _show_pet_equip(self, account):
+        """Hiển thị chi tiết trang bị đệ tử đang mặc."""
+        if not (account.pet and account.pet.have_pet):
+            try:
+                account.controller.pet_info_event.clear()
+                await account.service.pet_info()
+                await asyncio.wait_for(account.controller.pet_info_event.wait(), timeout=3.0)
+            except Exception:
+                pass
+
+        if account.pet and account.pet.have_pet:
+            pet_name = getattr(account.pet, 'name', 'Đệ tử')
+            print(f"  Đệ tử: {self.C.GREEN}{pet_name}{self.C.RESET}")
+            self._show_body_items(getattr(account.pet, 'arr_item_body', None), "PetBody")
+        else:
+            print(f"  {self.C.YELLOW}Không có đệ tử{C.RESET}")

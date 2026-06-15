@@ -57,11 +57,11 @@ async def create_character(acc, log_func) -> bool:
             await asyncio.wait_for(acc.login_event.wait(), timeout=10.0)
         except asyncio.TimeoutError:
             pass
-        await asyncio.sleep(1.0)
+        await asyncio.sleep(0.2)
 
         try:
             await acc.service.request_me_info()
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.2)
         except Exception:
             pass
 
@@ -81,7 +81,7 @@ async def create_character(acc, log_func) -> bool:
 
         try:
             await acc.service.request_me_info()
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.2)
         except Exception:
             pass
 
@@ -110,7 +110,7 @@ async def select_character(acc, log_func) -> bool:
 
     for attempt in range(30):
         if not acc.is_logged_in:
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.2)
             continue
         if acc.controller.tile_map.map_id > 0 and acc.char.c_power > 0:
             log_func(f"{C.GREEN}→ Vào game OK (map={acc.controller.tile_map.map_id}, SM={acc.char.c_power}).{C.RESET}")
@@ -125,7 +125,7 @@ async def select_character(acc, log_func) -> bool:
                 await acc.service.request_change_map()
             except Exception:
                 pass
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.2)
 
     log_func(f"{C.RED}→ Không vào được game sau 30s.{C.RESET}")
     return False

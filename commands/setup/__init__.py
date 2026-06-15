@@ -1,18 +1,15 @@
 """
 Package setup accounts — tự động setup tài khoản mới hoàn chỉnh.
-Chia nhỏ thành các module:
+
+Module structure:
 - constants: Hằng số game
 - state_manager: Quản lý trạng thái
-- retry_utils: Tiện ích retry/timeout
-- inventory_helpers: Thao tác hành trang
-- navigation_helpers: Di chuyển và NPC
-- step_character: Tạo/chọn nhân vật
-- step_rewards: Nhận thưởng
-- step_giftcode: Nhập giftcode
-- step_farm_beans: Farm đậu thần
-- step_buy_bua: Mua bùa
-- step_santa_shop: Santa shop
-- step_support_items: Dùng item hỗ trợ
-- step_activate_items: Kích hoạt vật phẩm thưởng
-- step_upgrade: Ép sao trang bị
+- step_* handlers: Các bước setup (character, rewards, farm, bua, santa, upgrade, etc.)
+
+Các tiện ích dùng chung đã được tách ra services/ để tái sử dụng:
+  services/retry.py          ← commands/setup/retry_utils.py (now thin wrapper)
+  services/inventory.py      ← commands/setup/inventory_helpers.py (now thin wrapper)
+  services/navigation.py     ← commands/setup/navigation_helpers.py (now thin wrapper)
+  services/combine_service.py
+  services/giftcode_service.py
 """
