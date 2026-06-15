@@ -62,7 +62,6 @@ class Controller:
         self.auto_giftcode = AutoGiftcode(self)
         self.auto_boss = AutoBoss(self)
         self.auto_msm = AutoMsm(self)
-        self.ai_agent = None  # AI Agent (will be initialized lazily)
 
         # UI Events
         self.ui_menu_event = asyncio.Event()
@@ -160,29 +159,6 @@ class Controller:
         else:
             self.auto_item.stop()
     
-    def toggle_ai_agent(self, enabled: bool):
-        """Bật hoặc tắt AI Agent (Neural Network control)"""
-        # Lazy import to avoid circular dependency
-        if self.ai_agent is None:
-            from ai_agent import AIAgent
-            from config import Config
-            self.ai_agent = AIAgent(
-                controller=self,
-                service=self.account.service,
-                account_id=self.account.username
-            )
-            # Load weights on first initialization
-            self.ai_agent.load_weights(Config.AI_WEIGHTS_PATH)
-        
-        if enabled:
-            task = self.ai_agent.start()
-            if task:
-                self.account.tasks.append(task)
-                logger.info(f"[AI] AI Agent enabled for {self.account.username}")
-        else:
-            self.ai_agent.stop()
-            logger.info(f"[AI] AI Agent disabled for {self.account.username}")
-
     def on_message(self, msg: Message):
         """Chuyển tiếp tin nhắn theo `msg.command` đến handler tương ứng."""
         try:

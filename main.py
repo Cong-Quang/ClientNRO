@@ -14,7 +14,6 @@ from ui import (
 )
 from utils.autocomplete import get_input_with_autocomplete, COMMAND_TREE
 from utils.macro_interpreter import MacroInterpreter
-from handlers.ai_command_handler import AICommandHandler
 from commands.command_loader import load_commands
 from targeted_commands.targeted_command_loader import load_targeted_commands
 import time
@@ -137,10 +136,6 @@ async def command_loop(manager: AccountManager):
     
     current_macro: MacroInterpreter | None = None
     
-    # Initialize AI Command Handler
-    ai_handler = AICommandHandler()
-    ai_handler.load_weights("ai_core/weights/default_weights.json")
-    
     while True:
         # Update autocomplete with current groups
         current_group_names = list(manager.groups.keys())
@@ -197,10 +192,6 @@ async def command_loop(manager: AccountManager):
                     break
                 if isinstance(result, MacroInterpreter):
                     current_macro = result
-                continue
-
-            # === AI Commands ===
-            if await ai_handler.handle_ai_command(parts, manager):
                 continue
 
             # --- Pre-validation for Targetted Commands ---

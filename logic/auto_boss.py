@@ -592,16 +592,6 @@ class AutoBoss:
         
         target_zone = self.assigned_zones[self.current_zone_index]
         
-        # HIVE LOGIC: Skip zone nếu đã được quét gần đây bởi teammate
-        from ai_core.shared_memory import SharedMemory
-        shared_mem = SharedMemory()
-        zone_density = shared_mem.zone_density
-        
-        if zone_density.is_zone_recently_scanned(self.target_map_id, target_zone):
-            logger.info(f"[{self.username}] ⏭️ Zone {target_zone} đã được quét gần đây, SKIP!")
-            self.current_zone_index += 1
-            return
-        
         logger.info(f"[{self.username}] 🔍 Quét zone {target_zone} ({self.current_zone_index + 1}/{len(self.assigned_zones)})...")
         
         # Request đổi zone với verification
@@ -615,9 +605,6 @@ class AutoBoss:
         # Lưu vị trí để recovery nếu chết
         self.last_scanned_map_id = self.controller.tile_map.map_id
         self.last_scanned_zone_id = target_zone
-        
-        # HIVE: Đánh dấu zone đã được quét
-        zone_density.mark_zone_scanned(self.username, self.target_map_id, target_zone)
         
         # Check xem zone này có boss không
         logger.info(f"[{self.username}] 🔎 Kiểm tra boss trong zone {target_zone}...")

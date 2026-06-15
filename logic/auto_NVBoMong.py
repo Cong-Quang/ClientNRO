@@ -316,32 +316,21 @@ class AutoQuest:
             await self.transition_to(AutoState.EXECUTE_QUEST)
             return
         
-        # 3. Sử dụng ZoneDensityManager để chọn zone TỐT NHẤT
-        from ai_core.shared_memory import SharedMemory
-        shared_mem = SharedMemory()
-        zone_density = shared_mem.zone_density
-        
+        # 3. Chọn zone đầu tiên có slot trống
         current_map = self.account.char.map_id
-        best_zone = zone_density.get_best_zone(current_map, zone_list, self.account.username)
+        current_zone = self.controller.map_info.get('zone', -1)
+        
+        best_zone = None
+        for zone_data in zone_list:
+            zone_id = zone_data.get('zone_id', -1)
+            if zone_id != current_zone:
+                best_zone = zone_id
+                break
         
         if best_zone is not None:
-            current_zone = self.controller.map_info.get('zone', -1)
-            
-            # Đăng ký INTENT trước khi di chuyển (ngăn race condition)
-            zone_density.register_intent(self.account.username, current_map, best_zone)
-            
-            if best_zone == current_zone:
-                logger.info(f"[{self.account.username}] Khu vực hiện tại ({current_zone}) đã tối ưu.")
-                # Cập nhật vị trí thực tế
-                zone_density.update_real_position(self.account.username, current_map, current_zone)
-            else:
-                logger.info(f"[{self.account.username}] Chuyển sang khu vực {best_zone} (Hive Score cao nhất)...")
-                await self.controller.account.service.request_change_zone(best_zone)
-                await asyncio.sleep(2.0)
-                
-                # Xác nhận đã đến zone
-                actual_zone = self.controller.map_info.get('zone', -1)
-                zone_density.update_real_position(self.account.username, current_map, actual_zone)
+            logger.info(f"[{self.account.username}] Chuyển sang khu vực {best_zone}...")
+            await self.controller.account.service.request_change_zone(best_zone)
+            await asyncio.sleep(2.0)
         else:
             logger.warning(f"[{self.account.username}] Không tìm thấy zone phù hợp.")
             

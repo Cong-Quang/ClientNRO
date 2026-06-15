@@ -45,9 +45,8 @@ class Config:
     # USE_LOCAL_IP_FIRST: True/False — True để ưu tiên gán 5 IP local cho 1 tài khoản trước khi dùng proxy.
     # False để bỏ qua IP local và gán trực tiếp 5 tài khoản cho 1 proxy.
     USE_LOCAL_IP_FIRST = False     
-    
-    # ACCOUNTS: list dict tài khoản; mỗi dict cần 'username' và 'password', có thể thêm 'proxy' (tuỳ chọn)
-    # ACCOUNTS: list dict tài khoản; mỗi dict cần 'username' và 'password', có thể thêm 'proxy' (tuỳ chọn)
+
+    # ACCOUNTS
     ACCOUNTS = []
     try:
         with open("accounts.txt", "r") as f:
@@ -60,25 +59,6 @@ class Config:
     except Exception as e:
         print(f"Error loading accounts: {e}")
 
-    # From prompt: "Fukada:103.245.255.222:12451:0,0,0"
-    # Assuming first part is server name, then IP, then Port.
-
-    # ========== AI Configuration ==========
-    # AI_ENABLED: Default AI state (True/False) - set to False for safety
-    AI_ENABLED = False
-    
-    # AI_WEIGHTS_PATH: Path to neural network weights (JSON format)
-    AI_WEIGHTS_PATH = "ai_core/weights/default_weights.json"
-    
-    # AI_STATE_DIM: Input state dimension for neural network
-    AI_STATE_DIM = 20
-    
-    # AI_ACTION_COUNT: Number of possible actions (expanded action space)
-    AI_ACTION_COUNT = 32
-    
-    # AI_DECISION_INTERVAL: Seconds between AI decisions (float)
-    AI_DECISION_INTERVAL = 0.5
-    
     # ========== New Config System Integration ==========
     _loader = None
     _initialized = False
@@ -118,11 +98,6 @@ class Config:
                 cls.USE_LOCAL_IP_FIRST = cls._loader.get('proxy.use_local_ip_first', cls.USE_LOCAL_IP_FIRST)
                 cls.DEFAULT_CHAR_GENDER = cls._loader.get('character.default_gender', cls.DEFAULT_CHAR_GENDER)
                 cls.DEFAULT_CHAR_HAIR = cls._loader.get('character.default_hair', cls.DEFAULT_CHAR_HAIR)
-                cls.AI_ENABLED = cls._loader.get('ai.enabled', cls.AI_ENABLED)
-                cls.AI_WEIGHTS_PATH = cls._loader.get('ai.weights_path', cls.AI_WEIGHTS_PATH)
-                cls.AI_STATE_DIM = cls._loader.get('ai.state_dim', cls.AI_STATE_DIM)
-                cls.AI_ACTION_COUNT = cls._loader.get('ai.action_count', cls.AI_ACTION_COUNT)
-                cls.AI_DECISION_INTERVAL = cls._loader.get('ai.decision_interval', cls.AI_DECISION_INTERVAL)
                 
                 print(f"✅ Loaded configuration from {config_path}")
             except Exception as e:
