@@ -8,7 +8,7 @@ import asyncio
 
 from logs.logger_config import TerminalColors
 from commands.setup.constants import ITEM_1182, ITEM_441, ITEM_442, ITEM_1680
-from commands.setup.inventory_helpers import count_item, refresh_inventory
+from commands.setup.inventory_helpers import count_item, refresh_inventory, use_item_for_master
 
 
 async def use_support_items(acc, log_func) -> bool:
@@ -38,10 +38,13 @@ async def use_support_items(acc, log_func) -> bool:
                     if not acc.is_logged_in:
                         break
                     try:
-                        await acc.service.use_item(0, 1, i, -1)
-                        use_count -= 1
-                        await asyncio.sleep(0.05)
-                        if use_count <= 0:
+                        ok = await use_item_for_master(acc, i, log_func)
+                        if ok:
+                            use_count -= 1
+                            await asyncio.sleep(0.01)
+                            if use_count <= 0:
+                                break
+                        else:
                             break
                     except Exception:
                         break
@@ -66,9 +69,12 @@ async def use_support_items(acc, log_func) -> bool:
         for i, item in enumerate(acc.char.arr_item_bag or []):
             if item is not None and item.item_id == ITEM_1680:
                 try:
-                    await acc.service.use_item(0, 1, i, -1)
-                    await asyncio.sleep(0.1)
-                    log_func(f"{C.GREEN}→ Đã dùng item 1680.{C.RESET}")
+                    ok = await use_item_for_master(acc, i, log_func)
+                    if ok:
+                        await asyncio.sleep(0.01)
+                        log_func(f"{C.GREEN}→ Đã dùng item 1680.{C.RESET}")
+                    else:
+                        log_func(f"{C.RED}→ Lỗi dùng item 1680.{C.RESET}")
                 except Exception as e:
                     log_func(f"{C.RED}→ Lỗi dùng item 1680: {e}{C.RESET}")
                 break

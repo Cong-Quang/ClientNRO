@@ -23,7 +23,7 @@ async def open_muri(acc, log_func) -> bool:
     if not await teleport_to_npc(acc, npc_id):
         log_func(f"{C.YELLOW}→ Không tìm thấy NPC (template={npc_id}).{C.RESET}")
         await go_home(acc, log_func)
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0.01)
         if not await teleport_to_npc(acc, npc_id):
             log_func(f"{C.RED}→ Vẫn không tìm thấy NPC.{C.RESET}")
             return False
@@ -35,7 +35,7 @@ async def open_muri(acc, log_func) -> bool:
         await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=3.0)
     except asyncio.TimeoutError:
         pass
-    await asyncio.sleep(0.1)
+    await asyncio.sleep(0.01)
 
     opts = ctrl.last_ui_options or []
     log_func(f"{C.DIM}→ Menu NPC: {opts}{C.RESET}")
@@ -138,7 +138,7 @@ async def _claim_gold(acc, log_func):
 
         if attempt > 1:
             log_func(f"{C.YELLOW}→ Retry nhận vàng lần {attempt}/3...{C.RESET}")
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.01)
 
         gold_before = getattr(acc.char, 'xu', 0)
 
@@ -146,7 +146,7 @@ async def _claim_gold(acc, log_func):
             log_func(f"{C.YELLOW}→ Không tìm thấy NPC nhà.{C.RESET}")
             continue
 
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.01)
 
         ctrl.ui_menu_event.clear()
         await acc.service.open_menu_npc(home_npc)
@@ -154,7 +154,7 @@ async def _claim_gold(acc, log_func):
             await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=3.0)
         except asyncio.TimeoutError:
             pass
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.01)
 
         opts = ctrl.last_ui_options or []
         gold_opt_idx = -1
@@ -168,11 +168,11 @@ async def _claim_gold(acc, log_func):
         if gold_opt_idx != -1:
             log_func(f"{C.DIM}→ Chọn nhận vàng ở vị trí {gold_opt_idx}.{C.RESET}")
             await acc.service.confirm_menu_npc(home_npc, gold_opt_idx)
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.01)
 
             try:
                 await acc.service.request_me_info()
-                await asyncio.sleep(0.2)
+                await asyncio.sleep(0.05)
             except Exception:
                 pass
 
@@ -205,7 +205,7 @@ async def _claim_gem(acc, npc_id, log_func):
         await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=3.0)
     except asyncio.TimeoutError:
         pass
-    await asyncio.sleep(0.1)
+    await asyncio.sleep(0.01)
 
     opts = ctrl.last_ui_options or []
     gem_opt_idx = -1
@@ -218,12 +218,12 @@ async def _claim_gem(acc, npc_id, log_func):
     if gem_opt_idx != -1:
         log_func(f"{C.DIM}→ Chọn nhận ngọc xanh ở vị trí {gem_opt_idx}.{C.RESET}")
         await acc.service.confirm_menu_npc(npc_id, gem_opt_idx)
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0.01)
         log_func(f"{C.GREEN}→ Đã nhận ngọc xanh.{C.RESET}")
     else:
         log_func(f"{C.YELLOW}→ Không tìm thấy tùy chọn ngọc, dùng option 2.{C.RESET}")
         await acc.service.confirm_menu_npc(npc_id, 2)
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0.01)
 
 
 async def _claim_disciple(acc, npc_id, log_func):
@@ -245,7 +245,7 @@ async def _claim_disciple(acc, npc_id, log_func):
         await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=3.0)
     except asyncio.TimeoutError:
         pass
-    await asyncio.sleep(0.1)
+    await asyncio.sleep(0.01)
 
     opts = ctrl.last_ui_options or []
     disciple_opt = -1
@@ -264,7 +264,7 @@ async def _claim_disciple(acc, npc_id, log_func):
         await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=3.0)
     except asyncio.TimeoutError:
         pass
-    await asyncio.sleep(0.2)
+    await asyncio.sleep(0.01)
 
     # Nếu có menu con thì chọn tiếp
     opts2 = ctrl.last_ui_options or []
@@ -276,12 +276,12 @@ async def _claim_disciple(acc, npc_id, log_func):
                 break
         if confirm_opt != -1:
             await acc.service.confirm_menu_npc(npc_id, confirm_opt)
-            await asyncio.sleep(0.2)
+            await asyncio.sleep(0.01)
 
     # Refresh trạng thái đệ tử
     try:
         await acc.service.pet_info()
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0.01)
     except Exception:
         pass
 

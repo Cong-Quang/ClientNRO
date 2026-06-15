@@ -12,7 +12,7 @@ from commands.setup.constants import (
     ITEM_UPGRADE_16_CRYSTAL, ITEM_UPGRADE_16, ITEM_12,
     ACTIVATE_ITEMS_ONCE, SET_LIEN_HOAN_ITEMS, SETS_NEEDED,
 )
-from commands.setup.inventory_helpers import count_item, count_set_lien_hoan, refresh_inventory
+from commands.setup.inventory_helpers import count_item, count_set_lien_hoan, refresh_inventory, use_item_for_master
 
 
 async def activate_items(acc, log_func) -> bool:
@@ -45,16 +45,16 @@ async def activate_items(acc, log_func) -> bool:
         for idx, item in enumerate(acc.char.arr_item_bag or []):
             if item is not None and item.item_id == item_id:
                 try:
-                    # Item 290 là cải trang → cần type=1 (đeo vào) thay vì type=0 (dùng)
+                    # Item 290 là cải trang → cần use_item(type=1) thay vì get_item(type=4)
                     if item_id == 290:
                         await acc.service.use_item(1, 1, idx, -1)
                         log_func(f"{C.GREEN}→ Đã mặc cải trang item {item_id}.{C.RESET}")
                     else:
-                        # Dùng get_item(type=4) để mặc trực tiếp cho sư phụ nếu là trang bị, 
-                        # hoặc dùng bình thường nếu là consumable.
-                        # Hầu hết ACTIVATE_ITEMS_ONCE là trang bị thưởng.
-                        await acc.service.get_item(4, idx)
-                        log_func(f"{C.GREEN}→ Đã kích hoạt/mặc item {item_id}.{C.RESET}")
+                        ok = await use_item_for_master(acc, idx, log_func)
+                        if ok:
+                            log_func(f"{C.GREEN}→ Đã kích hoạt/mặc item {item_id}.{C.RESET}")
+                        else:
+                            log_func(f"{C.RED}→ Lỗi sử dụng item {item_id}.{C.RESET}")
                 except Exception as e:
                     log_func(f"{C.RED}→ Lỗi xử lý item {item_id}: {e}{C.RESET}")
                 break
@@ -105,7 +105,7 @@ async def _activate_item_2000(acc, ctrl, log_func):
 
             if retry > 1:
                 log_func(f"{C.YELLOW}  Retry lần {retry}/3 mở item 2000...{C.RESET}")
-                await asyncio.sleep(0.2)
+                await asyncio.sleep(0.01)
                 await refresh_inventory(acc)
 
             # Tìm và dùng item 2000
@@ -127,7 +127,7 @@ async def _activate_item_2000(acc, ctrl, log_func):
             try:
                 log_func(f"{C.DIM}  Dùng item 2000 tại bag index {found_item}...{C.RESET}")
                 await acc.service.use_item(0, 1, found_item, -1)
-                await asyncio.sleep(0.4)
+                await asyncio.sleep(0.05)
 
                 try:
                     await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=3.0)
@@ -151,7 +151,7 @@ async def _activate_item_2000(acc, ctrl, log_func):
                     npc_to_use = menu_npc if menu_npc > 0 else 0
                     log_func(f"{C.DIM}    Chọn option {target_idx} với npc_id={npc_to_use}.{C.RESET}")
                     await acc.service.confirm_menu_npc(npc_to_use, target_idx)
-                    await asyncio.sleep(1.0)
+                    await asyncio.sleep(0.05)
 
                     await refresh_inventory(acc)
 

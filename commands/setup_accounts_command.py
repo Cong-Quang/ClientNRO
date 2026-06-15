@@ -95,12 +95,14 @@ class SetupAccountsCommand(Command):
             print(f"{C.RED}Lỗi: Không tìm thấy AccountManager.{C.RESET}")
             return False
 
-        if len(parts) < 3:
-            print(f"{C.YELLOW}Cú pháp: setup_accounts <start> <end> [force|reset|start_step=N]{C.RESET}")
-            print(f"  Ví dụ: {C.CYAN}setup_accounts 0 9{C.RESET}")
-            print(f"        {C.CYAN}setup_accounts 0 9 force{C.RESET}")
-            print(f"        {C.CYAN}setup_accounts 0 9 reset{C.RESET}")
-            print(f"        {C.CYAN}setup_accounts 0 9 start_step=7{C.RESET}  (chạy từ step 7)")
+        if len(parts) < 2:
+            print(f"{C.YELLOW}Cú pháp: setup_accounts <start> [end] [force|reset|start_step=N]{C.RESET}")
+            print(f"  Ví dụ: {C.CYAN}setup_accounts 7{C.RESET}           (chạy 1 acc số 7)")
+            print(f"        {C.CYAN}setup_accounts 0 9{C.RESET}         (chạy acc 0→9)")
+            print(f"        {C.CYAN}setup_accounts 7 force{C.RESET}     (force 1 acc)")
+            print(f"        {C.CYAN}setup_accounts 7 9 force{C.RESET}   (force acc 7→9)")
+            print(f"        {C.CYAN}setup_accounts 7 reset{C.RESET}     (reset trạng thái)")
+            print(f"        {C.CYAN}setup_accounts 7 9 start_step=7{C.RESET}  (chạy từ step 7)")
             print()
             print(f"  {C.BOLD}Danh sách Steps:{C.RESET}")
             for step in ALL_STEPS:
@@ -110,10 +112,18 @@ class SetupAccountsCommand(Command):
 
         try:
             start_idx = int(parts[1])
-            end_idx = int(parts[2])
         except ValueError:
-            print(f"{C.RED}Chỉ số không hợp lệ.{C.RESET}")
+            print(f"{C.RED}Chỉ số không hợp lệ: '{parts[1]}'.{C.RESET}")
             return False
+
+        # end_idx mặc định = start_idx (chỉ 1 acc)
+        end_idx = start_idx
+        for p in parts[2:]:
+            try:
+                end_idx = int(p)
+                break
+            except ValueError:
+                continue
 
         if start_idx < 0 or end_idx >= len(self.manager.accounts) or start_idx > end_idx:
             print(f"{C.RED}Khoảng không hợp lệ (0-{len(self.manager.accounts) - 1}).{C.RESET}")
@@ -122,18 +132,19 @@ class SetupAccountsCommand(Command):
         force = False
         reset_state = False
         start_step = 1
-        if len(parts) >= 4:
-            for p in parts[3:]:
-                pl = p.lower()
-                if pl in ('force', 'again', 'true', '1'):
-                    force = True
-                elif pl == 'reset':
-                    reset_state = True
-                elif pl.startswith('start_step='):
-                    try:
-                        start_step = int(pl.split('=')[1])
-                    except ValueError:
-                        pass
+        for p in parts[2:]:
+            if p.lstrip('-').isdigit():
+                continue  # số, đã xử lý ở trên
+            pl = p.lower()
+            if pl in ('force', 'again', 'true', '1'):
+                force = True
+            elif pl == 'reset':
+                reset_state = True
+            elif pl.startswith('start_step='):
+                try:
+                    start_step = int(pl.split('=')[1])
+                except ValueError:
+                    pass
 
         accounts = self.manager.accounts[start_idx:end_idx + 1]
 

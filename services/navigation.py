@@ -62,12 +62,12 @@ async def teleport_to_npc(acc, npc_id: int, y_offset: int = -3) -> bool:
     if npc_data:
         x, y = npc_data.get('x', 100), npc_data.get('y', 100)
         await acc.controller.movement.teleport_to(x, y + y_offset)
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.01)
         return True
     try:
         result = await acc.controller.movement.teleport_to_npc(npc_id, search_by_template=True)
         if result:
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.01)
             return True
     except Exception:
         pass
@@ -83,7 +83,7 @@ async def open_menu_npc(acc, npc_id: int, timeout: float = 3.0) -> list[str]:
         await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=timeout)
     except asyncio.TimeoutError:
         pass
-    await asyncio.sleep(0.2)
+    await asyncio.sleep(0.01)
     return ctrl.last_ui_options or []
 
 
@@ -99,9 +99,9 @@ async def confirm_menu_npc(acc, npc_id: int, option_idx: int,
             await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=timeout)
         except asyncio.TimeoutError:
             pass
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0.01)
         return ctrl.last_ui_options or []
-    await asyncio.sleep(0.2)
+    await asyncio.sleep(0.01)
     return []
 
 
@@ -115,12 +115,12 @@ async def open_input_form(acc, npc_id: int, option_idx: int, timeout: float = 3.
         await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=timeout)
     except asyncio.TimeoutError:
         pass
-    await asyncio.sleep(0.2)
+    await asyncio.sleep(0.01)
     ctrl.ui_menu_event.clear()
     await acc.service.confirm_menu_npc(npc_id, option_idx)
     try:
         await asyncio.wait_for(ctrl.input_form_received.wait(), timeout=timeout)
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.01)
         return True
     except asyncio.TimeoutError:
         return False
@@ -148,7 +148,7 @@ async def go_home(acc, log_func) -> bool:
         for _ in range(45):
             if not acc.is_logged_in:
                 return False
-            await asyncio.sleep(0.2)
+            await asyncio.sleep(0.05)
             if not acc.controller.xmap.is_xmapping:
                 break
             if acc.controller.tile_map.map_id == home_map:
@@ -177,7 +177,7 @@ async def move_to_map(acc, target_map_id: int, log_func) -> bool:
         for i in range(45):
             if not acc.is_logged_in:
                 return False
-            await asyncio.sleep(0.2)
+            await asyncio.sleep(0.05)
             if not ctrl.xmap.is_xmapping:
                 break
             if ctrl.tile_map.map_id == target_map_id:

@@ -12,7 +12,7 @@ from commands.setup.constants import (
     SANTA_ITEM_HO_TRO, SANTA_ITEM_USE, SANTA_NO_BAG_ITEMS,
 )
 from commands.setup.navigation_helpers import teleport_to_npc, move_to_map
-from commands.setup.inventory_helpers import count_item, refresh_inventory
+from commands.setup.inventory_helpers import count_item, refresh_inventory, use_item_for_pet
 
 
 async def santa_shop(acc, log_func) -> bool:
@@ -33,16 +33,16 @@ async def santa_shop(acc, log_func) -> bool:
     if not await teleport_to_npc(acc, NPC_SANTA):
         log_func(f"{C.YELLOW}→ Không tìm thấy Santa.{C.RESET}")
         return False
-    await asyncio.sleep(0.2)
+    await asyncio.sleep(0.01)
 
     async def _open_and_buy(tab_keywords, tab_default, items) -> bool:
         """Mở menu Santa → chọn tab → mua items."""
         for attempt in range(1, 4):
             if not await teleport_to_npc(acc, NPC_SANTA):
                 log_func(f"{C.YELLOW}  → Thử lần {attempt}/3 không tìm thấy Santa.{C.RESET}")
-                await asyncio.sleep(0.2)
+                await asyncio.sleep(0.01)
                 continue
-            await asyncio.sleep(0.2)
+            await asyncio.sleep(0.01)
 
             # Mở menu Santa
             ctrl.ui_menu_event.clear()
@@ -51,7 +51,7 @@ async def santa_shop(acc, log_func) -> bool:
                 await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=3.0)
             except asyncio.TimeoutError:
                 pass
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.01)
 
             opts = ctrl.last_ui_options or []
             shop_opt = -1
@@ -66,7 +66,7 @@ async def santa_shop(acc, log_func) -> bool:
             log_func(f"{C.DIM}  → Chọn option {shop_opt} ({opts[shop_opt] if shop_opt < len(opts) else 'default'})...{C.RESET}")
             ctrl.ui_menu_event.clear()
             await acc.service.confirm_menu_npc(NPC_SANTA, shop_opt)
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.01)
 
             # Mua items
             all_ok = True
@@ -156,10 +156,13 @@ async def santa_shop(acc, log_func) -> bool:
                     log_func(f"{C.YELLOW}    Hết item {item_id} sau {used} lần.{C.RESET}")
                     break
                 try:
-                    # Dùng item cho đệ tử: get_item(type=6)
-                    await acc.service.get_item(6, idx)
-                    used += 1
-                    await asyncio.sleep(0.1)
+                    # Dùng item cho đệ tử
+                    ok = await use_item_for_pet(acc, idx, log_func)
+                    if ok:
+                        used += 1
+                        await asyncio.sleep(0.01)
+                    else:
+                        break
                 except Exception as e:
                     log_func(f"{C.YELLOW}    Lỗi dùng item {item_id}: {e}{C.RESET}")
                     break

@@ -70,7 +70,7 @@ async def _upgrade_one_by_one(svc, acc, log_func, C, item_id, copy_idx, target_s
         if not await svc.open_combine():
             log_func(f"{C.RED}  Không mở được combine.{C.RESET}")
             attempt += 1
-            await asyncio.sleep(0.2)
+            await asyncio.sleep(0.01)
             continue
 
         mat_count_before = count_item(acc, mat_id)
@@ -90,7 +90,7 @@ async def _upgrade_one_by_one(svc, acc, log_func, C, item_id, copy_idx, target_s
             done_total += max(gained, 1)
             log_func(f"{C.DIM}    ✓ +{gained} sao (tổng {stars_after}/{target_stars}){C.RESET}")
             attempt = 0  # reset attempt counter on success
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.01)
         else:
             mat_count_after = count_item(acc, mat_id)
             if mat_count_after < mat_count_before:
@@ -98,11 +98,11 @@ async def _upgrade_one_by_one(svc, acc, log_func, C, item_id, copy_idx, target_s
                 done_total += 1
                 log_func(f"{C.DIM}    ? Nguyên liệu consumed, coi như thành công.{C.RESET}")
                 attempt = 0
-                await asyncio.sleep(0.05)
+                await asyncio.sleep(0.01)
             else:
                 attempt += 1
                 log_func(f"{C.YELLOW}    ✗ Lần {attempt} không thành công, retry...{C.RESET}")
-                await asyncio.sleep(0.2)
+                await asyncio.sleep(0.05)
 
     return done_total
 
@@ -215,7 +215,7 @@ async def _rada_combine_one(svc, acc, log_func, C, copy_idx, mat_id, mat_label, 
             
         if not tab_ok:
             log_func(f"{C.YELLOW}      Không mở được tab ở lần thử {attempt+1}/5, retry...{C.RESET}")
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.01)
             continue
 
         done = await svc.do_combine(
@@ -233,7 +233,7 @@ async def _rada_combine_one(svc, acc, log_func, C, copy_idx, mat_id, mat_label, 
             return True
         else:
             log_func(f"{C.YELLOW}      retry {attempt+1}/5 cho {mat_label}...{C.RESET}")
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.01)
 
     log_func(f"{C.RED}    ✗ {mat_label} thất bại sau 5 lần.{C.RESET}")
     return False

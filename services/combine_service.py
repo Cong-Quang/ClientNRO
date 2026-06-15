@@ -308,7 +308,7 @@ class CombineService:
         if not await teleport_to_npc(self.acc, npc_id):
             self.log(f"{C.YELLOW}→ Không tìm thấy NPC {npc_id}.{C.RESET}")
             return False
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(0.01)
 
         # Mở menu NPC
         ctrl.ui_menu_event.clear()
@@ -317,7 +317,7 @@ class CombineService:
             await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=2.0)
         except asyncio.TimeoutError:
             pass
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(0.01)
 
         opts = ctrl.last_ui_options or []
         self.log(f"{C.DIM}→ Menu NPC {npc_id}: {opts}{C.RESET}")
@@ -337,7 +337,7 @@ class CombineService:
             await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=2.0)
         except asyncio.TimeoutError:
             pass
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(0.01)
 
         opts2 = ctrl.last_ui_options or []
         self.log(f"{C.DIM}→ Sub-menu: {opts2}{C.RESET}")
@@ -460,7 +460,7 @@ class CombineService:
                 try:
                     await asyncio.wait_for(ctrl.combine_event.wait(), timeout=3.0)
                     self.log(f"{C.GREEN}→ Tab item upgrade đã mở (path {path_idx + 1}).{C.RESET}")
-                    await asyncio.sleep(0.1)
+                    await asyncio.sleep(0.01)
                     return True
                 except asyncio.TimeoutError:
                     self.log(f"{C.YELLOW}→ Timeout chờ tab combine.{C.RESET}")
@@ -473,7 +473,7 @@ class CombineService:
                     await asyncio.wait_for(ctrl.ui_menu_event.wait(), timeout=3.0)
                 except asyncio.TimeoutError:
                     pass
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(0.01)
 
                 opts2 = ctrl.last_ui_options or []
                 self.log(f"{C.DIM}  Sub-menu: {opts2}{C.RESET}")
@@ -507,7 +507,7 @@ class CombineService:
                 try:
                     await asyncio.wait_for(ctrl.combine_event.wait(), timeout=3.0)
                     self.log(f"{C.GREEN}→ Tab item upgrade đã mở (path {path_idx + 1}: {opts2[sub_idx]}).{C.RESET}")
-                    await asyncio.sleep(0.1)
+                    await asyncio.sleep(0.01)
                     return True
                 except asyncio.TimeoutError:
                     self.log(f"{C.YELLOW}→ Timeout chờ tab combine.{C.RESET}")
@@ -685,7 +685,7 @@ class CombineService:
             else:
                 self.log(f"{C.YELLOW}  ? Không xác định (sao: {stars_before}→{stars_after}).{C.RESET}")
 
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(0.005)
 
         return success
 
